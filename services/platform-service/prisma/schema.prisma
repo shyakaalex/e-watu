@@ -1,0 +1,28 @@
+// platform-service — tenant registry (EWatu §2 multi-tenancy)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id                 String    @id @default(uuid())
+  name               String
+  slug               String    @unique
+  status             String    @default("PENDING_APPROVAL")
+  plan               String?
+  country            String?   @default("RW")
+  businessEmail      String?   @map("business_email")
+  phone              String?
+  ownerUserId        String?   @map("owner_user_id")
+  emailVerifiedAt    DateTime? @map("email_verified_at")
+  rejectionReason    String?   @map("rejection_reason")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([status])
+}

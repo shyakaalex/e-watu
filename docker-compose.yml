@@ -1,0 +1,33 @@
+# Local dev: PostgreSQL + MinIO. Identity is app-owned JWT (no Keycloak).
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ewatu
+      POSTGRES_PASSWORD: ewatu_dev
+    ports:
+      - "15432:5432"
+    volumes:
+      - ewatu_pg:/var/lib/postgresql/data
+      - ./infra/docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ewatu"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ewatu
+      MINIO_ROOT_PASSWORD: ewatu_dev_minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ewatu_minio:/data
+
+volumes:
+  ewatu_pg:
+  ewatu_minio:

@@ -1,0 +1,45 @@
+What "tenant" means here
+------------------------
+An HR company that will use E-Watu (EWatu spec §2 "Tenant = subscribed HR firm").
+Only an E-Watu **platform super admin** can list and create these records — not a normal end user.
+
+Authentication (no Keycloak)
+----------------------------
+1) Docker: Postgres (port **15432**) + MinIO. **Identity** is **E-Watu identity-service** (email + password, bcrypt, JWT HS256).
+   - If your Postgres volume was created **before** `identity_db` existed, create it once:  
+     `docker compose exec postgres psql -U ewatu -d postgres -c "CREATE DATABASE identity_db;"`  
+     then run `npm run db:migrate:identity` from the repo root (or `npx prisma migrate deploy` in `services/identity-service`).
+2) **First user to register** gets role **PLATFORM_SUPER_ADMIN** automatically (dev bootstrap). Later sign-ups get **TENANT_STAFF** until you change roles in the DB or add an admin UI.
+3) **Same** `JWT_SECRET` and `JWT_ISSUER` must be set on **identity-service**, **platform-service**, **document-service**, and **notification-service** (see each `env.example`).
+4) Web: sign up / log in forms call **`POST /api/v1/auth/register`** and **`POST /api/v1/auth/login`** on identity-service; the SPA stores the access token and sends `Authorization: Bearer …` to APIs.
+
+API examples (Bearer token from login)
+--------------------------------------
+platform-service (default port **3012**):
+  GET  http://localhost:3012/api/v1/tenants  (needs PLATFORM_SUPER_ADMIN in JWT)
+  POST http://localhost:3012/api/v1/tenants
+  GET  http://localhost:3012/api/v1/platform/health
+
+identity-service (**3011**):
+  POST http://localhost:3011/api/v1/auth/register   JSON: {"email","password","displayName?"}
+  POST http://localhost:3011/api/v1/auth/login      JSON: {"email","password"}
+  GET  http://localhost:3011/api/v1/me              (Bearer)
+  GET  http://localhost:3011/api/v1/identity/health
+
+document-service (**3018**):
+  GET  http://localhost:3018/api/v1/document/health
+  POST http://localhost:3018/api/v1/document/presign
+
+notification-service (**3015**):
+  GET  http://localhost:3015/api/v1/notifications/health
+
+Web admin (Vite): `npm run dev:web` from repo root → http://localhost:5173
+
+2FA / Keycloak later
+--------------------
+TOTP or WebAuthn can be added on top of **identity-service** without changing the rest of the microservices.
+You can reintroduce Keycloak as an IdP later if you want federation; **JWT format** in `common-auth` stays the same if claims match.
+
+MinIO console: http://localhost:9001  (user ewatu / password ewatu_dev_minio)
+S3 API from your PC: http://127.0.0.1:9000
+Bucket "ewatu-dev" is auto-created when document-service starts.

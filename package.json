@@ -1,0 +1,24 @@
+{
+  "name": "ewatu-erp",
+  "private": true,
+  "description": "E-Watu HR ERP — microservices (from EWatu v1.1 spec)",
+  "scripts": {
+    "build:common-auth": "npm run build --prefix libs/common-auth",
+    "build:platform": "npm run build --prefix services/platform-service",
+    "build:identity": "npm run build --prefix services/identity-service",
+    "build:document": "npm run build --prefix services/document-service",
+    "build:notification": "npm run build --prefix services/notification-service",
+    "build:all": "npm run build:common-auth && npm run build:platform && npm run build:identity && npm run build:document && npm run build:notification",
+    "dev:platform": "npm run start:dev --prefix services/platform-service",
+    "dev:identity": "npm run start:dev --prefix services/identity-service",
+    "dev:document": "npm run start:dev --prefix services/document-service",
+    "dev:notification": "npm run start:dev --prefix services/notification-service",
+    "dev:web": "npm run dev --prefix web",
+    "build:web": "npm run build --prefix web",
+    "db:up": "docker compose up -d",
+    "db:migrate:identity": "npm run prisma:migrate --prefix services/identity-service"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
