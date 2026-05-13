@@ -13,10 +13,14 @@
     "dev:identity": "npm run start:dev --prefix services/identity-service",
     "dev:document": "npm run start:dev --prefix services/document-service",
     "dev:notification": "npm run start:dev --prefix services/notification-service",
+    "dev:recruitment": "npm run start:dev --prefix services/recruitment-service",
     "dev:web": "npm run dev --prefix web",
+    "build:recruitment": "npm run build --prefix services/recruitment-service",
     "build:web": "npm run build --prefix web",
+    "build:all": "npm run build:common-auth && npm run build:platform && npm run build:identity && npm run build:document && npm run build:notification && npm run build:recruitment",
     "db:up": "docker compose up -d",
-    "db:migrate:identity": "npm run prisma:migrate --prefix services/identity-service"
+    "db:migrate:identity": "npm run prisma:migrate --prefix services/identity-service",
+    "db:migrate:recruitment": "npm run prisma:migrate --prefix services/recruitment-service"
   },
   "engines": {
     "node": ">=20"

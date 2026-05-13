@@ -136,6 +136,22 @@ export function PlatformAdminPage() {
         </section>
       )}
 
+      {me && me.tenant_id && (
+        <section className="card">
+          <h2>Modules</h2>
+          <div className="admin__modules">
+            <Link to="/recruitment" className="admin__module-card">
+              <span className="admin__module-icon">📋</span>
+              <div>
+                <div className="admin__module-name">Recruitment & ATS</div>
+                <div className="admin__module-desc muted small">Jobs, pipeline, candidates, interviews</div>
+              </div>
+              <span className="admin__module-arrow">→</span>
+            </Link>
+          </div>
+        </section>
+      )}
+
       {err && (
         <div className="alert alert--err">
           <strong>Error</strong>
