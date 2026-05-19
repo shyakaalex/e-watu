@@ -4,7 +4,9 @@ import {
   createApplication,
   fetchCandidates,
   fetchJobPipeline,
+  jobExportUrl,
   moveApplicationStage,
+  bulkMoveStage,
   updateJob,
   type Application,
   type ApplicationStage,
@@ -15,34 +17,39 @@ import {
 
 const STAGES: ApplicationStage[] = [
   'APPLIED',
-  'SCREENING',
-  'INTERVIEW',
-  'OFFER',
-  'HIRED',
+  'SCREENED',
+  'SHORTLISTED',
+  'INTERVIEWED',
+  'OFFERED',
+  'PLACED',
   'REJECTED',
 ];
 
 const STAGE_LABELS: Record<ApplicationStage, string> = {
   APPLIED: 'Applied',
-  SCREENING: 'Screening',
-  INTERVIEW: 'Interview',
-  OFFER: 'Offer',
-  HIRED: 'Hired',
+  SCREENED: 'Screened',
+  SHORTLISTED: 'Shortlisted',
+  INTERVIEWED: 'Interviewed',
+  OFFERED: 'Offered',
+  PLACED: 'Placed',
   REJECTED: 'Rejected',
 };
 
 const STAGE_CLASS: Record<ApplicationStage, string> = {
   APPLIED: 'pipeline-col--applied',
-  SCREENING: 'pipeline-col--screening',
-  INTERVIEW: 'pipeline-col--interview',
-  OFFER: 'pipeline-col--offer',
-  HIRED: 'pipeline-col--hired',
+  SCREENED: 'pipeline-col--screening',
+  SHORTLISTED: 'pipeline-col--shortlisted',
+  INTERVIEWED: 'pipeline-col--interview',
+  OFFERED: 'pipeline-col--offer',
+  PLACED: 'pipeline-col--hired',
   REJECTED: 'pipeline-col--rejected',
 };
 
-const JOB_STATUS_NEXT: Partial<Record<JobStatus, JobStatus>> = {
-  DRAFT: 'OPEN',
-  OPEN: 'CLOSED',
+const JOB_STATUS_FLOW: Partial<Record<JobStatus, { next: JobStatus; label: string }>> = {
+  DRAFT: { next: 'OPEN', label: 'Publish' },
+  OPEN: { next: 'IN_PROGRESS', label: 'Mark In Progress' },
+  IN_PROGRESS: { next: 'ON_HOLD', label: 'Put on Hold' },
+  ON_HOLD: { next: 'OPEN', label: 'Reopen' },
 };
 
 export function JobPipelinePage() {
@@ -57,6 +64,20 @@ export function JobPipelinePage() {
   const [addBusy, setAddBusy] = useState(false);
   const [addErr, setAddErr] = useState<string | null>(null);
   const [candidateSearch, setCandidateSearch] = useState('');
+
+  // Rejection dialog
+  const [rejectApp, setRejectApp] = useState<Application | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectBusy, setRejectBusy] = useState(false);
+
+  // Bulk selection
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkStage, setBulkStage] = useState<ApplicationStage>('SCREENED');
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  // Filter
+  const [stageFilter, setStageFilter] = useState<ApplicationStage | ''>('');
+  const [searchQ, setSearchQ] = useState('');
 
   const load = useCallback(async () => {
     if (!jobId) return;
@@ -102,6 +123,11 @@ export function JobPipelinePage() {
   };
 
   const onMoveStage = async (app: Application, newStage: ApplicationStage) => {
+    if (newStage === 'REJECTED') {
+      setRejectApp(app);
+      setRejectionReason('');
+      return;
+    }
     setErr(null);
     try {
       await moveApplicationStage(app.id, newStage);
@@ -111,12 +137,50 @@ export function JobPipelinePage() {
     }
   };
 
+  const onConfirmReject = async (ev: FormEvent) => {
+    ev.preventDefault();
+    if (!rejectApp) return;
+    setRejectBusy(true);
+    try {
+      await moveApplicationStage(rejectApp.id, 'REJECTED', undefined, rejectionReason || undefined);
+      setRejectApp(null);
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRejectBusy(false);
+    }
+  };
+
+  const onToggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const onBulkMove = async () => {
+    if (selected.size === 0) return;
+    setBulkBusy(true);
+    try {
+      await bulkMoveStage([...selected], bulkStage);
+      setSelected(new Set());
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   const onToggleJobStatus = async () => {
     if (!data) return;
-    const next = JOB_STATUS_NEXT[data.job.status];
-    if (!next) return;
+    const flow = JOB_STATUS_FLOW[data.job.status];
+    if (!flow) return;
     try {
-      await updateJob(data.job.id, { status: next });
+      await updateJob(data.job.id, { status: flow.next });
       await load();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -124,7 +188,7 @@ export function JobPipelinePage() {
   };
 
   if (loading) return <div className="rec-page"><p className="muted">Loading pipeline…</p></div>;
-  if (err) return <div className="rec-page"><div className="alert alert--err">{err}</div></div>;
+  if (err && !data) return <div className="rec-page"><div className="alert alert--err">{err}</div></div>;
   if (!data) return null;
 
   const { job, pipeline } = data;
@@ -140,6 +204,8 @@ export function JobPipelinePage() {
     );
   });
 
+  const visibleStages = stageFilter ? [stageFilter] : STAGES;
+
   return (
     <div className="rec-page rec-page--pipeline">
       <div className="rec-page__header">
@@ -149,20 +215,36 @@ export function JobPipelinePage() {
           </div>
           <h1 className="rec-page__title">{job.title}</h1>
           <div className="rec-job-meta-row">
-            {job.department && <span className="muted small">{job.department}</span>}
+            {job.clientName && <span className="muted small">{job.clientName}</span>}
+            {job.department && <span className="muted small">· {job.department}</span>}
             {job.location && <span className="muted small">· {job.location}</span>}
-            <span className={`badge ${job.status === 'OPEN' ? 'badge--green' : job.status === 'DRAFT' ? 'badge--gray' : 'badge--red'}`}>
-              {job.status}
+            <span className={`badge ${job.status === 'OPEN' || job.status === 'IN_PROGRESS' ? 'badge--green' : job.status === 'DRAFT' ? 'badge--gray' : 'badge--red'}`}>
+              {job.status.replace('_', ' ')}
             </span>
+            {job.priority !== 'STANDARD' && (
+              <span className={`badge ${job.priority === 'EXECUTIVE' ? 'badge--purple' : 'badge--orange'}`}>
+                {job.priority}
+              </span>
+            )}
             <span className="muted small">{totalApps} applicant{totalApps !== 1 ? 's' : ''}</span>
+            {job.deadline && (
+              <span className="muted small">· Deadline: {new Date(job.deadline).toLocaleDateString()}</span>
+            )}
           </div>
         </div>
         <div className="rec-page__actions">
-          {JOB_STATUS_NEXT[job.status] && (
+          {JOB_STATUS_FLOW[job.status] && (
             <button className="btn" onClick={onToggleJobStatus}>
-              {job.status === 'DRAFT' ? 'Publish' : 'Close job'}
+              {JOB_STATUS_FLOW[job.status]!.label}
             </button>
           )}
+          <a
+            className="btn btn--ghost"
+            href={jobExportUrl(job.id)}
+            download={`pipeline-${job.id}.csv`}
+          >
+            Export CSV
+          </a>
           <button className="btn btn--primary" onClick={onOpenAddForm}>
             + Add candidate
           </button>
@@ -170,6 +252,50 @@ export function JobPipelinePage() {
       </div>
 
       {err && <div className="alert alert--err">{err}</div>}
+
+      {/* Filters + bulk bar */}
+      <div className="pipeline-toolbar">
+        <div className="pipeline-toolbar__filters">
+          <input
+            className="auth-input pipeline-search"
+            placeholder="Search by name or email…"
+            value={searchQ}
+            onChange={(e) => setSearchQ(e.target.value)}
+          />
+          <select
+            className="auth-input"
+            value={stageFilter}
+            onChange={(e) => setStageFilter(e.target.value as ApplicationStage | '')}
+            style={{ width: 'auto' }}
+          >
+            <option value="">All stages</option>
+            {STAGES.map((s) => (
+              <option key={s} value={s}>{STAGE_LABELS[s]}</option>
+            ))}
+          </select>
+        </div>
+        {selected.size > 0 && (
+          <div className="pipeline-toolbar__bulk">
+            <span className="muted small">{selected.size} selected</span>
+            <select
+              className="auth-input"
+              value={bulkStage}
+              onChange={(e) => setBulkStage(e.target.value as ApplicationStage)}
+              style={{ width: 'auto' }}
+            >
+              {STAGES.filter((s) => s !== 'REJECTED').map((s) => (
+                <option key={s} value={s}>{STAGE_LABELS[s]}</option>
+              ))}
+            </select>
+            <button className="btn btn--primary" onClick={onBulkMove} disabled={bulkBusy}>
+              {bulkBusy ? 'Moving…' : 'Move all'}
+            </button>
+            <button className="btn btn--ghost" onClick={() => setSelected(new Set())}>
+              Clear
+            </button>
+          </div>
+        )}
+      </div>
 
       {showAddForm && (
         <div className="card rec-form-card">
@@ -211,11 +337,7 @@ export function JobPipelinePage() {
               <button className="btn btn--primary" type="submit" disabled={addBusy || !selectedCandidate}>
                 {addBusy ? 'Adding…' : 'Add to pipeline'}
               </button>
-              <button
-                className="btn btn--ghost"
-                type="button"
-                onClick={() => { setShowAddForm(false); setCandidateSearch(''); }}
-              >
+              <button className="btn btn--ghost" type="button" onClick={() => { setShowAddForm(false); setCandidateSearch(''); }}>
                 Cancel
               </button>
             </div>
@@ -223,9 +345,59 @@ export function JobPipelinePage() {
         </div>
       )}
 
+      {/* Rejection dialog */}
+      {rejectApp && (
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <h3 className="modal-card__title">Reject candidate</h3>
+            <p className="muted small">
+              {rejectApp.candidate.firstName} {rejectApp.candidate.lastName} — {rejectApp.job.title}
+            </p>
+            <form onSubmit={onConfirmReject}>
+              <label className="rec-form__label" style={{ marginTop: 12 }}>
+                Disqualification reason
+                <select
+                  className="auth-input"
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                >
+                  <option value="">— select reason —</option>
+                  <option value="Overqualified">Overqualified</option>
+                  <option value="Underqualified">Underqualified</option>
+                  <option value="Salary mismatch">Salary mismatch</option>
+                  <option value="Location mismatch">Location mismatch</option>
+                  <option value="Position filled">Position filled</option>
+                  <option value="Cultural fit">Cultural fit</option>
+                  <option value="Failed assessment">Failed assessment</option>
+                  <option value="Withdrew">Candidate withdrew</option>
+                  <option value="Other">Other</option>
+                </select>
+              </label>
+              <div className="rec-form__actions" style={{ marginTop: 16 }}>
+                <button className="btn btn--danger" type="submit" disabled={rejectBusy}>
+                  {rejectBusy ? 'Rejecting…' : 'Confirm rejection'}
+                </button>
+                <button className="btn btn--ghost" type="button" onClick={() => setRejectApp(null)}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="pipeline-board">
-        {STAGES.map((stage) => {
-          const apps: Application[] = pipeline[stage] ?? [];
+        {visibleStages.map((stage) => {
+          const allApps: Application[] = pipeline[stage] ?? [];
+          const apps = allApps.filter((app) => {
+            if (!searchQ) return true;
+            const q = searchQ.toLowerCase();
+            return (
+              app.candidate.firstName.toLowerCase().includes(q) ||
+              app.candidate.lastName.toLowerCase().includes(q) ||
+              app.candidate.email.toLowerCase().includes(q)
+            );
+          });
           return (
             <div key={stage} className={`pipeline-col ${STAGE_CLASS[stage]}`}>
               <div className="pipeline-col__header">
@@ -238,6 +410,8 @@ export function JobPipelinePage() {
                     key={app.id}
                     app={app}
                     currentStage={stage}
+                    selected={selected.has(app.id)}
+                    onToggleSelect={onToggleSelect}
                     onMove={onMoveStage}
                   />
                 ))}
@@ -256,17 +430,29 @@ export function JobPipelinePage() {
 function PipelineCard({
   app,
   currentStage,
+  selected,
+  onToggleSelect,
   onMove,
 }: {
   app: Application;
   currentStage: ApplicationStage;
+  selected: boolean;
+  onToggleSelect: (id: string) => void;
   onMove: (app: Application, stage: ApplicationStage) => void;
 }) {
   const [showMove, setShowMove] = useState(false);
   const otherStages = STAGES.filter((s) => s !== currentStage);
 
   return (
-    <div className="app-card">
+    <div className={`app-card${selected ? ' app-card--selected' : ''}`}>
+      <div className="app-card__check">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect(app.id)}
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
       <div className="app-card__name">
         {app.candidate.firstName} {app.candidate.lastName}
       </div>
@@ -274,16 +460,20 @@ function PipelineCard({
       {app.candidate.currentTitle && (
         <div className="app-card__title muted small">{app.candidate.currentTitle}</div>
       )}
+      <div className="app-card__meta muted small">
+        {app.source !== 'MANUAL' && <span className="tag">{app.source.replace(/_/g, ' ')}</span>}
+      </div>
       {app.interviews && app.interviews.length > 0 && (
         <div className="app-card__interviews small">
           {app.interviews.length} interview{app.interviews.length !== 1 ? 's' : ''}
         </div>
       )}
+      {app.rejectionReason && (
+        <div className="app-card__rejection muted small">Reason: {app.rejectionReason}</div>
+      )}
       <div className="app-card__footer">
-        <button
-          className="btn btn--ghost app-card__move-btn"
-          onClick={() => setShowMove((v) => !v)}
-        >
+        <span className="muted small">{new Date(app.createdAt).toLocaleDateString()}</span>
+        <button className="btn btn--ghost app-card__move-btn" onClick={() => setShowMove((v) => !v)}>
           Move ▾
         </button>
         {showMove && (
@@ -291,7 +481,7 @@ function PipelineCard({
             {otherStages.map((s) => (
               <button
                 key={s}
-                className="app-card__move-option"
+                className={`app-card__move-option${s === 'REJECTED' ? ' app-card__move-option--danger' : ''}`}
                 onClick={() => { setShowMove(false); onMove(app, s); }}
               >
                 → {STAGE_LABELS[s]}

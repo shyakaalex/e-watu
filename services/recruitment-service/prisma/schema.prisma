@@ -1,4 +1,4 @@
-// recruitment-service — jobs, candidates, applications, interviews
+// recruitment-service — jobs, candidates, applications, interviews, offers, placements
 
 generator client {
   provider = "prisma-client-js"
@@ -10,22 +10,31 @@ datasource db {
 }
 
 model Job {
-  id          String    @id @default(uuid())
-  tenantId    String    @map("tenant_id")
-  title       String
-  description String?
-  department  String?
-  location    String?
-  type        String    @default("FULL_TIME")
-  status      String    @default("DRAFT")
-  salaryMin   Int?      @map("salary_min")
-  salaryMax   Int?      @map("salary_max")
-  currency    String    @default("RWF")
-  headcount   Int       @default(1)
-  postedAt    DateTime? @map("posted_at")
-  closedAt    DateTime? @map("closed_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id             String    @id @default(uuid())
+  tenantId       String    @map("tenant_id")
+  title          String
+  description    String?
+  department     String?
+  location       String?
+  type           String    @default("FULL_TIME")
+  status         String    @default("DRAFT")
+  priority       String    @default("STANDARD")
+  salaryMin      Int?      @map("salary_min")
+  salaryMax      Int?      @map("salary_max")
+  currency       String    @default("RWF")
+  headcount      Int       @default(1)
+  deadline       DateTime?
+  requiredSkills String[]  @default([]) @map("required_skills")
+  qualifications String?
+  clientId       String?   @map("client_id")
+  clientName     String?   @map("client_name")
+  consultantId   String?   @map("consultant_id")
+  feeType        String?   @map("fee_type")
+  feeValue       Float?    @map("fee_value")
+  postedAt       DateTime? @map("posted_at")
+  closedAt       DateTime? @map("closed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   applications Application[]
 
@@ -44,7 +53,7 @@ model Candidate {
   cvUrl        String?  @map("cv_url")
   linkedinUrl  String?  @map("linkedin_url")
   currentTitle String?  @map("current_title")
-  source       String   @default("DIRECT")
+  source       String   @default("MANUAL")
   notes        String?
   tags         String[]
   createdAt    DateTime @default(now()) @map("created_at")
@@ -58,24 +67,45 @@ model Candidate {
 }
 
 model Application {
-  id          String   @id @default(uuid())
-  tenantId    String   @map("tenant_id")
-  jobId       String   @map("job_id")
-  candidateId String   @map("candidate_id")
-  stage       String   @default("APPLIED")
-  notes       String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  jobId           String   @map("job_id")
+  candidateId     String   @map("candidate_id")
+  stage           String   @default("APPLIED")
+  notes           String?
+  rejectionReason String?  @map("rejection_reason")
+  source          String   @default("MANUAL")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
-  job        Job        @relation(fields: [jobId], references: [id])
-  candidate  Candidate  @relation(fields: [candidateId], references: [id])
-  interviews Interview[]
+  job          Job            @relation(fields: [jobId], references: [id])
+  candidate    Candidate      @relation(fields: [candidateId], references: [id])
+  interviews   Interview[]
+  stageHistory StageHistory[]
+  offers       Offer[]
 
   @@unique([tenantId, jobId, candidateId])
   @@index([tenantId])
   @@index([jobId])
   @@index([candidateId])
   @@map("applications")
+}
+
+model StageHistory {
+  id            String   @id @default(uuid())
+  tenantId      String   @map("tenant_id")
+  applicationId String   @map("application_id")
+  fromStage     String?  @map("from_stage")
+  toStage       String   @map("to_stage")
+  changedBy     String   @map("changed_by")
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  application Application @relation(fields: [applicationId], references: [id])
+
+  @@index([tenantId])
+  @@index([applicationId])
+  @@map("stage_history")
 }
 
 model Interview {
@@ -86,14 +116,87 @@ model Interview {
   durationMin    Int      @default(60) @map("duration_min")
   type           String   @default("VIDEO")
   interviewerIds String[] @map("interviewer_ids")
+  locationOrLink String?  @map("location_or_link")
   status         String   @default("SCHEDULED")
+  outcome        String?
   feedback       String?
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  application Application @relation(fields: [applicationId], references: [id])
+  application Application          @relation(fields: [applicationId], references: [id])
+  scorecards  InterviewScorecard[]
 
   @@index([tenantId])
   @@index([applicationId])
   @@map("interviews")
+}
+
+model InterviewScorecard {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  interviewId String   @map("interview_id")
+  competency  String
+  score       Int
+  notes       String?
+  submittedBy String   @map("submitted_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  interview Interview @relation(fields: [interviewId], references: [id])
+
+  @@index([tenantId])
+  @@index([interviewId])
+  @@map("interview_scorecards")
+}
+
+model Offer {
+  id              String    @id @default(uuid())
+  tenantId        String    @map("tenant_id")
+  applicationId   String    @map("application_id")
+  jobId           String    @map("job_id")
+  candidateId     String    @map("candidate_id")
+  salary          Float
+  currency        String    @default("RWF")
+  startDate       DateTime? @map("start_date")
+  probationDays   Int       @default(90) @map("probation_days")
+  status          String    @default("DRAFT")
+  offerLetterUrl  String?   @map("offer_letter_url")
+  signatureStatus String?   @map("signature_status")
+  counterNotes    String?   @map("counter_notes")
+  createdBy       String    @map("created_by")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  application Application @relation(fields: [applicationId], references: [id])
+  placement   Placement?
+
+  @@index([tenantId])
+  @@index([applicationId])
+  @@index([jobId])
+  @@index([candidateId])
+  @@map("offers")
+}
+
+model Placement {
+  id            String   @id @default(uuid())
+  tenantId      String   @map("tenant_id")
+  offerId       String   @unique @map("offer_id")
+  jobId         String   @map("job_id")
+  candidateId   String   @map("candidate_id")
+  clientId      String?  @map("client_id")
+  clientName    String?  @map("client_name")
+  roleName      String   @map("role_name")
+  startDate     DateTime @map("start_date")
+  salary        Float
+  currency      String   @default("RWF")
+  reportingLine String?  @map("reporting_line")
+  consultantId  String?  @map("consultant_id")
+  invoiceStatus String   @default("PENDING") @map("invoice_status")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  offer Offer @relation(fields: [offerId], references: [id])
+
+  @@index([tenantId])
+  @@index([jobId])
+  @@index([candidateId])
+  @@map("placements")
 }

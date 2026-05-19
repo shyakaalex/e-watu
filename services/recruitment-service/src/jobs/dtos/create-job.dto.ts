@@ -1,6 +1,8 @@
 import {
+  IsArray,
   IsEnum,
   IsInt,
+  IsNumber,
   IsOptional,
   IsPositive,
   IsString,
@@ -18,8 +20,22 @@ export enum JobType {
 export enum JobStatus {
   DRAFT = 'DRAFT',
   OPEN = 'OPEN',
-  CLOSED = 'CLOSED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  ON_HOLD = 'ON_HOLD',
   FILLED = 'FILLED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum JobPriority {
+  STANDARD = 'STANDARD',
+  URGENT = 'URGENT',
+  EXECUTIVE = 'EXECUTIVE',
+}
+
+export enum FeeType {
+  PERCENTAGE = 'PERCENTAGE',
+  FLAT_FEE = 'FLAT_FEE',
+  MONTHLY_RETAINER = 'MONTHLY_RETAINER',
 }
 
 export class CreateJobDto {
@@ -50,6 +66,10 @@ export class CreateJobDto {
   status?: JobStatus;
 
   @IsOptional()
+  @IsEnum(JobPriority)
+  priority?: JobPriority;
+
+  @IsOptional()
   @IsInt()
   @Min(0)
   salaryMin?: number;
@@ -68,4 +88,39 @@ export class CreateJobDto {
   @IsInt()
   @IsPositive()
   headcount?: number;
+
+  @IsOptional()
+  @IsString()
+  deadline?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  requiredSkills?: string[];
+
+  @IsOptional()
+  @IsString()
+  qualifications?: string;
+
+  @IsOptional()
+  @IsString()
+  clientId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  clientName?: string;
+
+  @IsOptional()
+  @IsString()
+  consultantId?: string;
+
+  @IsOptional()
+  @IsEnum(FeeType)
+  feeType?: FeeType;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  feeValue?: number;
 }

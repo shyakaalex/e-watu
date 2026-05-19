@@ -14,13 +14,16 @@
     "dev:document": "npm run start:dev --prefix services/document-service",
     "dev:notification": "npm run start:dev --prefix services/notification-service",
     "dev:recruitment": "npm run start:dev --prefix services/recruitment-service",
+    "dev:talent-pool": "npm run start:dev --prefix services/talent-pool-service",
     "dev:web": "npm run dev --prefix web",
     "build:recruitment": "npm run build --prefix services/recruitment-service",
+    "build:talent-pool": "npm run build --prefix services/talent-pool-service",
     "build:web": "npm run build --prefix web",
-    "build:all": "npm run build:common-auth && npm run build:platform && npm run build:identity && npm run build:document && npm run build:notification && npm run build:recruitment",
+    "build:all": "npm run build:common-auth && npm run build:platform && npm run build:identity && npm run build:document && npm run build:notification && npm run build:recruitment && npm run build:talent-pool",
     "db:up": "docker compose up -d",
     "db:migrate:identity": "npm run prisma:migrate --prefix services/identity-service",
-    "db:migrate:recruitment": "npm run prisma:migrate --prefix services/recruitment-service"
+    "db:migrate:recruitment": "npm run prisma:migrate --prefix services/recruitment-service",
+    "db:migrate:talent-pool": "npm run prisma:migrate --prefix services/talent-pool-service"
   },
   "engines": {
     "node": ">=20"

@@ -8,13 +8,16 @@ import {
   IsPositive,
   IsString,
   IsUUID,
+  Max,
+  Min,
 } from 'class-validator';
 
 export enum InterviewType {
   PHONE = 'PHONE',
   VIDEO = 'VIDEO',
-  ONSITE = 'ONSITE',
+  IN_PERSON = 'IN_PERSON',
   PANEL = 'PANEL',
+  TECHNICAL = 'TECHNICAL',
 }
 
 export class CreateInterviewDto {
@@ -41,5 +44,23 @@ export class CreateInterviewDto {
 
   @IsOptional()
   @IsString()
+  locationOrLink?: string;
+
+  @IsOptional()
+  @IsString()
   feedback?: string;
+}
+
+export class CreateScorecardDto {
+  @IsString()
+  competency: string;
+
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  score: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }

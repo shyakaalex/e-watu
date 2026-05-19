@@ -7,6 +7,8 @@ import { JobsModule } from './jobs/jobs.module';
 import { CandidatesModule } from './candidates/candidates.module';
 import { ApplicationsModule } from './applications/applications.module';
 import { InterviewsModule } from './interviews/interviews.module';
+import { OffersModule } from './offers/offers.module';
+import { PlacementsModule } from './placements/placements.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { InterviewsModule } from './interviews/interviews.module';
     CandidatesModule,
     ApplicationsModule,
     InterviewsModule,
+    OffersModule,
+    PlacementsModule,
   ],
 })
 export class AppModule {}

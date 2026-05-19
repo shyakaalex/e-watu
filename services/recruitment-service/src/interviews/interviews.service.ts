@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import type { CreateInterviewDto } from './dtos/create-interview.dto';
+import type { CreateInterviewDto, CreateScorecardDto } from './dtos/create-interview.dto';
 import type { UpdateInterviewDto } from './dtos/update-interview.dto';
 
 @Injectable()
@@ -19,6 +19,7 @@ export class InterviewsService {
       },
       include: {
         application: { include: { candidate: true, job: true } },
+        scorecards: { orderBy: { createdAt: 'asc' } },
       },
       orderBy: { scheduledAt: 'asc' },
     });
@@ -27,7 +28,10 @@ export class InterviewsService {
   async findOne(tenantId: string, id: string) {
     const interview = await this.prisma.interview.findUnique({
       where: { id },
-      include: { application: { include: { candidate: true, job: true } } },
+      include: {
+        application: { include: { candidate: true, job: true } },
+        scorecards: { orderBy: { createdAt: 'asc' } },
+      },
     });
     if (!interview || interview.tenantId !== tenantId) {
       throw new NotFoundException('Interview not found');
@@ -50,10 +54,14 @@ export class InterviewsService {
         durationMin: dto.durationMin ?? 60,
         type: dto.type ?? 'VIDEO',
         interviewerIds: dto.interviewerIds ?? [],
+        locationOrLink: dto.locationOrLink ?? null,
         status: 'SCHEDULED',
         feedback: dto.feedback ?? null,
       },
-      include: { application: { include: { candidate: true, job: true } } },
+      include: {
+        application: { include: { candidate: true, job: true } },
+        scorecards: true,
+      },
     });
   }
 
@@ -67,14 +75,71 @@ export class InterviewsService {
     if (dto.durationMin !== undefined) data.durationMin = dto.durationMin;
     if (dto.type !== undefined) data.type = dto.type;
     if (dto.interviewerIds !== undefined) data.interviewerIds = dto.interviewerIds;
+    if (dto.locationOrLink !== undefined) data.locationOrLink = dto.locationOrLink;
     if (dto.status !== undefined) data.status = dto.status;
+    if (dto.outcome !== undefined) data.outcome = dto.outcome;
     if (dto.feedback !== undefined) data.feedback = dto.feedback;
 
     return this.prisma.interview.update({
       where: { id },
       data,
-      include: { application: { include: { candidate: true, job: true } } },
+      include: {
+        application: { include: { candidate: true, job: true } },
+        scorecards: { orderBy: { createdAt: 'asc' } },
+      },
     });
+  }
+
+  async addScorecard(
+    tenantId: string,
+    interviewId: string,
+    dto: CreateScorecardDto,
+    submittedBy: string,
+  ) {
+    const interview = await this.prisma.interview.findUnique({ where: { id: interviewId } });
+    if (!interview || interview.tenantId !== tenantId) {
+      throw new NotFoundException('Interview not found');
+    }
+    return this.prisma.interviewScorecard.create({
+      data: {
+        tenantId,
+        interviewId,
+        competency: dto.competency,
+        score: dto.score,
+        notes: dto.notes ?? null,
+        submittedBy,
+      },
+    });
+  }
+
+  async getScorecards(tenantId: string, interviewId: string) {
+    const interview = await this.prisma.interview.findUnique({ where: { id: interviewId } });
+    if (!interview || interview.tenantId !== tenantId) {
+      throw new NotFoundException('Interview not found');
+    }
+    const scorecards = await this.prisma.interviewScorecard.findMany({
+      where: { interviewId },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const byCompetency: Record<string, { scores: number[]; avg: number }> = {};
+    for (const s of scorecards) {
+      if (!byCompetency[s.competency]) byCompetency[s.competency] = { scores: [], avg: 0 };
+      byCompetency[s.competency].scores.push(s.score);
+    }
+    for (const key of Object.keys(byCompetency)) {
+      const arr = byCompetency[key].scores;
+      byCompetency[key].avg = Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10;
+    }
+
+    const overallAvg =
+      scorecards.length > 0
+        ? Math.round(
+            (scorecards.reduce((s, c) => s + c.score, 0) / scorecards.length) * 10,
+          ) / 10
+        : null;
+
+    return { scorecards, byCompetency, overallAvg };
   }
 
   requireTenant(tenantId?: string): string {

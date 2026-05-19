@@ -9,6 +9,14 @@ export enum InterviewStatus {
   NO_SHOW = 'NO_SHOW',
 }
 
+export enum InterviewOutcome {
+  ADVANCE = 'ADVANCE',
+  HOLD = 'HOLD',
+  SECOND_ROUND = 'SECOND_ROUND',
+  OFFER = 'OFFER',
+  REJECT = 'REJECT',
+}
+
 export class UpdateInterviewDto extends PartialType(CreateInterviewDto) {
   @IsOptional()
   @IsEnum(InterviewStatus)
@@ -17,4 +25,8 @@ export class UpdateInterviewDto extends PartialType(CreateInterviewDto) {
   @IsOptional()
   @IsString()
   feedback?: string;
+
+  @IsOptional()
+  @IsEnum(InterviewOutcome)
+  outcome?: InterviewOutcome;
 }

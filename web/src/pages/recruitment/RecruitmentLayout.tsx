@@ -36,6 +36,24 @@ export function RecruitmentLayout() {
             <span className="rec-nav__icon">🗓</span>
             Interviews
           </NavLink>
+          <NavLink
+            to="/recruitment/offers"
+            className={({ isActive }) =>
+              `rec-nav__link${isActive ? ' rec-nav__link--active' : ''}`
+            }
+          >
+            <span className="rec-nav__icon">📄</span>
+            Offers
+          </NavLink>
+          <NavLink
+            to="/recruitment/placements"
+            className={({ isActive }) =>
+              `rec-nav__link${isActive ? ' rec-nav__link--active' : ''}`
+            }
+          >
+            <span className="rec-nav__icon">✅</span>
+            Placements
+          </NavLink>
         </nav>
       </aside>
       <main className="rec-main">

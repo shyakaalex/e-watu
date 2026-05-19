@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { AuthUser, CurrentUser, JwtAuthGuard } from '@ewatu/common-auth';
@@ -20,9 +21,13 @@ export class JobsController {
   constructor(private readonly jobs: JobsService) {}
 
   @Get()
-  list(@CurrentUser() user: AuthUser, @Query('status') status?: string) {
+  list(
+    @CurrentUser() user: AuthUser,
+    @Query('status') status?: string,
+    @Query('priority') priority?: string,
+  ) {
     const tid = this.jobs.requireTenant(user.tenant_id);
-    return this.jobs.findAll(tid, status);
+    return this.jobs.findAll(tid, status, priority);
   }
 
   @Get(':id')
@@ -35,6 +40,26 @@ export class JobsController {
   pipeline(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     const tid = this.jobs.requireTenant(user.tenant_id);
     return this.jobs.pipeline(tid, id);
+  }
+
+  @Get(':id/metrics')
+  metrics(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    const tid = this.jobs.requireTenant(user.tenant_id);
+    return this.jobs.metrics(tid, id);
+  }
+
+  @Get(':id/export')
+  async export(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    @Res() res: any,
+  ) {
+    const tid = this.jobs.requireTenant(user.tenant_id);
+    const csv = await this.jobs.exportCsv(tid, id);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="pipeline-${id}.csv"`);
+    res.send(csv);
   }
 
   @Post()

@@ -9,7 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthUser, CurrentUser, JwtAuthGuard } from '@ewatu/common-auth';
-import { CreateInterviewDto } from './dtos/create-interview.dto';
+import { CreateInterviewDto, CreateScorecardDto } from './dtos/create-interview.dto';
 import { UpdateInterviewDto } from './dtos/update-interview.dto';
 import { InterviewsService } from './interviews.service';
 
@@ -33,10 +33,26 @@ export class InterviewsController {
     return this.interviews.findOne(tid, id);
   }
 
+  @Get(':id/scorecards')
+  scorecards(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    const tid = this.interviews.requireTenant(user.tenant_id);
+    return this.interviews.getScorecards(tid, id);
+  }
+
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() body: CreateInterviewDto) {
     const tid = this.interviews.requireTenant(user.tenant_id);
     return this.interviews.create(tid, body);
+  }
+
+  @Post(':id/scorecards')
+  addScorecard(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() body: CreateScorecardDto,
+  ) {
+    const tid = this.interviews.requireTenant(user.tenant_id);
+    return this.interviews.addScorecard(tid, id, body, user.sub);
   }
 
   @Patch(':id')

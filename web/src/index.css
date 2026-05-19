@@ -1871,3 +1871,245 @@ code {
   color: var(--accent);
   font-weight: 700;
 }
+
+/* ═══════════════════════════════════════════════════════
+   TALENT POOL MODULE
+   ═══════════════════════════════════════════════════════ */
+
+/* —— Pools grid —— */
+.tp-pools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.tp-pool-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.tp-pool-card:hover {
+  box-shadow: 0 4px 16px rgba(15,23,42,0.08);
+  border-color: var(--accent);
+}
+
+.tp-pool-card__name {
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin-bottom: 0.2rem;
+}
+
+.tp-pool-card__desc {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.tp-pool-card__count {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.tp-pool-card__count-num {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.tp-pool-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.tp-pool-card__footer {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+/* —— Pool members —— */
+.tp-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.tp-member-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.tp-member-card__main {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.tp-member-card__avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  font-weight: 700;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tp-member-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.tp-member-card__name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.tp-member-card__skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+}
+
+.tp-member-card__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+  min-width: 100px;
+}
+
+.tp-member-card__score {
+  display: flex;
+  align-items: baseline;
+  gap: 0.2rem;
+}
+
+.tp-member-card__score-num {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.tp-member-card__notes {
+  max-width: 180px;
+  text-align: right;
+  font-style: italic;
+}
+
+.tp-member-card__actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.tp-member-card__edit {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+/* —— Filter bar —— */
+.tp-filter-bar {
+  margin-bottom: 1.25rem;
+}
+
+.tp-filter-bar__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.65rem;
+}
+
+/* —— Saved searches —— */
+.tp-searches-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.tp-search-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.tp-search-card__name {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.tp-search-card__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.tp-search-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.tp-search-card__results {
+  margin-top: 0.85rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.85rem;
+}
+
+.tp-search-card__result-count {
+  margin-bottom: 0.5rem;
+}
+
+.tp-search-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.tp-search-result-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  flex-wrap: wrap;
+}
+
+.tp-search-result-row__name {
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.tp-search-result-row__skills {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.small-avatar {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 0.78rem !important;
+}

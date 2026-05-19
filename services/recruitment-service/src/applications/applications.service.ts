@@ -33,6 +33,8 @@ export class ApplicationsService {
         candidate: true,
         job: true,
         interviews: { orderBy: { scheduledAt: 'asc' } },
+        stageHistory: { orderBy: { createdAt: 'asc' } },
+        offers: { orderBy: { createdAt: 'desc' } },
       },
     });
     if (!app || app.tenantId !== tenantId) throw new NotFoundException('Application not found');
@@ -48,6 +50,15 @@ export class ApplicationsService {
     if (!candidate || candidate.tenantId !== tenantId) {
       throw new NotFoundException('Candidate not found');
     }
+
+    // Duplicate detection: if candidate already applied, link to existing application
+    const existing = await this.prisma.application.findUnique({
+      where: { tenantId_jobId_candidateId: { tenantId, jobId: dto.jobId, candidateId: dto.candidateId } },
+    });
+    if (existing) {
+      throw new ConflictException('This candidate has already applied to this job');
+    }
+
     try {
       return await this.prisma.application.create({
         data: {
@@ -56,6 +67,7 @@ export class ApplicationsService {
           candidateId: dto.candidateId,
           stage: 'APPLIED',
           notes: dto.notes ?? null,
+          source: dto.source ?? 'MANUAL',
         },
         include: { candidate: true, job: true },
       });
@@ -67,13 +79,82 @@ export class ApplicationsService {
     }
   }
 
-  async updateStage(tenantId: string, id: string, dto: UpdateStageDto) {
+  async updateStage(tenantId: string, id: string, dto: UpdateStageDto, changedBy: string) {
     const app = await this.prisma.application.findUnique({ where: { id } });
     if (!app || app.tenantId !== tenantId) throw new NotFoundException('Application not found');
-    return this.prisma.application.update({
-      where: { id },
-      data: { stage: dto.stage, ...(dto.notes !== undefined ? { notes: dto.notes } : {}) },
-      include: { candidate: true, job: true },
+
+    const data: Prisma.ApplicationUpdateInput = {
+      stage: dto.stage,
+      ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
+      ...(dto.stage === 'REJECTED' && dto.rejectionReason
+        ? { rejectionReason: dto.rejectionReason }
+        : {}),
+    };
+
+    const [updated] = await this.prisma.$transaction([
+      this.prisma.application.update({
+        where: { id },
+        data,
+        include: { candidate: true, job: true },
+      }),
+      this.prisma.stageHistory.create({
+        data: {
+          tenantId,
+          applicationId: id,
+          fromStage: app.stage,
+          toStage: dto.stage,
+          changedBy,
+          notes: dto.notes ?? null,
+        },
+      }),
+    ]);
+
+    return updated;
+  }
+
+  async bulkUpdateStage(
+    tenantId: string,
+    applicationIds: string[],
+    stage: string,
+    changedBy: string,
+    notes?: string,
+  ) {
+    const apps = await this.prisma.application.findMany({
+      where: { tenantId, id: { in: applicationIds } },
+    });
+
+    if (apps.length !== applicationIds.length) {
+      throw new NotFoundException('One or more applications not found');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.application.updateMany({
+        where: { tenantId, id: { in: applicationIds } },
+        data: { stage },
+      }),
+      ...apps.map((app) =>
+        this.prisma.stageHistory.create({
+          data: {
+            tenantId,
+            applicationId: app.id,
+            fromStage: app.stage,
+            toStage: stage,
+            changedBy,
+            notes: notes ?? null,
+          },
+        }),
+      ),
+    ]);
+
+    return { updated: apps.length };
+  }
+
+  async getStageHistory(tenantId: string, applicationId: string) {
+    const app = await this.prisma.application.findUnique({ where: { id: applicationId } });
+    if (!app || app.tenantId !== tenantId) throw new NotFoundException('Application not found');
+    return this.prisma.stageHistory.findMany({
+      where: { applicationId },
+      orderBy: { createdAt: 'asc' },
     });
   }
 

@@ -148,6 +148,14 @@ export function PlatformAdminPage() {
               </div>
               <span className="admin__module-arrow">→</span>
             </Link>
+            <Link to="/talent-pool" className="admin__module-card">
+              <span className="admin__module-icon">🗂</span>
+              <div>
+                <div className="admin__module-name">Talent Pool</div>
+                <div className="admin__module-desc muted small">Candidate profiles, pools, search & tagging</div>
+              </div>
+              <span className="admin__module-arrow">→</span>
+            </Link>
           </div>
         </section>
       )}

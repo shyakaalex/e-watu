@@ -2,10 +2,11 @@ import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 export enum ApplicationStage {
   APPLIED = 'APPLIED',
-  SCREENING = 'SCREENING',
-  INTERVIEW = 'INTERVIEW',
-  OFFER = 'OFFER',
-  HIRED = 'HIRED',
+  SCREENED = 'SCREENED',
+  SHORTLISTED = 'SHORTLISTED',
+  INTERVIEWED = 'INTERVIEWED',
+  OFFERED = 'OFFERED',
+  PLACED = 'PLACED',
   REJECTED = 'REJECTED',
 }
 
@@ -16,4 +17,8 @@ export class UpdateStageDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  rejectionReason?: string;
 }
