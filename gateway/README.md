@@ -21,7 +21,19 @@ Set `VITE_API_URL=http://localhost` in `web/.env` when using the gateway.
 
 ## Production (Coolify)
 
-Use `docker-compose.coolify.yml` and `gateway/Dockerfile.prod` (SPA + API on port 80). See [docs/COOLIFY.md](../docs/COOLIFY.md).
+- **Build context:** repo root `/`
+- **Dockerfile:** `gateway/Dockerfile` (envsubst upstreams from `gateway/nginx.conf.template`)
+- **Public domain:** assign in Coolify (port 80)
+- See [docs/COOLIFY.md](../docs/COOLIFY.md)
+
+## Local docker-compose
+
+`docker-compose.yml` uses `gateway/Dockerfile.compose` with context `./gateway` (static `nginx.conf`). To build locally:
+
+```bash
+docker compose build --build-arg ... 
+# or temporarily set gateway build dockerfile to Dockerfile.compose
+```
 
 ## Adding a new service route
 

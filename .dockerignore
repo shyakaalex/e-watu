@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# Node modules (built inside Docker)
+node_modules
+**/node_modules
+
+# Local environment files (NEVER in images)
+.env
+**/.env
+*.env.local
+
+# Dev files
+**/*.test.ts
+**/*.spec.ts
+**/jest.config.*
+**/.eslintrc*
+**/.prettierrc*
+
+# Logs
+*.log
+**/logs
+
+# Local dev keys (never in production images)
+infra/dev-jwt/
+
+# Documentation
+*.md
+docs/
+
+# Docker dev variants (not used in Coolify builds)
+**/Dockerfile.dev
+**/Dockerfile.compose
+gateway/Dockerfile.prod
+gateway/nginx.prod.conf
+
+# Docker metadata
+.dockerignore
