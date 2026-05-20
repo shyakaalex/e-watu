@@ -1,8 +1,12 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { AuthSessionRefresh } from './components/AuthSessionRefresh';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
-import { PlatformAdminPage } from './pages/PlatformAdminPage';
+import { AdminLayout } from './layouts/AdminLayout';
+import { AdminOverviewPage } from './pages/admin/AdminOverviewPage';
+import { TenantsPage } from './pages/admin/TenantsPage';
+import { SystemPage } from './pages/admin/SystemPage';
 import { RegisterCompanyPage } from './pages/RegisterCompanyPage';
 import { SignUpPage } from './pages/SignUpPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
@@ -18,23 +22,42 @@ import { PoolsPage } from './pages/talent-pool/PoolsPage';
 import { PoolDetailPage } from './pages/talent-pool/PoolDetailPage';
 import { ProfilesPage } from './pages/talent-pool/ProfilesPage';
 import { SavedSearchesPage } from './pages/talent-pool/SavedSearchesPage';
+import { SettingsPage } from './pages/admin/SettingsPage';
+import { UsersPage } from './pages/admin/UsersPage';
+import { PublicCareersLayout } from './pages/public/PublicCareersLayout';
+import { PublicJobsPage } from './pages/public/PublicJobsPage';
+import { PublicApplyPage } from './pages/public/PublicApplyPage';
+import { PublicTalentPoolPage } from './pages/public/PublicTalentPoolPage';
 
 export default function App() {
   return (
-    <Routes>
+    <>
+      <AuthSessionRefresh />
+      <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignUpPage />} />
       <Route path="/register-company" element={<RegisterCompanyPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/apply/:slug" element={<PublicCareersLayout />}>
+        <Route index element={<PublicJobsPage />} />
+        <Route path="jobs/:jobId" element={<PublicApplyPage />} />
+        <Route path="talent-pool" element={<PublicTalentPoolPage />} />
+      </Route>
       <Route
         path="/platform"
         element={
           <ProtectedRoute>
-            <PlatformAdminPage />
+            <AdminLayout />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route index element={<AdminOverviewPage />} />
+        <Route path="tenants" element={<TenantsPage />} />
+        <Route path="system" element={<SystemPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="users" element={<UsersPage />} />
+      </Route>
       <Route
         path="/recruitment"
         element={
@@ -67,5 +90,6 @@ export default function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }

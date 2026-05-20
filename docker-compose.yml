@@ -1,4 +1,5 @@
-# Local dev: PostgreSQL + MinIO. Identity is app-owned JWT (no Keycloak).
+# Local dev: Postgres + MinIO + optional full app stack (gateway + services + web).
+# Quick dev without containers: npm run db:up && npm run dev:all
 services:
   postgres:
     image: postgres:16-alpine
@@ -6,12 +7,12 @@ services:
       POSTGRES_USER: ewatu
       POSTGRES_PASSWORD: ewatu_dev
     ports:
-      - "15432:5432"
+      - '15432:5432'
     volumes:
       - ewatu_pg:/var/lib/postgresql/data
       - ./infra/docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ewatu"]
+      test: ['CMD-SHELL', 'pg_isready -U ewatu']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -23,10 +24,117 @@ services:
       MINIO_ROOT_USER: ewatu
       MINIO_ROOT_PASSWORD: ewatu_dev_minio
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      # Host 19000/19001 avoids conflict with other apps on 9000 (common on macOS)
+      - '19000:9000'
+      - '19001:9001'
     volumes:
       - ewatu_minio:/data
+
+  identity-service:
+    build:
+      context: .
+      dockerfile: services/identity-service/Dockerfile
+    ports:
+      - '3011:3011'
+    env_file:
+      - ./services/identity-service/.env
+    environment:
+      SERVICE_NAME: identity-service
+      DATABASE_URL: postgresql://ewatu:ewatu_dev@postgres:5432/identity_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  platform-service:
+    build:
+      context: .
+      dockerfile: services/platform-service/Dockerfile
+    ports:
+      - '3012:3012'
+    env_file:
+      - ./services/platform-service/.env
+    environment:
+      SERVICE_NAME: platform-service
+      DATABASE_URL: postgresql://ewatu:ewatu_dev@postgres:5432/platform_db
+      IDENTITY_SERVICE_URL: http://identity-service:3011
+      NOTIFICATION_SERVICE_URL: http://notification-service:3015
+    depends_on:
+      - postgres
+      - identity-service
+    restart: unless-stopped
+
+  recruitment-service:
+    build:
+      context: .
+      dockerfile: services/recruitment-service/Dockerfile
+    ports:
+      - '3013:3013'
+    env_file:
+      - ./services/recruitment-service/.env
+    environment:
+      SERVICE_NAME: recruitment-service
+      DATABASE_URL: postgresql://ewatu:ewatu_dev@postgres:5432/recruitment_db
+      PLATFORM_SERVICE_URL: http://platform-service:3012
+    depends_on:
+      - postgres
+      - platform-service
+    restart: unless-stopped
+
+  document-service:
+    build:
+      context: .
+      dockerfile: services/document-service/Dockerfile
+    ports:
+      - '3018:3018'
+    env_file:
+      - ./services/document-service/.env
+    environment:
+      SERVICE_NAME: document-service
+      S3_ENDPOINT: http://minio:9000
+    depends_on:
+      - minio
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    ports:
+      - '3015:3015'
+    env_file:
+      - ./services/notification-service/.env
+    environment:
+      SERVICE_NAME: notification-service
+      DATABASE_URL: postgresql://ewatu:ewatu_dev@postgres:5432/notifications_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    ports:
+      - '5173:5173'
+    environment:
+      VITE_API_URL: http://localhost
+    depends_on:
+      - gateway
+    restart: unless-stopped
+
+  gateway:
+    build: ./gateway
+    ports:
+      - '80:80'
+    depends_on:
+      - identity-service
+      - platform-service
+      - recruitment-service
+      - document-service
+      - notification-service
+    restart: unless-stopped
 
 volumes:
   ewatu_pg:

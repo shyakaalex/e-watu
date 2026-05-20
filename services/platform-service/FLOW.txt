@@ -35,6 +35,16 @@ notification-service (**3015**):
 
 Web admin (Vite): `npm run dev:web` from repo root → http://localhost:5173
 
+Phase 1 foundation (v1)
+-----------------------
+- Tenant settings: PATCH /api/v1/my/tenant/settings (tenant admin)
+- Public careers portal: GET /api/v1/public/tenants/:slug, web /apply/:slug
+- User management: identity GET/POST/PATCH /api/v1/users (tenant admin)
+- Notifications: notification-service (email via SMTP or console log; in-app feed)
+- Run: npm run db:migrate:all  (includes notifications_db — create DB if missing)
+
+Deferred to later: MFA, refresh tokens, PostgreSQL RLS policies.
+
 2FA / Keycloak later
 --------------------
 TOTP or WebAuthn can be added on top of **identity-service** without changing the rest of the microservices.

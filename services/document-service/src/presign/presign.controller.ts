@@ -9,7 +9,7 @@ export class PresignController {
 
   /**
    * Returns a time-limited URL to upload one object via HTTP PUT.
-   * Caller must be PLATFORM_SUPER_ADMIN, or TENANT_ADMIN with `tenant_id` claim matching body.tenantId.
+   * Tenant scope comes from JWT `tenant_id` only (not the request body).
    */
   @UseGuards(JwtAuthGuard)
   @Post('presign')

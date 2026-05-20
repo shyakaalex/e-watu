@@ -10,17 +10,30 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { AuthUser, CurrentUser, JwtAuthGuard } from '@ewatu/common-auth';
+import {
+  AuthUser,
+  CurrentUser,
+  EwatuRole,
+  JwtAuthGuard,
+  Roles,
+  RolesGuard,
+} from '@ewatu/common-auth';
 import { CreateJobDto } from './dtos/create-job.dto';
 import { UpdateJobDto } from './dtos/update-job.dto';
 import { JobsService } from './jobs.service';
 
 @Controller('jobs')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class JobsController {
   constructor(private readonly jobs: JobsService) {}
 
   @Get()
+  @Roles(
+    EwatuRole.TENANT_ADMIN,
+    EwatuRole.HR_MANAGER,
+    EwatuRole.RECRUITER,
+    EwatuRole.CLIENT_ADMIN,
+  )
   list(
     @CurrentUser() user: AuthUser,
     @Query('status') status?: string,
@@ -31,12 +44,24 @@ export class JobsController {
   }
 
   @Get(':id')
+  @Roles(
+    EwatuRole.TENANT_ADMIN,
+    EwatuRole.HR_MANAGER,
+    EwatuRole.RECRUITER,
+    EwatuRole.CLIENT_ADMIN,
+  )
   findOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     const tid = this.jobs.requireTenant(user.tenant_id);
     return this.jobs.findOne(tid, id);
   }
 
   @Get(':id/pipeline')
+  @Roles(
+    EwatuRole.TENANT_ADMIN,
+    EwatuRole.HR_MANAGER,
+    EwatuRole.RECRUITER,
+    EwatuRole.CLIENT_ADMIN,
+  )
   pipeline(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     const tid = this.jobs.requireTenant(user.tenant_id);
     return this.jobs.pipeline(tid, id);
@@ -63,12 +88,14 @@ export class JobsController {
   }
 
   @Post()
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.RECRUITER)
   create(@CurrentUser() user: AuthUser, @Body() body: CreateJobDto) {
     const tid = this.jobs.requireTenant(user.tenant_id);
     return this.jobs.create(tid, body);
   }
 
   @Patch(':id')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.RECRUITER)
   update(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
@@ -79,6 +106,7 @@ export class JobsController {
   }
 
   @Delete(':id')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
   remove(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     const tid = this.jobs.requireTenant(user.tenant_id);
     return this.jobs.remove(tid, id);

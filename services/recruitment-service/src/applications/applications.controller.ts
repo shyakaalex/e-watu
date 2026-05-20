@@ -8,7 +8,14 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { AuthUser, CurrentUser, JwtAuthGuard } from '@ewatu/common-auth';
+import {
+  AuthUser,
+  CurrentUser,
+  EwatuRole,
+  JwtAuthGuard,
+  Roles,
+  RolesGuard,
+} from '@ewatu/common-auth';
 import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
 import { CreateApplicationDto } from './dtos/create-application.dto';
 import { UpdateStageDto, ApplicationStage } from './dtos/update-stage.dto';
@@ -28,11 +35,17 @@ class BulkStageDto {
 }
 
 @Controller('applications')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ApplicationsController {
   constructor(private readonly applications: ApplicationsService) {}
 
   @Get()
+  @Roles(
+    EwatuRole.TENANT_ADMIN,
+    EwatuRole.HR_MANAGER,
+    EwatuRole.RECRUITER,
+    EwatuRole.CLIENT_ADMIN,
+  )
   list(
     @CurrentUser() user: AuthUser,
     @Query('jobId') jobId?: string,
@@ -44,6 +57,12 @@ export class ApplicationsController {
   }
 
   @Get(':id')
+  @Roles(
+    EwatuRole.TENANT_ADMIN,
+    EwatuRole.HR_MANAGER,
+    EwatuRole.RECRUITER,
+    EwatuRole.CLIENT_ADMIN,
+  )
   findOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     const tid = this.applications.requireTenant(user.tenant_id);
     return this.applications.findOne(tid, id);
@@ -56,12 +75,14 @@ export class ApplicationsController {
   }
 
   @Post()
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.RECRUITER)
   create(@CurrentUser() user: AuthUser, @Body() body: CreateApplicationDto) {
     const tid = this.applications.requireTenant(user.tenant_id);
     return this.applications.create(tid, body);
   }
 
   @Patch(':id/stage')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.RECRUITER)
   updateStage(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,

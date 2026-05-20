@@ -1,7 +1,7 @@
-import { authFetch } from './api';
+import { authFetch, parseJson, serviceUrl } from './lib/http';
 
 function recruitmentUrl(): string {
-  return import.meta.env.VITE_RECRUITMENT_API ?? 'http://localhost:3013';
+  return serviceUrl('recruitment');
 }
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -210,19 +210,22 @@ export async function fetchJobs(filters?: { status?: string; priority?: string }
   const qs = params.toString() ? `?${params}` : '';
   const r = await authFetch(`${recruitmentUrl()}/api/v1/jobs${qs}`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
 }
 
 export async function fetchJob(id: string): Promise<Job> {
   const r = await authFetch(`${recruitmentUrl()}/api/v1/jobs/${id}`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
 }
 
 export async function fetchJobPipeline(id: string): Promise<Pipeline> {
   const r = await authFetch(`${recruitmentUrl()}/api/v1/jobs/${id}/pipeline`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
 }
 
 export async function fetchJobMetrics(id: string): Promise<JobMetrics> {
@@ -261,7 +264,8 @@ export async function createJob(body: {
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
 }
 
 export async function updateJob(id: string, body: Partial<Parameters<typeof createJob>[0]>): Promise<Job> {
@@ -270,7 +274,8 @@ export async function updateJob(id: string, body: Partial<Parameters<typeof crea
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
 }
 
 export async function deleteJob(id: string): Promise<void> {
@@ -284,13 +289,15 @@ export async function fetchCandidates(q?: string): Promise<Candidate[]> {
   const qs = q ? `?q=${encodeURIComponent(q)}` : '';
   const r = await authFetch(`${recruitmentUrl()}/api/v1/candidates${qs}`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
 }
 
 export async function fetchCandidate(id: string): Promise<Candidate & { applications: (Application & { job: Job })[] }> {
   const r = await authFetch(`${recruitmentUrl()}/api/v1/candidates/${id}`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
 }
 
 export async function createCandidate(body: {
@@ -310,7 +317,8 @@ export async function createCandidate(body: {
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
 }
 
 // ── Applications ──────────────────────────────────────────────────────────
@@ -327,7 +335,8 @@ export async function fetchApplications(filters?: {
   const qs = params.toString() ? `?${params}` : '';
   const r = await authFetch(`${recruitmentUrl()}/api/v1/applications${qs}`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
 }
 
 export async function fetchApplication(id: string): Promise<Application> {
@@ -353,7 +362,8 @@ export async function createApplication(body: {
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
 }
 
 export async function moveApplicationStage(
@@ -380,7 +390,8 @@ export async function bulkMoveStage(
     body: JSON.stringify({ applicationIds, stage, notes }),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
 }
 
 // ── Interviews ────────────────────────────────────────────────────────────
@@ -389,7 +400,8 @@ export async function fetchInterviews(applicationId?: string): Promise<Interview
   const qs = applicationId ? `?applicationId=${applicationId}` : '';
   const r = await authFetch(`${recruitmentUrl()}/api/v1/interviews${qs}`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
 }
 
 export async function createInterview(body: {
@@ -406,7 +418,8 @@ export async function createInterview(body: {
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
 }
 
 export async function updateInterview(
@@ -424,7 +437,8 @@ export async function updateInterview(
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
 }
 
 export async function addScorecard(

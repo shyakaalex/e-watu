@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { NotifyService } from '../notify/notify.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTenantDto } from './dtos/create-tenant.dto';
 
@@ -13,10 +14,49 @@ import { CreateTenantDto } from './dtos/create-tenant.dto';
 export class TenantService {
   private readonly log = new Logger(TenantService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notify: NotifyService,
+  ) {}
 
   findById(id: string) {
     return this.prisma.tenant.findUnique({ where: { id } });
+  }
+
+  findBySlug(slug: string) {
+    return this.prisma.tenant.findUnique({ where: { slug } });
+  }
+
+  async updateSettings(tenantId: string, data: {
+    name?: string;
+    logoUrl?: string;
+    primaryColor?: string;
+    accentColor?: string;
+    website?: string;
+    baseCurrency?: string;
+    fiscalYearStartMonth?: number;
+  }) {
+    try {
+      return await this.prisma.tenant.update({
+        where: { id: tenantId },
+        data: {
+          ...(data.name !== undefined ? { name: data.name } : {}),
+          ...(data.logoUrl !== undefined ? { logoUrl: data.logoUrl || null } : {}),
+          ...(data.primaryColor !== undefined ? { primaryColor: data.primaryColor } : {}),
+          ...(data.accentColor !== undefined ? { accentColor: data.accentColor } : {}),
+          ...(data.website !== undefined ? { website: data.website || null } : {}),
+          ...(data.baseCurrency !== undefined ? { baseCurrency: data.baseCurrency } : {}),
+          ...(data.fiscalYearStartMonth !== undefined
+            ? { fiscalYearStartMonth: data.fiscalYearStartMonth }
+            : {}),
+        },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
+        throw new NotFoundException('Tenant not found');
+      }
+      throw e;
+    }
   }
 
   findAll() {
@@ -42,9 +82,17 @@ export class TenantService {
       where: { id },
       data: { status: 'ACTIVE', rejectionReason: null },
     });
-    this.log.log(
-      `[email stub] Your company ${t.name} is approved — would email ${t.businessEmail ?? t.ownerUserId}`,
-    );
+    const webOrigin = process.env.WEB_APP_ORIGIN?.replace(/\/$/, '') ?? 'http://localhost:5173';
+    await this.notify.dispatch({
+      channel: 'both',
+      to: t.businessEmail ?? undefined,
+      userId: t.ownerUserId ?? undefined,
+      tenantId: t.id,
+      template: 'tenant-approved',
+      payload: { companyName: t.name, loginUrl: `${webOrigin}/login` },
+      title: 'Company approved',
+      body: `Your workspace for ${t.name} is now active.`,
+    });
     return updated;
   }
 
@@ -58,7 +106,19 @@ export class TenantService {
       where: { id },
       data: { status: 'REJECTED', rejectionReason: reason?.trim() || null },
     });
-    this.log.log(`[email stub] Tenant ${t.slug} rejected — would email ${t.businessEmail}`);
+    await this.notify.dispatch({
+      channel: 'both',
+      to: t.businessEmail ?? undefined,
+      userId: t.ownerUserId ?? undefined,
+      tenantId: t.id,
+      template: 'tenant-rejected',
+      payload: {
+        companyName: t.name,
+        reason: reason?.trim() || '',
+      },
+      title: 'Registration update',
+      body: `Your registration for ${t.name} was not approved.`,
+    });
     return updated;
   }
 

@@ -1,10 +1,12 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import {
   AuthUser,
   CurrentUser,
   JwtAuthGuard,
 } from '@ewatu/common-auth';
 
+@SkipThrottle()
 @Controller('me')
 export class MeController {
   @UseGuards(JwtAuthGuard)

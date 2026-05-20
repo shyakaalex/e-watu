@@ -1,153 +1,94 @@
 import { Link } from 'react-router-dom';
 import { PublicNav } from '../components/PublicNav';
-
-const features = [
-  {
-    icon: 'layers',
-    title: 'One platform, many HR firms',
-    body: 'Each client organization is a tenant with its own data boundary—ready for white-label and regional rollout.',
-  },
-  {
-    icon: 'shield',
-    title: 'Enterprise-grade access',
-    body: 'Email and password with modern hashing, short-lived sessions, and a path to two-factor auth without rework.',
-  },
-  {
-    icon: 'flow',
-    title: 'Governed onboarding',
-    body: 'Companies apply, verify email, and await approval—so you stay in control of who enters the platform.',
-  },
-  {
-    icon: 'folder',
-    title: 'Documents & files',
-    body: 'Secure object storage and presigned uploads keep contracts and employee files where you decide.',
-  },
-];
-
-const journey = [
-  {
-    title: 'Register your company',
-    body: 'Share legal name, business email, phone, and country. Create the administrator who will own the workspace.',
-  },
-  {
-    title: 'Verify your email',
-    body: 'We confirm the administrator inbox before sign-in—reducing risk and keeping audit trails clean.',
-  },
-  {
-    title: 'Pending approval',
-    body: 'Your tenant is created in a review state. The platform team sees application details in one queue.',
-  },
-  {
-    title: 'Go live',
-    body: 'Once approved, status becomes active. Administrators sign in and tenant-scoped modules can roll out over time.',
-  },
-];
-
-function FeatureIcon({ name }: { name: string }) {
-  return <span className={`landing__feature-icon landing__feature-icon--${name}`} aria-hidden />;
-}
+import { LandingHeroVisual } from './LandingHeroVisual';
+import './landing-hero.css';
 
 export function LandingPage() {
   return (
-    <div className="landing">
-      <PublicNav />
+    <div className="landing landing--showcase">
+      <PublicNav variant="light" />
 
-      <header className="landing__hero">
-        <div className="landing__hero-inner">
-          <p className="landing__eyebrow">Multi-tenant HR operations</p>
-          <h1 className="landing__headline">
-            The control plane for HR firms you <span className="landing__accent">host &amp; scale</span>
+      <section className="landing-hero">
+        <div className="landing-hero__copy">
+          <div className="landing-hero__badge">
+            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+              <path d="M8 1l1.5 3.1 3.5.5-2.5 2.4.6 3.5L8 9l-3.1 1.5.6-3.5L3 4.6l3.5-.5z" />
+            </svg>
+            All-in-One HR Solution
+          </div>
+          <h1 className="landing-hero__title">
+            Empower Your
+            <br />
+            Workforce.
+            <br />
+            <span className="landing-hero__title-accent">Simplify HR.</span>
           </h1>
-          <p className="landing__sub">
-            E-Watu is built for B2B: company onboarding with approval, verified administrators, and a foundation for
-            leave, payroll, documents, and more—without compromising how you operate the platform.
+          <p className="landing-hero__desc">
+            From hiring to payroll and performance tracking, manage your entire HR process in one intuitive platform.
           </p>
-          <div className="landing__cta-row">
-            <Link to="/register-company" className="btn btn--xl btn--primary btn--shine">
-              Apply for workspace
+          <div className="landing-hero__ctas">
+            <Link to="/register-company" className="landing-hero__btn landing-hero__btn--primary">
+              Get started <span aria-hidden>→</span>
             </Link>
-            <Link to="/login" className="btn btn--xl btn--outline-light">
-              Sign in
-            </Link>
+            <a href="#contact" className="landing-hero__btn landing-hero__btn--ghost">
+              Book a demo <span aria-hidden>📅</span>
+            </a>
           </div>
-          <ul className="landing__trust" aria-label="Highlights">
-            <li>Multi-tenant by design</li>
-            <li>Approval workflow</li>
-            <li>Email verification</li>
-          </ul>
-        </div>
-        <div className="landing__hero-visual" aria-hidden>
-          <div className="landing__glass-panel">
-            <div className="landing__dashboard-cap">Tenant overview</div>
-            <div className="landing__mock-row landing__mock-row--head" />
-            <div className="landing__mock-row" />
-            <div className="landing__mock-row" />
-            <div className="landing__stat-row">
-              <span className="landing__stat-pill">Pending review</span>
-              <span className="landing__stat-pill landing__stat-pill--ok">Active</span>
-            </div>
-            <div className="landing__mock-row landing__mock-row--short" />
-          </div>
-        </div>
-      </header>
-
-      <section className="landing__section" id="features">
-        <p className="landing__section-kicker">Why teams choose E-Watu</p>
-        <h2 className="landing__section-title">Built for how you sell HR software</h2>
-        <p className="landing__section-lead">
-          This preview highlights the spine of the product: identity, tenant lifecycle, and secure delivery. Additional
-          HR modules connect to the same core.
-        </p>
-        <ul className="landing__feature-grid">
-          {features.map((f) => (
-            <li key={f.title} className="landing__feature-card">
-              <FeatureIcon name={f.icon} />
-              <h3>{f.title}</h3>
-              <p>{f.body}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="landing__section landing__section--alt" id="how">
-        <p className="landing__section-kicker">How onboarding works</p>
-        <h2 className="landing__section-title">From application to approved tenant</h2>
-        <p className="landing__section-lead">
-          The following reflects the live product flow—what your client stakeholders will experience end to end.
-        </p>
-        <ol className="landing__journey">
-          {journey.map((step, i) => (
-            <li key={step.title} className="landing__journey-step">
-              <span className="landing__journey-num">{String(i + 1).padStart(2, '0')}</span>
-              <div>
-                <h3>{step.title}</h3>
-                <p>{step.body}</p>
+          <div className="landing-hero__stats">
+            <div className="landing-hero__stat">
+              <div className="landing-hero__stat-icon landing-hero__stat-icon--blue">
+                <svg viewBox="0 0 24 24" aria-hidden>
+                  <path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+                </svg>
               </div>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="landing__cta-band">
-        <h2>See the experience firsthand</h2>
-        <p>Walk through company registration, verification, and the operator console in a single guided session.</p>
-        <div className="landing__cta-row landing__cta-row--center">
-          <Link to="/register-company" className="btn btn--xl btn--primary btn--shine">
-            Start company application
-          </Link>
-          <Link to="/login" className="btn btn--xl btn--outline-light">
-            I already have access
-          </Link>
+              <div className="landing-hero__stat-num">500+</div>
+              <div className="landing-hero__stat-label">Active companies</div>
+            </div>
+            <div className="landing-hero__stat-sep" />
+            <div className="landing-hero__stat">
+              <div className="landing-hero__stat-icon landing-hero__stat-icon--green">
+                <svg viewBox="0 0 24 24" aria-hidden>
+                  <path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+                </svg>
+              </div>
+              <div className="landing-hero__stat-num">25K+</div>
+              <div className="landing-hero__stat-label">Happy employees</div>
+            </div>
+            <div className="landing-hero__stat-sep" />
+            <div className="landing-hero__stat">
+              <div className="landing-hero__stat-icon landing-hero__stat-icon--orange">
+                <svg viewBox="0 0 24 24" aria-hidden>
+                  <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z" />
+                </svg>
+              </div>
+              <div className="landing-hero__stat-num">99.9%</div>
+              <div className="landing-hero__stat-label">Data security</div>
+            </div>
+          </div>
+          <div className="landing-hero__trust">
+            <div className="landing-hero__trust-avatars" aria-hidden>
+              <span className="landing-hero__trust-avatar" style={{ background: 'linear-gradient(135deg,#F87171,#FB923C)' }}>
+                👨
+              </span>
+              <span className="landing-hero__trust-avatar" style={{ background: 'linear-gradient(135deg,#60A5FA,#818CF8)' }}>
+                👩
+              </span>
+              <span className="landing-hero__trust-avatar" style={{ background: 'linear-gradient(135deg,#34D399,#059669)' }}>
+                👨
+              </span>
+              <span className="landing-hero__trust-avatar" style={{ background: 'linear-gradient(135deg,#FBBF24,#F59E0B)' }}>
+                👩
+              </span>
+              <span className="landing-hero__trust-avatar" style={{ background: '#6366F1' }}>
+                +
+              </span>
+            </div>
+            Trusted by HR teams across industries
+          </div>
         </div>
-      </section>
 
-      <footer className="landing__footer">
-        <div className="landing__footer-left">
-          <span className="landing__footer-brand">E-Watu</span>
-          <span className="landing__footer-tag">HR operations platform</span>
-        </div>
-        <span className="landing__footer-muted">Presentation preview · confidential</span>
-      </footer>
+        <LandingHeroVisual />
+      </section>
     </div>
   );
 }

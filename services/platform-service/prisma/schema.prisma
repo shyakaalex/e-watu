@@ -20,6 +20,12 @@ model Tenant {
   ownerUserId        String?   @map("owner_user_id")
   emailVerifiedAt    DateTime? @map("email_verified_at")
   rejectionReason    String?   @map("rejection_reason")
+  logoUrl            String?   @map("logo_url")
+  primaryColor       String?   @default("#0d9488") @map("primary_color")
+  accentColor        String?   @default("#0f766e") @map("accent_color")
+  website            String?
+  baseCurrency       String?   @default("RWF") @map("base_currency")
+  fiscalYearStartMonth Int?    @default(1) @map("fiscal_year_start_month")
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 

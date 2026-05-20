@@ -31,8 +31,8 @@ export class CandidatesService {
   }
 
   async findOne(tenantId: string, id: string) {
-    const c = await this.prisma.candidate.findUnique({
-      where: { id },
+    const c = await this.prisma.candidate.findFirst({
+      where: { id, tenantId },
       include: {
         applications: {
           include: { job: true },
@@ -70,7 +70,7 @@ export class CandidatesService {
   }
 
   async update(tenantId: string, id: string, dto: UpdateCandidateDto) {
-    const c = await this.prisma.candidate.findUnique({ where: { id } });
+    const c = await this.prisma.candidate.findFirst({ where: { id, tenantId } });
     if (!c || c.tenantId !== tenantId) throw new NotFoundException('Candidate not found');
     try {
       return await this.prisma.candidate.update({

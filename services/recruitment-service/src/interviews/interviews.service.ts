@@ -124,18 +124,22 @@ export class InterviewsService {
 
     const byCompetency: Record<string, { scores: number[]; avg: number }> = {};
     for (const s of scorecards) {
-      if (!byCompetency[s.competency]) byCompetency[s.competency] = { scores: [], avg: 0 };
-      byCompetency[s.competency].scores.push(s.score);
+      const entry = byCompetency[s.competency] ?? { scores: [], avg: 0 };
+      entry.scores.push(s.score);
+      byCompetency[s.competency] = entry;
     }
     for (const key of Object.keys(byCompetency)) {
-      const arr = byCompetency[key].scores;
-      byCompetency[key].avg = Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10;
+      const bucket = byCompetency[key];
+      if (!bucket || bucket.scores.length === 0) continue;
+      const arr = bucket.scores;
+      bucket.avg =
+        Math.round((arr.reduce((a: number, b: number) => a + b, 0) / arr.length) * 10) / 10;
     }
 
     const overallAvg =
       scorecards.length > 0
         ? Math.round(
-            (scorecards.reduce((s, c) => s + c.score, 0) / scorecards.length) * 10,
+            (scorecards.reduce((s: number, c) => s + c.score, 0) / scorecards.length) * 10,
           ) / 10
         : null;
 

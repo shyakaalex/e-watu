@@ -55,10 +55,16 @@ export function SavedSearchesPage() {
   };
 
   const onRun = async (id: string) => {
-    setRunLoading(id); setErr(null);
-    try { setRunResults((r) => ({ ...r, [id]: await runSavedSearch(id) })); }
-    catch (e) { setErr(e instanceof Error ? e.message : String(e)); }
-    finally { setRunLoading(null); }
+    setRunLoading(id);
+    setErr(null);
+    try {
+      const result = await runSavedSearch(id);
+      setRunResults((r) => ({ ...r, [id]: result }));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRunLoading(null);
+    }
   };
 
   return (

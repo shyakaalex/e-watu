@@ -115,7 +115,10 @@ export class PlacementsService {
     });
 
     const totalPlacements = placements.length;
-    const totalRevenue = placements.reduce((s, p) => s + p.salary, 0);
+    const totalRevenue = placements.reduce(
+      (s: number, p: (typeof placements)[number]) => s + p.salary,
+      0,
+    );
     const byInvoiceStatus: Record<string, number> = {};
     for (const p of placements) {
       byInvoiceStatus[p.invoiceStatus] = (byInvoiceStatus[p.invoiceStatus] ?? 0) + 1;

@@ -1,7 +1,9 @@
 import { type FormEvent, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { loginRequest } from '../api';
+import { AuthErrorAlert } from '../components/AuthErrorAlert';
 import { AuthLayout } from '../components/AuthLayout';
+import { parseApiError, type ParsedApiError } from '../lib/parseApiError';
 import { useAuthLoggedIn } from '../hooks/useAuthLoggedIn';
 import { resolveReturnPath } from '../lib/returnPath';
 
@@ -15,7 +17,7 @@ export function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [err, setErr] = useState<string | null>(null);
+  const [err, setErr] = useState<ParsedApiError | null>(null);
   const [busy, setBusy] = useState(false);
 
   if (loggedIn) {
@@ -30,14 +32,7 @@ export function LoginPage() {
       await loginRequest(email.trim(), password);
       navigate(returnPath, { replace: true });
     } catch (e) {
-      const raw = e instanceof Error ? e.message : String(e);
-      try {
-        const j = JSON.parse(raw) as { message?: string | string[] };
-        const m = j.message;
-        setErr(Array.isArray(m) ? m.join(', ') : m ?? raw);
-      } catch {
-        setErr(raw);
-      }
+      setErr(parseApiError(e));
     } finally {
       setBusy(false);
     }
@@ -61,11 +56,7 @@ export function LoginPage() {
     >
       <h2 className="auth-heading auth-heading--compact">Sign in</h2>
       <p className="auth-lead auth-lead--tight">Enter your credentials to continue.</p>
-      {err && (
-        <div className="alert alert--err" role="alert">
-          {err}
-        </div>
-      )}
+      {err && <AuthErrorAlert error={err} />}
       <form className="auth-form" onSubmit={onSubmit}>
         <label className="auth-label">
           Email address

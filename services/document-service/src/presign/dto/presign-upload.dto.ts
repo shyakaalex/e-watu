@@ -1,9 +1,15 @@
-import { IsNotEmpty, IsString, IsUUID, MaxLength, MinLength, Matches } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+  Matches,
+} from 'class-validator';
 
 export class PresignUploadDto {
-  @IsUUID('4')
-  tenantId: string;
-
   /** Relative path under tenants/{tenantId}/, e.g. branding/logo.png */
   @IsString()
   @IsNotEmpty()
@@ -12,10 +18,15 @@ export class PresignUploadDto {
   @Matches(/^(?!\/)(?!.*\.\.)([a-zA-Z0-9._-]+\/)*[a-zA-Z0-9._-]+$/, {
     message: 'objectKey: use a safe path like folder/file.png (no .. or leading /)',
   })
-  objectKey: string;
+  objectKey!: string;
 
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  contentType: string;
+  contentType!: string;
+
+  @IsNumber()
+  @Min(1)
+  @Max(10 * 1024 * 1024)
+  fileSize!: number;
 }

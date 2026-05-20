@@ -8,9 +8,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { randomBytes } from 'crypto';
 import { EwatuRole } from '@ewatu/common-auth';
 import { PrismaService } from '../prisma/prisma.service';
+import { generateRawToken, hashToken } from '../common/token-hash';
+import { RefreshTokenService } from './refresh-token.service';
 import type { LoginDto } from './dtos/login.dto';
 import type { RegisterDto } from './dtos/register.dto';
 import type { ProvisionTenantOwnerDto } from '../internal/dtos/provision-tenant-owner.dto';
@@ -23,6 +24,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly refreshTokens: RefreshTokenService,
   ) {}
 
   /** First user only → platform super admin (bootstrap). Everyone else must use company onboarding. */
@@ -50,7 +52,12 @@ export class AuthService {
       },
     });
 
-    return { access_token: this.signAccessToken(user), token_type: 'Bearer' as const };
+    const refreshToken = await this.refreshTokens.generateRefreshToken(user.id, user.tenantId);
+    return {
+      access_token: this.signAccessToken(user),
+      refresh_token: refreshToken,
+      token_type: 'Bearer' as const,
+    };
   }
 
   async login(dto: LoginDto) {
@@ -62,20 +69,50 @@ export class AuthService {
     if (!ok) {
       throw new UnauthorizedException('Invalid email or password');
     }
+    if (!user.active) {
+      throw new UnauthorizedException('This account has been deactivated');
+    }
     if (!user.emailVerified && !user.roles.includes(EwatuRole.PLATFORM_SUPER_ADMIN)) {
       throw new UnauthorizedException(
         'Please verify your email first. Use the link we sent after company registration.',
       );
     }
-    return { access_token: this.signAccessToken(user), token_type: 'Bearer' as const };
+
+    const refreshToken = await this.refreshTokens.generateRefreshToken(user.id, user.tenantId);
+    return {
+      access_token: this.signAccessToken(user),
+      refresh_token: refreshToken,
+      token_type: 'Bearer' as const,
+    };
+  }
+
+  async refresh(rawRefreshToken: string) {
+    const { userId } = await this.refreshTokens.validateAndRotate(rawRefreshToken);
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.active) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const refreshToken = await this.refreshTokens.generateRefreshToken(user.id, user.tenantId);
+    return {
+      access_token: this.signAccessToken(user),
+      refresh_token: refreshToken,
+      token_type: 'Bearer' as const,
+    };
+  }
+
+  async logout(rawRefreshToken: string) {
+    await this.refreshTokens.revokeByRawToken(rawRefreshToken);
+    return { success: true };
   }
 
   async verifyEmail(token: string) {
     if (!token?.trim()) {
       throw new BadRequestException('Token required');
     }
+    const hashedIncoming = hashToken(token.trim());
     const user = await this.prisma.user.findFirst({
-      where: { emailVerificationToken: token.trim() },
+      where: { emailVerificationToken: hashedIncoming },
     });
     if (!user) {
       throw new BadRequestException('Invalid or expired verification link');
@@ -98,7 +135,8 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
-    const emailVerificationToken = randomBytes(32).toString('hex');
+    const rawVerificationToken = generateRawToken(32);
+    const emailVerificationToken = hashToken(rawVerificationToken);
 
     const user = await this.prisma.user.create({
       data: {
@@ -112,7 +150,7 @@ export class AuthService {
       },
     });
 
-    return { userId: user.id, emailVerificationToken };
+    return { userId: user.id, emailVerificationToken: rawVerificationToken };
   }
 
   private async notifyPlatformEmailVerified(tenantId: string) {

@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
+import { NotifyService } from '../notify/notify.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RegisterCompanyDto } from './register-company.dto';
 
@@ -18,6 +19,7 @@ export class OnboardingService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly http: HttpService,
+    private readonly notify: NotifyService,
   ) {}
 
   async registerCompany(dto: RegisterCompanyDto) {
@@ -43,6 +45,7 @@ export class OnboardingService {
     }
 
     let emailVerificationToken: string | undefined;
+    let ownerUserId: string | undefined;
     try {
       const { data } = await firstValueFrom(
         this.http.post<{ userId: string; emailVerificationToken: string }>(
@@ -56,6 +59,7 @@ export class OnboardingService {
           { headers: { 'x-internal-key': internalKey }, timeout: 15_000 },
         ),
       );
+      ownerUserId = data.userId;
       await this.prisma.tenant.update({
         where: { id: tenant.id },
         data: { ownerUserId: data.userId },
@@ -74,9 +78,17 @@ export class OnboardingService {
     const webOrigin = this.config.get<string>('WEB_APP_ORIGIN')?.replace(/\/$/, '') ?? 'http://localhost:5173';
     const devHints = this.config.get<string>('ONBOARDING_DEV_HINTS') === 'true';
 
-    this.log.log(
-      `[email stub] Verification link for ${dto.adminEmail}: ${webOrigin}/verify-email?token=${emailVerificationToken}`,
-    );
+    const verifyUrl = `${webOrigin}/verify-email?token=${emailVerificationToken}`;
+    await this.notify.dispatch({
+      channel: 'both',
+      to: dto.adminEmail,
+      userId: ownerUserId,
+      tenantId: tenant.id,
+      template: 'verify-email',
+      payload: { verifyUrl, companyName: dto.companyName },
+      title: 'Verify your email',
+      body: 'Please verify your administrator email to complete company registration.',
+    });
 
     return {
       message:

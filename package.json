@@ -8,7 +8,10 @@
     "build:identity": "npm run build --prefix services/identity-service",
     "build:document": "npm run build --prefix services/document-service",
     "build:notification": "npm run build --prefix services/notification-service",
-    "build:all": "npm run build:common-auth && npm run build:platform && npm run build:identity && npm run build:document && npm run build:notification",
+    "build:recruitment": "npm run build --prefix services/recruitment-service",
+    "build:talent-pool": "npm run build --prefix services/talent-pool-service",
+    "build:web": "npm run build --prefix web",
+    "build:all": "npm run build:common-auth && npm run build:platform && npm run build:identity && npm run build:document && npm run build:notification && npm run build:recruitment && npm run build:talent-pool",
     "dev:platform": "npm run start:dev --prefix services/platform-service",
     "dev:identity": "npm run start:dev --prefix services/identity-service",
     "dev:document": "npm run start:dev --prefix services/document-service",
@@ -16,16 +19,22 @@
     "dev:recruitment": "npm run start:dev --prefix services/recruitment-service",
     "dev:talent-pool": "npm run start:dev --prefix services/talent-pool-service",
     "dev:web": "npm run dev --prefix web",
-    "build:recruitment": "npm run build --prefix services/recruitment-service",
-    "build:talent-pool": "npm run build --prefix services/talent-pool-service",
-    "build:web": "npm run build --prefix web",
-    "build:all": "npm run build:common-auth && npm run build:platform && npm run build:identity && npm run build:document && npm run build:notification && npm run build:recruitment && npm run build:talent-pool",
-    "db:up": "docker compose up -d",
+    "dev": "concurrently -k -n identity,platform,recruitment,web -c blue,green,yellow,white \"npm run dev:identity\" \"npm run dev:platform\" \"npm run dev:recruitment\" \"npm run dev:web\"",
+    "dev:all": "concurrently -k -n identity,platform,recruitment,document,notification,web -c blue,green,yellow,magenta,cyan,white \"npm run dev:identity\" \"npm run dev:platform\" \"npm run dev:recruitment\" \"npm run dev:document\" \"npm run dev:notification\" \"npm run dev:web\"",
+    "db:up": "docker compose up -d postgres minio",
     "db:migrate:identity": "npm run prisma:migrate --prefix services/identity-service",
     "db:migrate:recruitment": "npm run prisma:migrate --prefix services/recruitment-service",
-    "db:migrate:talent-pool": "npm run prisma:migrate --prefix services/talent-pool-service"
+    "db:migrate:talent-pool": "npm run prisma:migrate --prefix services/talent-pool-service",
+    "db:migrate:notification": "npm run prisma:migrate --prefix services/notification-service",
+    "db:migrate:all": "npm run db:migrate:identity && npm run prisma:migrate --prefix services/platform-service && npm run db:migrate:recruitment && npm run db:migrate:notification && npm run db:migrate:talent-pool",
+    "db:seed:dev": "npm run prisma:seed --prefix services/platform-service && npm run prisma:seed --prefix services/identity-service",
+    "check:dev": "node scripts/check-dev.mjs",
+    "check:dev:build": "node scripts/check-dev.mjs --build"
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

@@ -1,0 +1,175 @@
+stages:
+  - build
+  - lint
+  - test
+
+variables:
+  NODE_VERSION: '20'
+
+default:
+  image: node:20-alpine
+  before_script:
+    - npm config set cache .npm-cache
+
+.cache: &cache
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-${CI_JOB_NAME}
+    paths:
+      - .npm-cache/
+      - node_modules/
+
+.identity-changes:
+  rules:
+    - changes:
+        - services/identity-service/**/*
+        - libs/common-auth/**/*
+
+.platform-changes:
+  rules:
+    - changes:
+        - services/platform-service/**/*
+        - libs/common-auth/**/*
+
+.recruitment-changes:
+  rules:
+    - changes:
+        - services/recruitment-service/**/*
+        - libs/common-auth/**/*
+
+.document-changes:
+  rules:
+    - changes:
+        - services/document-service/**/*
+        - libs/common-auth/**/*
+
+.notification-changes:
+  rules:
+    - changes:
+        - services/notification-service/**/*
+        - libs/common-auth/**/*
+
+.web-changes:
+  rules:
+    - changes:
+        - web/**/*
+
+identity:build:
+  stage: build
+  extends: [.cache, .identity-changes]
+  script:
+    - cd services/identity-service
+    - npm ci
+    - npx prisma generate
+    - npm run build
+
+identity:typecheck:
+  stage: lint
+  extends: [.cache, .identity-changes]
+  script:
+    - npm run build --prefix libs/common-auth
+    - cd services/identity-service
+    - npm ci
+    - npx prisma generate
+    - npm run typecheck
+
+platform:build:
+  stage: build
+  extends: [.cache, .platform-changes]
+  script:
+    - npm run build --prefix libs/common-auth
+    - cd services/platform-service
+    - npm ci
+    - npx prisma generate
+    - npm run build
+
+platform:typecheck:
+  stage: lint
+  extends: [.cache, .platform-changes]
+  script:
+    - npm run build --prefix libs/common-auth
+    - cd services/platform-service
+    - npm ci
+    - npx prisma generate
+    - npm run typecheck
+
+recruitment:build:
+  stage: build
+  extends: [.cache, .recruitment-changes]
+  script:
+    - npm run build --prefix libs/common-auth
+    - cd services/recruitment-service
+    - npm ci
+    - npx prisma generate
+    - npm run build
+
+recruitment:typecheck:
+  stage: lint
+  extends: [.cache, .recruitment-changes]
+  script:
+    - npm run build --prefix libs/common-auth
+    - cd services/recruitment-service
+    - npm ci
+    - npx prisma generate
+    - npm run typecheck
+
+document:build:
+  stage: build
+  extends: [.cache, .document-changes]
+  script:
+    - npm run build --prefix libs/common-auth
+    - cd services/document-service
+    - npm ci
+    - npm run build
+
+document:typecheck:
+  stage: lint
+  extends: [.cache, .document-changes]
+  script:
+    - npm run build --prefix libs/common-auth
+    - cd services/document-service
+    - npm ci
+    - npm run typecheck
+
+notification:build:
+  stage: build
+  extends: [.cache, .notification-changes]
+  script:
+    - npm run build --prefix libs/common-auth
+    - cd services/notification-service
+    - npm ci
+    - npx prisma generate
+    - npm run build
+
+notification:typecheck:
+  stage: lint
+  extends: [.cache, .notification-changes]
+  script:
+    - npm run build --prefix libs/common-auth
+    - cd services/notification-service
+    - npm ci
+    - npx prisma generate
+    - npm run typecheck
+
+web:build:
+  stage: build
+  extends: [.cache, .web-changes]
+  script:
+    - cd web
+    - npm ci
+    - npm run build
+
+web:typecheck:
+  stage: lint
+  extends: [.cache, .web-changes]
+  script:
+    - cd web
+    - npm ci
+    - npx tsc --noEmit -p tsconfig.app.json
+
+web:lint:
+  stage: lint
+  extends: [.cache, .web-changes]
+  script:
+    - cd web
+    - npm ci
+    - npm run lint

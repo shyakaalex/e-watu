@@ -1,32 +1,11 @@
-import { getAccessToken, setAccessToken } from './auth/token';
+import { setAccessToken, setRefreshToken, clearAuthTokens } from './auth/token';
+import { authFetch, parseJson, scheduleProactiveTokenRefresh, serviceUrl } from './lib/http';
 
-export { setAccessToken };
+export { setAccessToken, clearAuthTokens };
 
-function platformUrl(): string {
-  return import.meta.env.VITE_PLATFORM_API ?? 'http://localhost:3012';
-}
-
-function identityUrl(): string {
-  return import.meta.env.VITE_IDENTITY_API ?? 'http://localhost:3011';
-}
-
-export async function authFetch(url: string, init: RequestInit = {}) {
-  const token = getAccessToken();
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-  const headers = new Headers(init.headers);
-  headers.set('Authorization', `Bearer ${token}`);
-  const method = (init.method ?? 'GET').toUpperCase();
-  if (method !== 'GET' && method !== 'HEAD' && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
-  const r = await fetch(url, { ...init, headers });
-  if (r.status === 401) {
-    setAccessToken(null);
-  }
-  return r;
-}
+const identityUrl = () => serviceUrl('identity');
+const platformUrl = () => serviceUrl('platform');
+const notificationUrl = () => serviceUrl('notification');
 
 export async function loginRequest(email: string, password: string) {
   const r = await fetch(`${identityUrl()}/api/v1/auth/login`, {
@@ -34,10 +13,15 @@ export async function loginRequest(email: string, password: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
-  const text = await r.text();
-  if (!r.ok) throw new Error(text || `${r.status}`);
-  const data = JSON.parse(text) as { access_token: string };
+  if (!r.ok) throw new Error(await r.text());
+  const data = await parseJson<{
+    access_token: string;
+    refresh_token: string;
+    token_type: string;
+  }>(r);
   setAccessToken(data.access_token);
+  setRefreshToken(data.refresh_token);
+  scheduleProactiveTokenRefresh();
 }
 
 export async function registerRequest(
@@ -50,22 +34,27 @@ export async function registerRequest(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, displayName }),
   });
-  const text = await r.text();
-  if (!r.ok) throw new Error(text || `${r.status}`);
-  const data = JSON.parse(text) as { access_token: string };
+  if (!r.ok) throw new Error(await r.text());
+  const data = await parseJson<{
+    access_token: string;
+    refresh_token: string;
+    token_type: string;
+  }>(r);
   setAccessToken(data.access_token);
+  setRefreshToken(data.refresh_token);
+  scheduleProactiveTokenRefresh();
 }
 
 export async function fetchMe() {
   const r = await authFetch(`${identityUrl()}/api/v1/me`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json() as Promise<{
+  return parseJson<{
     sub: string;
     email?: string;
     username?: string;
     roles: string[];
     tenant_id?: string;
-  }>;
+  }>(r);
 }
 
 export type TenantRow = {
@@ -80,6 +69,12 @@ export type TenantRow = {
   ownerUserId?: string | null;
   emailVerifiedAt?: string | null;
   rejectionReason?: string | null;
+  logoUrl?: string | null;
+  primaryColor?: string | null;
+  accentColor?: string | null;
+  website?: string | null;
+  baseCurrency?: string | null;
+  fiscalYearStartMonth?: number | null;
   createdAt: string;
 };
 
@@ -97,15 +92,14 @@ export async function registerCompany(body: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  const text = await r.text();
-  if (!r.ok) throw new Error(text || `${r.status}`);
-  return JSON.parse(text) as {
+  if (!r.ok) throw new Error(await r.text());
+  return parseJson<{
     message: string;
     tenantId: string;
     slug: string;
     access?: { subdomainExample: string; pathExample: string };
     devVerifyUrl?: string;
-  };
+  }>(r);
 }
 
 export async function verifyEmailRequest(token: string) {
@@ -114,21 +108,20 @@ export async function verifyEmailRequest(token: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token }),
   });
-  const text = await r.text();
-  if (!r.ok) throw new Error(text || `${r.status}`);
-  return JSON.parse(text) as { verified: boolean };
+  if (!r.ok) throw new Error(await r.text());
+  return parseJson<{ verified: boolean }>(r);
 }
 
 export async function fetchMyTenant() {
   const r = await authFetch(`${platformUrl()}/api/v1/my/tenant`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json() as Promise<TenantRow | null>;
+  return parseJson<TenantRow | null>(r);
 }
 
 export async function fetchPendingTenants() {
   const r = await authFetch(`${platformUrl()}/api/v1/tenants/pending`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json() as Promise<TenantRow[]>;
+  return parseJson<TenantRow[]>(r);
 }
 
 export async function approveTenant(id: string) {
@@ -136,7 +129,7 @@ export async function approveTenant(id: string) {
     method: 'PATCH',
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json() as Promise<TenantRow>;
+  return parseJson<TenantRow>(r);
 }
 
 export async function rejectTenant(id: string, reason?: string) {
@@ -145,13 +138,95 @@ export async function rejectTenant(id: string, reason?: string) {
     body: JSON.stringify({ reason }),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json() as Promise<TenantRow>;
+  return parseJson<TenantRow>(r);
 }
 
 export async function fetchTenants() {
   const r = await authFetch(`${platformUrl()}/api/v1/tenants`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json() as Promise<TenantRow[]>;
+  return parseJson<TenantRow[]>(r);
+}
+
+export async function updateTenantSettings(body: {
+  name?: string;
+  logoUrl?: string;
+  primaryColor?: string;
+  accentColor?: string;
+  website?: string;
+  baseCurrency?: string;
+  fiscalYearStartMonth?: number;
+}) {
+  const r = await authFetch(`${platformUrl()}/api/v1/my/tenant/settings`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson<TenantRow>(r);
+}
+
+export type UserRow = {
+  id: string;
+  email: string;
+  displayName: string | null;
+  roles: string[];
+  active: boolean;
+  emailVerified: boolean;
+  createdAt: string;
+};
+
+export async function fetchTenantUsers() {
+  const r = await authFetch(`${identityUrl()}/api/v1/users`);
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson<UserRow[]>(r);
+}
+
+export async function createTenantUser(body: {
+  email: string;
+  password: string;
+  displayName?: string;
+  roles: string[];
+}) {
+  const r = await authFetch(`${identityUrl()}/api/v1/users`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson<UserRow & { emailVerificationToken?: string }>(r);
+}
+
+export async function updateTenantUser(
+  id: string,
+  body: { displayName?: string; roles?: string[]; active?: boolean },
+) {
+  const r = await authFetch(`${identityUrl()}/api/v1/users/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson<UserRow>(r);
+}
+
+export type InAppNotification = {
+  id: string;
+  title: string;
+  body: string;
+  readAt: string | null;
+  createdAt: string;
+};
+
+export async function fetchNotifications(unreadOnly = false) {
+  const q = unreadOnly ? '?unread=true' : '';
+  const r = await authFetch(`${notificationUrl()}/api/v1/notifications${q}`);
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson<InAppNotification[]>(r);
+}
+
+export async function markNotificationRead(id: string) {
+  const r = await authFetch(`${notificationUrl()}/api/v1/notifications/${id}/read`, {
+    method: 'PATCH',
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
 }
 
 export async function createTenant(body: {
@@ -165,7 +240,60 @@ export async function createTenant(body: {
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json() as Promise<TenantRow>;
+  return parseJson<TenantRow>(r);
+}
+
+export type ServiceHealth = {
+  name: string;
+  url: string;
+  ok: boolean;
+  status?: number;
+  detail?: string;
+};
+
+async function pingHealth(name: string, base: string, path: string): Promise<ServiceHealth> {
+  const url = `${base.replace(/\/$/, '')}${path}`;
+  try {
+    const r = await fetch(url);
+    const ok = r.ok;
+    let detail: string | undefined;
+    if (ok) {
+      try {
+        const j = await parseJson<{ status?: string; service?: string }>(r);
+        detail = j.status ?? j.service ?? 'ok';
+      } catch {
+        detail = 'ok';
+      }
+    } else {
+      detail = await r.text();
+    }
+    return { name, url, ok, status: r.status, detail };
+  } catch (e) {
+    return {
+      name,
+      url,
+      ok: false,
+      detail: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
+export async function fetchAllServiceHealth(): Promise<ServiceHealth[]> {
+  const gateway = import.meta.env.VITE_API_URL;
+  if (gateway) {
+    return Promise.all([
+      pingHealth('Gateway', gateway.replace(/\/$/, ''), '/health'),
+    ]);
+  }
+
+  return Promise.all([
+    pingHealth('Identity', serviceUrl('identity'), '/api/v1/identity/health'),
+    pingHealth('Platform', serviceUrl('platform'), '/api/v1/platform/health'),
+    pingHealth('Recruitment', serviceUrl('recruitment'), '/api/v1/recruitment/health'),
+    pingHealth('Document', serviceUrl('document'), '/api/v1/document/health'),
+    pingHealth('Notification', serviceUrl('notification'), '/api/v1/notifications/health'),
+  ]);
 }
 
 export { subscribeAuth, isAuthenticatedSnapshot } from './auth/token';
+export { authFetch } from './lib/http';

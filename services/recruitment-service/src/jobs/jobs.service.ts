@@ -85,7 +85,10 @@ export class JobsService {
       byStage,
       timeToDays,
       conversionRates: Object.fromEntries(
-        STAGES.map((s) => [s, total > 0 ? Math.round((byStage[s] / total) * 100) : 0]),
+        STAGES.map((s) => [
+          s,
+          total > 0 ? Math.round(((byStage[s] ?? 0) / total) * 100) : 0,
+        ]),
       ),
     };
   }
@@ -108,7 +111,7 @@ export class JobsService {
         `"${c.email}"`,
         `"${c.phone ?? ''}"`,
         `"${a.stage}"`,
-        `"${a.source}"`,
+        `"${c.source}"`,
         `"${new Date(a.createdAt).toISOString().split('T')[0]}"`,
         `"${c.cvUrl ?? ''}"`,
       ].join(',');

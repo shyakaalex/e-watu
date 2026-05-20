@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   ServiceUnavailableException,
@@ -8,6 +9,20 @@ import { EwatuRole, type AuthUser } from '@ewatu/common-auth';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { PresignUploadDto } from './dto/presign-upload.dto';
+
+const ALLOWED_MIME_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'text/csv',
+] as const;
+
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 @Injectable()
 export class PresignService {
@@ -28,20 +43,39 @@ export class PresignService {
     });
   }
 
-  private assertCanPresignForTenant(user: AuthUser, tenantId: string) {
-    if (user.roles.includes(EwatuRole.PLATFORM_SUPER_ADMIN)) return;
-    if (user.roles.includes(EwatuRole.TENANT_ADMIN) && user.tenant_id === tenantId) {
-      return;
+  private resolveTenantId(user: AuthUser): string {
+    const tenantId = user.tenant_id?.trim();
+    if (!tenantId) {
+      throw new ForbiddenException(
+        'Presign requires a tenant-scoped account (tenant_id must be present in your access token).',
+      );
     }
-    throw new ForbiddenException(
-      'You need PLATFORM_SUPER_ADMIN, or TENANT_ADMIN for this tenant (tenant_id in token must match).',
-    );
+    if (
+      !user.roles.includes(EwatuRole.TENANT_ADMIN) &&
+      !user.roles.includes(EwatuRole.PLATFORM_SUPER_ADMIN)
+    ) {
+      throw new ForbiddenException(
+        'You need PLATFORM_SUPER_ADMIN or TENANT_ADMIN to upload files.',
+      );
+    }
+    return tenantId;
   }
 
   async createPresignedPut(user: AuthUser, dto: PresignUploadDto) {
-    this.assertCanPresignForTenant(user, dto.tenantId);
+    if (!ALLOWED_MIME_TYPES.includes(dto.contentType as (typeof ALLOWED_MIME_TYPES)[number])) {
+      throw new BadRequestException(
+        `File type not allowed. Allowed types: ${ALLOWED_MIME_TYPES.join(', ')}`,
+      );
+    }
 
-    const key = `tenants/${dto.tenantId}/${dto.objectKey}`;
+    if (dto.fileSize > MAX_FILE_SIZE_BYTES) {
+      throw new BadRequestException(
+        'File size exceeds maximum allowed size of 10MB',
+      );
+    }
+
+    const tenantId = this.resolveTenantId(user);
+    const key = `tenants/${tenantId}/${dto.objectKey}`;
 
     const command = new PutObjectCommand({
       Bucket: this.bucket,

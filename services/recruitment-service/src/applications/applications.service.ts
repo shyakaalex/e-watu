@@ -60,6 +60,13 @@ export class ApplicationsService {
     }
 
     try {
+      if (dto.source) {
+        await this.prisma.candidate.update({
+          where: { id: dto.candidateId },
+          data: { source: dto.source },
+        });
+      }
+
       return await this.prisma.application.create({
         data: {
           tenantId,
@@ -67,7 +74,6 @@ export class ApplicationsService {
           candidateId: dto.candidateId,
           stage: 'APPLIED',
           notes: dto.notes ?? null,
-          source: dto.source ?? 'MANUAL',
         },
         include: { candidate: true, job: true },
       });

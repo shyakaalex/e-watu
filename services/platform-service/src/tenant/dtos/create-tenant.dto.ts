@@ -12,7 +12,7 @@ export class CreateTenantDto {
   @IsString()
   @Length(1, 200)
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  name: string;
+  name!: string;
 
   /**
    * URL-safe unique id, e.g. "acme-hr". Lowercase letters, numbers, single hyphens.
@@ -26,7 +26,7 @@ export class CreateTenantDto {
   @Transform(({ value }) =>
     typeof value === 'string' ? value.trim().toLowerCase() : value,
   )
-  slug: string;
+  slug!: string;
 
   @IsOptional()
   @IsString()
