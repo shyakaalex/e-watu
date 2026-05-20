@@ -7,11 +7,13 @@ import {
 } from '../../recruitmentApi';
 
 const SOURCE_LABELS: Record<CandidateSource, string> = {
+  E_WATU_PORTAL: 'E-Watu portal',
+  WEBSITE: 'Website',
+  MANUAL: 'Manual',
   REFERRAL: 'Referral',
-  JOB_BOARD: 'Job Board',
-  DIRECT: 'Direct',
-  AGENCY: 'Agency',
-  OTHER: 'Other',
+  LINKEDIN: 'LinkedIn',
+  WALK_IN: 'Walk-in',
+  IMPORT: 'Import',
 };
 
 export function CandidatesPage() {
@@ -27,7 +29,7 @@ export function CandidatesPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [currentTitle, setCurrentTitle] = useState('');
-  const [source, setSource] = useState<CandidateSource>('DIRECT');
+  const [source, setSource] = useState<CandidateSource>('MANUAL');
   const [cvUrl, setCvUrl] = useState('');
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [notes, setNotes] = useState('');
