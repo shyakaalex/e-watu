@@ -2,6 +2,8 @@
 .git
 .gitignore
 
+# package-lock.json must NOT be ignored — needed for npm ci in build stage
+
 # Node modules (built inside Docker)
 node_modules
 **/node_modules
