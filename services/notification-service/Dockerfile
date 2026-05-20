@@ -19,7 +19,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV SERVICE_NAME=notification-service
 
-COPY --from=build /repo/services/notification-service/package*.json ./
+COPY --from=build /repo/services/notification-service/package.json ./package.json
+COPY --from=build /repo/services/notification-service/package-lock.json ./package-lock.json
 RUN npm ci --omit=dev
 
 COPY --from=build /repo/services/notification-service/dist ./dist

@@ -19,7 +19,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV SERVICE_NAME=recruitment-service
 
-COPY --from=build /repo/services/recruitment-service/package*.json ./
+COPY --from=build /repo/services/recruitment-service/package.json ./package.json
+COPY --from=build /repo/services/recruitment-service/package-lock.json ./package-lock.json
 RUN npm ci --omit=dev
 
 COPY --from=build /repo/services/recruitment-service/dist ./dist

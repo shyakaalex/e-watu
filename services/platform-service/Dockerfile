@@ -19,7 +19,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV SERVICE_NAME=platform-service
 
-COPY --from=build /repo/services/platform-service/package*.json ./
+COPY --from=build /repo/services/platform-service/package.json ./package.json
+COPY --from=build /repo/services/platform-service/package-lock.json ./package-lock.json
 RUN npm ci --omit=dev
 
 COPY --from=build /repo/services/platform-service/dist ./dist
