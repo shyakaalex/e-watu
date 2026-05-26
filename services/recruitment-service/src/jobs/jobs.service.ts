@@ -15,13 +15,24 @@ const STAGES = ['APPLIED', 'SCREENED', 'SHORTLISTED', 'INTERVIEWED', 'OFFERED', 
 export class JobsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll(tenantId: string, status?: string, priority?: string) {
+  findAll(
+    tenantId: string,
+    filters?: { status?: string; priority?: string; clientId?: string; search?: string },
+  ) {
+    const where: Prisma.JobWhereInput = {
+      tenantId,
+      ...(filters?.status ? { status: filters.status } : {}),
+      ...(filters?.priority ? { priority: filters.priority } : {}),
+      ...(filters?.clientId ? { clientId: filters.clientId } : {}),
+    };
+    if (filters?.search) {
+      where.OR = [
+        { title: { contains: filters.search, mode: 'insensitive' } },
+        { description: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
     return this.prisma.job.findMany({
-      where: {
-        tenantId,
-        ...(status ? { status } : {}),
-        ...(priority ? { priority } : {}),
-      },
+      where,
       orderBy: [{ priority: 'asc' }, { createdAt: 'desc' }],
     });
   }
@@ -29,7 +40,12 @@ export class JobsService {
   async findOne(tenantId: string, id: string) {
     const job = await this.prisma.job.findUnique({ where: { id } });
     if (!job || job.tenantId !== tenantId) throw new NotFoundException('Job not found');
-    return job;
+    const stageCounts = await this.prisma.application.groupBy({
+      by: ['stage'],
+      where: { jobId: id, tenantId },
+      _count: { stage: true },
+    });
+    return { ...job, stageCounts };
   }
 
   async pipeline(tenantId: string, id: string) {

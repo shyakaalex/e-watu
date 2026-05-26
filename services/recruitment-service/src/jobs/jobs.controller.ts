@@ -38,9 +38,11 @@ export class JobsController {
     @CurrentUser() user: AuthUser,
     @Query('status') status?: string,
     @Query('priority') priority?: string,
+    @Query('clientId') clientId?: string,
+    @Query('search') search?: string,
   ) {
     const tid = this.jobs.requireTenant(user.tenant_id);
-    return this.jobs.findAll(tid, status, priority);
+    return this.jobs.findAll(tid, { status, priority, clientId, search });
   }
 
   @Get(':id')
@@ -68,12 +70,14 @@ export class JobsController {
   }
 
   @Get(':id/metrics')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.RECRUITER)
   metrics(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     const tid = this.jobs.requireTenant(user.tenant_id);
     return this.jobs.metrics(tid, id);
   }
 
   @Get(':id/export')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.RECRUITER)
   async export(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,

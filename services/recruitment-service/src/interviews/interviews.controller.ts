@@ -43,6 +43,12 @@ export class InterviewsController {
   }
 
   @Get(':id/scorecards')
+  @Roles(
+    EwatuRole.TENANT_ADMIN,
+    EwatuRole.HR_MANAGER,
+    EwatuRole.RECRUITER,
+    EwatuRole.CLIENT_ADMIN,
+  )
   scorecards(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     const tid = this.interviews.requireTenant(user.tenant_id);
     return this.interviews.getScorecards(tid, id);

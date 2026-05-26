@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -27,9 +28,27 @@ export class CandidatesController {
 
   @Get()
   @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.RECRUITER)
-  list(@CurrentUser() user: AuthUser, @Query('q') q?: string) {
+  list(
+    @CurrentUser() user: AuthUser,
+    @Query('q') q?: string,
+    @Query('source') source?: string,
+    @Query('tags') tags?: string | string[],
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
     const tid = this.candidates.requireTenant(user.tenant_id);
-    return this.candidates.findAll(tid, q);
+    const tagList = tags
+      ? Array.isArray(tags)
+        ? tags
+        : tags.split(',').map((t) => t.trim()).filter(Boolean)
+      : undefined;
+    return this.candidates.findAll(tid, {
+      q,
+      source,
+      tags: tagList,
+      page: page ? Number(page) : 1,
+      limit: limit ? Number(limit) : 20,
+    });
   }
 
   @Get(':id')
@@ -55,5 +74,12 @@ export class CandidatesController {
   ) {
     const tid = this.candidates.requireTenant(user.tenant_id);
     return this.candidates.update(tid, id, body);
+  }
+
+  @Delete(':id')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.RECRUITER)
+  archive(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    const tid = this.candidates.requireTenant(user.tenant_id);
+    return this.candidates.archive(tid, id);
   }
 }

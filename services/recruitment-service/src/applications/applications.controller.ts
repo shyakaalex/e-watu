@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -69,6 +70,7 @@ export class ApplicationsController {
   }
 
   @Get(':id/history')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.RECRUITER)
   history(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     const tid = this.applications.requireTenant(user.tenant_id);
     return this.applications.getStageHistory(tid, id);
@@ -102,5 +104,12 @@ export class ApplicationsController {
       user.sub,
       body.notes,
     );
+  }
+
+  @Delete(':id')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.RECRUITER)
+  withdraw(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    const tid = this.applications.requireTenant(user.tenant_id);
+    return this.applications.withdraw(tid, id, user.sub);
   }
 }

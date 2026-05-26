@@ -20,7 +20,7 @@
     "dev:talent-pool": "npm run start:dev --prefix services/talent-pool-service",
     "dev:web": "npm run dev --prefix web",
     "dev": "concurrently -k -n identity,platform,recruitment,web -c blue,green,yellow,white \"npm run dev:identity\" \"npm run dev:platform\" \"npm run dev:recruitment\" \"npm run dev:web\"",
-    "dev:all": "concurrently -k -n identity,platform,recruitment,document,notification,web -c blue,green,yellow,magenta,cyan,white \"npm run dev:identity\" \"npm run dev:platform\" \"npm run dev:recruitment\" \"npm run dev:document\" \"npm run dev:notification\" \"npm run dev:web\"",
+    "dev:all": "concurrently -k -n identity,platform,recruitment,talent-pool,document,notification,web -c blue,green,yellow,red,magenta,cyan,white \"npm run dev:identity\" \"npm run dev:platform\" \"npm run dev:recruitment\" \"npm run dev:talent-pool\" \"npm run dev:document\" \"npm run dev:notification\" \"npm run dev:web\"",
     "db:up": "docker compose up -d postgres minio",
     "db:migrate:identity": "npm run prisma:migrate --prefix services/identity-service",
     "db:migrate:recruitment": "npm run prisma:migrate --prefix services/recruitment-service",

@@ -203,10 +203,21 @@ export type Placement = {
 
 // ── Jobs ──────────────────────────────────────────────────────────────────
 
-export async function fetchJobs(filters?: { status?: string; priority?: string }): Promise<Job[]> {
+export type JobWithStageCounts = Job & {
+  stageCounts?: { stage: string; _count: { stage: number } }[];
+};
+
+export async function fetchJobs(filters?: {
+  status?: string;
+  priority?: string;
+  clientId?: string;
+  search?: string;
+}): Promise<Job[]> {
   const params = new URLSearchParams();
   if (filters?.status) params.set('status', filters.status);
   if (filters?.priority) params.set('priority', filters.priority);
+  if (filters?.clientId) params.set('clientId', filters.clientId);
+  if (filters?.search) params.set('search', filters.search);
   const qs = params.toString() ? `?${params}` : '';
   const r = await authFetch(`${recruitmentUrl()}/api/v1/jobs${qs}`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
@@ -285,8 +296,20 @@ export async function deleteJob(id: string): Promise<void> {
 
 // ── Candidates ────────────────────────────────────────────────────────────
 
-export async function fetchCandidates(q?: string): Promise<Candidate[]> {
-  const qs = q ? `?q=${encodeURIComponent(q)}` : '';
+export async function fetchCandidates(filters?: {
+  q?: string;
+  source?: string;
+  tags?: string[];
+  page?: number;
+  limit?: number;
+}): Promise<Candidate[]> {
+  const params = new URLSearchParams();
+  if (filters?.q) params.set('q', filters.q);
+  if (filters?.source) params.set('source', filters.source);
+  filters?.tags?.forEach((t) => params.append('tags', t));
+  if (filters?.page) params.set('page', String(filters.page));
+  if (filters?.limit) params.set('limit', String(filters.limit));
+  const qs = params.toString() ? `?${params}` : '';
   const r = await authFetch(`${recruitmentUrl()}/api/v1/candidates${qs}`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
@@ -317,6 +340,60 @@ export async function createCandidate(body: {
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
+export async function updateCandidate(
+  id: string,
+  body: Partial<Parameters<typeof createCandidate>[0]>,
+): Promise<Candidate> {
+  const r = await authFetch(`${recruitmentUrl()}/api/v1/candidates/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
+export async function deleteCandidate(id: string): Promise<Candidate> {
+  const r = await authFetch(`${recruitmentUrl()}/api/v1/candidates/${id}`, { method: 'DELETE' });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
+export class CandidateConflictError extends Error {
+  existingId?: string;
+  constructor(message: string, existingId?: string) {
+    super(message);
+    this.name = 'CandidateConflictError';
+    this.existingId = existingId;
+  }
+}
+
+export async function createCandidateSafe(
+  body: Parameters<typeof createCandidate>[0],
+): Promise<Candidate> {
+  const r = await authFetch(`${recruitmentUrl()}/api/v1/candidates`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  if (r.status === 409) {
+    const bodyText = await r.text();
+    try {
+      const parsed = JSON.parse(bodyText) as { message?: string; existingId?: string };
+      const data = parsed && typeof parsed === 'object' && 'data' in parsed
+        ? (parsed as { data: { message?: string; existingId?: string } }).data
+        : parsed;
+      throw new CandidateConflictError(
+        data?.message ?? 'A candidate with this email already exists',
+        data?.existingId,
+      );
+    } catch (e) {
+      if (e instanceof CandidateConflictError) throw e;
+      throw new CandidateConflictError('A candidate with this email already exists');
+    }
+  }
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
   return parseJson(r);
 }
@@ -519,6 +596,33 @@ export async function updateOffer(
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
   return r.json();
 }
+
+export const sendOffer = (id: string) =>
+  authFetch(`${recruitmentUrl()}/api/v1/offers/${id}/send`, { method: 'PATCH' }).then(async (r) => {
+    if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+    return parseJson<Offer>(r);
+  });
+
+export const acceptOffer = (id: string) =>
+  authFetch(`${recruitmentUrl()}/api/v1/offers/${id}/accept`, { method: 'PATCH' }).then(async (r) => {
+    if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+    return parseJson<Offer>(r);
+  });
+
+export const rejectOffer = (id: string, rejectionReason?: string) =>
+  authFetch(`${recruitmentUrl()}/api/v1/offers/${id}/reject`, {
+    method: 'PATCH',
+    body: JSON.stringify({ rejectionReason }),
+  }).then(async (r) => {
+    if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+    return parseJson<Offer>(r);
+  });
+
+export const withdrawOffer = (id: string) =>
+  authFetch(`${recruitmentUrl()}/api/v1/offers/${id}/withdraw`, { method: 'PATCH' }).then(async (r) => {
+    if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+    return parseJson<Offer>(r);
+  });
 
 // ── Placements ────────────────────────────────────────────────────────────
 

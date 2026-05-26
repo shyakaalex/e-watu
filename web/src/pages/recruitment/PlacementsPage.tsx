@@ -1,4 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { fetchMe } from '../../api';
+import { hasAnyRole } from '../../lib/roles';
 import {
   createPlacement,
   fetchOffers,
@@ -24,6 +26,7 @@ const INVOICE_LABELS: Record<InvoiceStatus, string> = {
 };
 
 export function PlacementsPage() {
+  const [canManageInvoices, setCanManageInvoices] = useState(false);
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -51,6 +54,12 @@ export function PlacementsPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    fetchMe()
+      .then((me) => setCanManageInvoices(hasAnyRole(me.roles, ['TENANT_ADMIN', 'FINANCE_OFFICER'])))
+      .catch(() => setCanManageInvoices(false));
+  }, []);
 
   const onOpenForm = async () => {
     setShowForm(true);
@@ -251,6 +260,12 @@ export function PlacementsPage() {
                   <span>
                     <strong>{p.salary.toLocaleString()} {p.currency}</strong>
                   </span>
+                  {p.offer.application.job.feeValue != null && (
+                    <span className="muted small">
+                      Fee: {p.offer.application.job.currency}{' '}
+                      {p.offer.application.job.feeValue.toLocaleString()}
+                    </span>
+                  )}
                   <span className="muted small">
                     Start: {new Date(p.startDate).toLocaleDateString()}
                   </span>
@@ -258,15 +273,16 @@ export function PlacementsPage() {
                     Placed: {new Date(p.createdAt).toLocaleDateString()}
                   </span>
                 </div>
-                {nextInvoice[p.invoiceStatus as InvoiceStatus] && (
+                {canManageInvoices && nextInvoice[p.invoiceStatus as InvoiceStatus] && (
                   <div className="placement-card__actions">
                     <button
                       className="btn btn--ghost small"
+                      type="button"
                       onClick={() =>
                         onUpdateInvoice(p.id, nextInvoice[p.invoiceStatus as InvoiceStatus]!)
                       }
                     >
-                      Mark invoice {INVOICE_LABELS[nextInvoice[p.invoiceStatus as InvoiceStatus]!].toLowerCase()}
+                      Mark {INVOICE_LABELS[nextInvoice[p.invoiceStatus as InvoiceStatus]!]}
                     </button>
                   </div>
                 )}

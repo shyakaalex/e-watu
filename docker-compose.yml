@@ -76,9 +76,29 @@ services:
       SERVICE_NAME: recruitment-service
       DATABASE_URL: postgresql://ewatu:ewatu_dev@postgres:5432/recruitment_db
       PLATFORM_SERVICE_URL: http://platform-service:3012
+      NOTIFICATION_SERVICE_URL: http://notification-service:3015
     depends_on:
       - postgres
       - platform-service
+      - notification-service
+    restart: unless-stopped
+
+  talent-pool-service:
+    build:
+      context: .
+      dockerfile: services/talent-pool-service/Dockerfile
+    ports:
+      - '3014:3014'
+    environment:
+      DATABASE_URL: postgresql://ewatu:ewatu_dev@postgres:5432/talent_pool_db
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      SERVICE_NAME: talent-pool-service
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3014
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   document-service:
@@ -134,6 +154,7 @@ services:
       - recruitment-service
       - document-service
       - notification-service
+      - talent-pool-service
     restart: unless-stopped
 
 volumes:

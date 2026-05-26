@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { dispatchNotification } from '../common/notification.dispatch';
 import type { CreatePlacementDto } from './dtos/create-placement.dto';
 
 @Injectable()
@@ -83,6 +84,14 @@ export class PlacementsService {
           data: { status: 'FILLED', closedAt: new Date() },
         }),
       ]);
+      void dispatchNotification('placement-created', {
+        placementId: placement.id,
+        candidateId: placement.candidateId,
+        clientName: placement.clientName,
+        roleName: placement.roleName,
+        salary: placement.salary,
+        tenantId,
+      });
       return placement;
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {

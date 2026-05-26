@@ -2,8 +2,12 @@ import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   createApplication,
+  createInterview,
+  createOffer,
+  fetchApplicationHistory,
   fetchCandidates,
   fetchJobPipeline,
+  fetchScorecards,
   jobExportUrl,
   moveApplicationStage,
   bulkMoveStage,
@@ -11,8 +15,10 @@ import {
   type Application,
   type ApplicationStage,
   type Candidate,
+  type InterviewType,
   type JobStatus,
   type Pipeline,
+  type StageHistory,
 } from '../../recruitmentApi';
 
 const STAGES: ApplicationStage[] = [
@@ -409,10 +415,12 @@ export function JobPipelinePage() {
                   <PipelineCard
                     key={app.id}
                     app={app}
+                    jobId={jobId!}
                     currentStage={stage}
                     selected={selected.has(app.id)}
                     onToggleSelect={onToggleSelect}
                     onMove={onMoveStage}
+                    onReload={load}
                   />
                 ))}
                 {apps.length === 0 && (
@@ -429,19 +437,104 @@ export function JobPipelinePage() {
 
 function PipelineCard({
   app,
+  jobId,
   currentStage,
   selected,
   onToggleSelect,
   onMove,
+  onReload,
 }: {
   app: Application;
+  jobId: string;
   currentStage: ApplicationStage;
   selected: boolean;
   onToggleSelect: (id: string) => void;
   onMove: (app: Application, stage: ApplicationStage) => void;
+  onReload: () => Promise<void>;
 }) {
   const [showMove, setShowMove] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [history, setHistory] = useState<StageHistory[]>([]);
+  const [interviewOpen, setInterviewOpen] = useState(false);
+  const [scoreOpen, setScoreOpen] = useState(false);
+  const [offerOpen, setOfferOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [scheduledAt, setScheduledAt] = useState('');
+  const [interviewType, setInterviewType] = useState<InterviewType>('VIDEO');
+  const [durationMin, setDurationMin] = useState('60');
+  const [locationOrLink, setLocationOrLink] = useState('');
+  const [interviewerIds, setInterviewerIds] = useState('');
+  const [offerSalary, setOfferSalary] = useState('');
+  const [offerStart, setOfferStart] = useState('');
+  const [offerProbation, setOfferProbation] = useState('90');
+  const [scoreData, setScoreData] = useState<Awaited<ReturnType<typeof fetchScorecards>> | null>(null);
   const otherStages = STAGES.filter((s) => s !== currentStage);
+  const latestInterview = app.interviews?.[app.interviews.length - 1];
+
+  const openHistory = async () => {
+    setHistoryOpen(true);
+    try {
+      setHistory(await fetchApplicationHistory(app.id));
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const submitInterview = async (ev: FormEvent) => {
+    ev.preventDefault();
+    setBusy(true);
+    setMsg(null);
+    try {
+      await createInterview({
+        applicationId: app.id,
+        scheduledAt: new Date(scheduledAt).toISOString(),
+        type: interviewType,
+        durationMin: parseInt(durationMin, 10),
+        locationOrLink: locationOrLink || undefined,
+        interviewerIds: interviewerIds.split(',').map((s) => s.trim()).filter(Boolean),
+      });
+      setInterviewOpen(false);
+      await onReload();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openScorecards = async () => {
+    if (!latestInterview) return;
+    setScoreOpen(true);
+    try {
+      setScoreData(await fetchScorecards(latestInterview.id));
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const submitOffer = async (ev: FormEvent) => {
+    ev.preventDefault();
+    setBusy(true);
+    setMsg(null);
+    try {
+      await createOffer({
+        applicationId: app.id,
+        jobId,
+        candidateId: app.candidateId,
+        salary: parseFloat(offerSalary),
+        currency: 'RWF',
+        startDate: offerStart || undefined,
+        probationDays: parseInt(offerProbation, 10),
+      });
+      setOfferOpen(false);
+      await onReload();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div className={`app-card${selected ? ' app-card--selected' : ''}`}>
@@ -471,9 +564,30 @@ function PipelineCard({
       {app.rejectionReason && (
         <div className="app-card__rejection muted small">Reason: {app.rejectionReason}</div>
       )}
+      <div className="app-card__actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
+        <button type="button" className="btn btn--ghost small" title="Stage history" onClick={() => void openHistory()}>
+          History
+        </button>
+        {(currentStage === 'SCREENED' || currentStage === 'SHORTLISTED') && (
+          <button type="button" className="btn btn--ghost small" onClick={() => setInterviewOpen(true)}>
+            Schedule Interview
+          </button>
+        )}
+        {currentStage === 'INTERVIEWED' && latestInterview && (
+          <button type="button" className="btn btn--ghost small" onClick={() => void openScorecards()}>
+            Scorecards
+          </button>
+        )}
+        {currentStage === 'OFFERED' && (
+          <button type="button" className="btn btn--ghost small" onClick={() => setOfferOpen(true)}>
+            Create Offer
+          </button>
+        )}
+      </div>
+      {msg && <p className="muted small" style={{ color: 'var(--err)' }}>{msg}</p>}
       <div className="app-card__footer">
         <span className="muted small">{new Date(app.createdAt).toLocaleDateString()}</span>
-        <button className="btn btn--ghost app-card__move-btn" onClick={() => setShowMove((v) => !v)}>
+        <button type="button" className="btn btn--ghost app-card__move-btn" onClick={() => setShowMove((v) => !v)}>
           Move ▾
         </button>
         {showMove && (
@@ -490,6 +604,65 @@ function PipelineCard({
           </div>
         )}
       </div>
+
+      {historyOpen && (
+        <div className="modal-overlay" onClick={() => setHistoryOpen(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-card__title">Stage history</h3>
+            <ul className="timeline-list">
+              {history.map((h) => (
+                <li key={h.id} className="muted small">
+                  {h.fromStage ?? '—'} → <strong>{h.toStage}</strong>
+                  {' · '}{new Date(h.createdAt).toLocaleString()}
+                </li>
+              ))}
+            </ul>
+            <button type="button" className="btn btn--ghost" onClick={() => setHistoryOpen(false)}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {interviewOpen && (
+        <div className="modal-overlay" onClick={() => setInterviewOpen(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-card__title">Schedule interview</h3>
+            <form className="rec-form" onSubmit={submitInterview}>
+              <label className="rec-form__label">When<input className="auth-input" type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} required /></label>
+              <label className="rec-form__label">Type<select className="auth-input" value={interviewType} onChange={(e) => setInterviewType(e.target.value as InterviewType)}><option value="VIDEO">Video</option><option value="PHONE">Phone</option><option value="IN_PERSON">In person</option></select></label>
+              <label className="rec-form__label">Duration (min)<input className="auth-input" type="number" value={durationMin} onChange={(e) => setDurationMin(e.target.value)} /></label>
+              <label className="rec-form__label">Location / link<input className="auth-input" value={locationOrLink} onChange={(e) => setLocationOrLink(e.target.value)} /></label>
+              <label className="rec-form__label">Interviewer IDs (comma-separated)<input className="auth-input" value={interviewerIds} onChange={(e) => setInterviewerIds(e.target.value)} /></label>
+              <button type="submit" className="btn btn--primary" disabled={busy}>{busy ? 'Saving…' : 'Schedule'}</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {scoreOpen && scoreData && (
+        <div className="modal-overlay" onClick={() => setScoreOpen(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-card__title">Scorecards</h3>
+            {Object.entries(scoreData.byCompetency).map(([comp, v]) => (
+              <p key={comp} className="small">{comp}: avg {v.avg.toFixed(1)}</p>
+            ))}
+            <button type="button" className="btn btn--ghost" onClick={() => setScoreOpen(false)}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {offerOpen && (
+        <div className="modal-overlay" onClick={() => setOfferOpen(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-card__title">Create offer</h3>
+            <form className="rec-form" onSubmit={submitOffer}>
+              <label className="rec-form__label">Salary (RWF)<input className="auth-input" type="number" value={offerSalary} onChange={(e) => setOfferSalary(e.target.value)} required /></label>
+              <label className="rec-form__label">Start date<input className="auth-input" type="date" value={offerStart} onChange={(e) => setOfferStart(e.target.value)} /></label>
+              <label className="rec-form__label">Probation (days)<input className="auth-input" type="number" value={offerProbation} onChange={(e) => setOfferProbation(e.target.value)} /></label>
+              <button type="submit" className="btn btn--primary" disabled={busy}>{busy ? 'Creating…' : 'Create offer'}</button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

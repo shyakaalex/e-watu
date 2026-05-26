@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { PublicApplyDto, PublicTalentPoolDto } from './dtos/public-apply.dto';
+import { PublicPresignDto } from './dtos/public-presign.dto';
 import { PublicService } from './public.service';
 
 /** Public careers portal — no authentication (EWatu §3.2). */
@@ -10,6 +11,11 @@ export class PublicController {
   @Get(':slug/jobs')
   listJobs(@Param('slug') slug: string) {
     return this.pub.listOpenJobs(slug);
+  }
+
+  @Post(':slug/presign-cv')
+  presignCv(@Param('slug') slug: string, @Body() body: PublicPresignDto) {
+    return this.pub.presignCv(slug, body);
   }
 
   @Post(':slug/jobs/:jobId/apply')

@@ -2,7 +2,9 @@ import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   createJob,
+  deleteJob,
   fetchJobs,
+  updateJob,
   type FeeType,
   type Job,
   type JobPriority,
@@ -48,6 +50,10 @@ export function JobsPage() {
   const [showForm, setShowForm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterPriority, setFilterPriority] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form state
   const [title, setTitle] = useState('');
@@ -63,28 +69,67 @@ export function JobsPage() {
   const [deadline, setDeadline] = useState('');
   const [requiredSkills, setRequiredSkills] = useState('');
   const [clientName, setClientName] = useState('');
+  const [clientId, setClientId] = useState('');
+  const [consultantId, setConsultantId] = useState('');
+  const [headcount, setHeadcount] = useState('1');
   const [feeType, setFeeType] = useState<FeeType | ''>('');
   const [feeValue, setFeeValue] = useState('');
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setErr(null);
     try {
-      setJobs(await fetchJobs(filterStatus ? { status: filterStatus } : undefined));
+      setJobs(
+        await fetchJobs({
+          ...(filterStatus ? { status: filterStatus } : {}),
+          ...(filterPriority ? { priority: filterPriority } : {}),
+          ...(debouncedSearch ? { search: debouncedSearch } : {}),
+        }),
+      );
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }, [filterStatus]);
+  }, [filterStatus, filterPriority, debouncedSearch]);
 
   useEffect(() => { load(); }, [load]);
+
+  const startEdit = (job: Job) => {
+    setEditingId(job.id);
+    setTitle(job.title);
+    setDepartment(job.department ?? '');
+    setLocation(job.location ?? '');
+    setType(job.type);
+    setStatus(job.status);
+    setPriority(job.priority);
+    setDescription(job.description ?? '');
+    setQualifications(job.qualifications ?? '');
+    setSalaryMin(job.salaryMin != null ? String(job.salaryMin) : '');
+    setSalaryMax(job.salaryMax != null ? String(job.salaryMax) : '');
+    setDeadline(job.deadline ? job.deadline.slice(0, 10) : '');
+    setRequiredSkills(job.requiredSkills.join(', '));
+    setClientName(job.clientName ?? '');
+    setClientId(job.clientId ?? '');
+    setConsultantId(job.consultantId ?? '');
+    setHeadcount(String(job.headcount));
+    setFeeType(job.feeType ?? '');
+    setFeeValue(job.feeValue != null ? String(job.feeValue) : '');
+    setShowForm(true);
+  };
 
   const resetForm = () => {
     setTitle(''); setDepartment(''); setLocation(''); setDescription('');
     setQualifications(''); setSalaryMin(''); setSalaryMax(''); setDeadline('');
-    setRequiredSkills(''); setClientName(''); setFeeType(''); setFeeValue('');
+    setRequiredSkills(''); setClientName(''); setClientId(''); setConsultantId('');
+    setHeadcount('1'); setFeeType(''); setFeeValue('');
     setPriority('STANDARD'); setType('FULL_TIME'); setStatus('OPEN');
+    setEditingId(null);
   };
 
   const onSubmit = async (ev: FormEvent) => {
@@ -97,7 +142,7 @@ export function JobsPage() {
         .map((s) => s.trim())
         .filter(Boolean);
 
-      await createJob({
+      const payload = {
         title: title.trim(),
         department: department.trim() || undefined,
         location: location.trim() || undefined,
@@ -109,12 +154,17 @@ export function JobsPage() {
         salaryMin: salaryMin ? parseInt(salaryMin, 10) : undefined,
         salaryMax: salaryMax ? parseInt(salaryMax, 10) : undefined,
         currency: 'RWF',
+        headcount: parseInt(headcount, 10) || 1,
         deadline: deadline || undefined,
         requiredSkills: skills.length > 0 ? skills : undefined,
         clientName: clientName.trim() || undefined,
+        clientId: clientId.trim() || undefined,
+        consultantId: consultantId.trim() || undefined,
         feeType: feeType || undefined,
         feeValue: feeValue ? parseFloat(feeValue) : undefined,
-      });
+      };
+      if (editingId) await updateJob(editingId, payload);
+      else await createJob(payload);
       resetForm();
       setShowForm(false);
       await load();
@@ -146,7 +196,25 @@ export function JobsPage() {
               <option key={s} value={s}>{STATUS_LABELS[s]}</option>
             ))}
           </select>
-          <button className="btn btn--primary" onClick={() => setShowForm((v) => !v)}>
+          <select
+            className="auth-input"
+            value={filterPriority}
+            onChange={(e) => setFilterPriority(e.target.value)}
+            style={{ width: 'auto', minWidth: 120 }}
+          >
+            <option value="">All priorities</option>
+            <option value="STANDARD">Standard</option>
+            <option value="URGENT">Urgent</option>
+            <option value="EXECUTIVE">Executive</option>
+          </select>
+          <input
+            className="auth-input"
+            placeholder="Search title…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ width: 'auto', minWidth: 160 }}
+          />
+          <button type="button" className="btn btn--primary" onClick={() => { resetForm(); setShowForm((v) => !v); }}>
             {showForm ? 'Cancel' : '+ New job'}
           </button>
         </div>
@@ -156,7 +224,7 @@ export function JobsPage() {
 
       {showForm && (
         <div className="card rec-form-card">
-          <h2 className="rec-form-card__title">Post a new job order</h2>
+          <h2 className="rec-form-card__title">{editingId ? 'Edit job order' : 'Post a new job order'}</h2>
           <form className="rec-form" onSubmit={onSubmit}>
             <div className="rec-form__grid">
               <label className="rec-form__label rec-form__label--full">
@@ -177,6 +245,18 @@ export function JobsPage() {
                   onChange={(e) => setClientName(e.target.value)}
                   placeholder="e.g. Acme Ltd"
                 />
+              </label>
+              <label className="rec-form__label">
+                Client ID
+                <input className="auth-input" value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="UUID" />
+              </label>
+              <label className="rec-form__label">
+                Consultant ID
+                <input className="auth-input" value={consultantId} onChange={(e) => setConsultantId(e.target.value)} placeholder="UUID" />
+              </label>
+              <label className="rec-form__label">
+                Headcount
+                <input className="auth-input" type="number" min="1" value={headcount} onChange={(e) => setHeadcount(e.target.value)} />
               </label>
               <label className="rec-form__label">
                 Department
@@ -304,7 +384,7 @@ export function JobsPage() {
             </div>
             <div className="rec-form__actions">
               <button className="btn btn--primary" type="submit" disabled={busy || !title.trim()}>
-                {busy ? 'Saving…' : 'Create job order'}
+                {busy ? 'Saving…' : editingId ? 'Save changes' : 'Create job order'}
               </button>
               <button className="btn btn--ghost" type="button" onClick={() => { setShowForm(false); resetForm(); }}>
                 Cancel
@@ -325,7 +405,7 @@ export function JobsPage() {
       {!loading && displayed.length > 0 && (
         <div className="rec-jobs-list">
           {displayed.map((job) => (
-            <Link key={job.id} to={`/recruitment/jobs/${job.id}`} className="rec-job-card">
+            <div key={job.id} className="rec-job-card">
               <div className="rec-job-card__top">
                 <div>
                   <div className="rec-job-card__title">{job.title}</div>
@@ -366,9 +446,26 @@ export function JobsPage() {
                     <span className="muted small"> · Deadline: {new Date(job.deadline).toLocaleDateString()}</span>
                   )}
                 </div>
-                <span className="rec-job-card__cta">View pipeline →</span>
+                <span className="muted small">Headcount: {job.headcount}</span>
               </div>
-            </Link>
+              <div className="rec-job-card__footer" style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                <Link to={`/recruitment/jobs/${job.id}`} className="btn btn--primary small">Pipeline</Link>
+                <button type="button" className="btn btn--ghost small" onClick={() => startEdit(job)}>Edit</button>
+                {job.status === 'DRAFT' && (
+                  <button
+                    type="button"
+                    className="btn btn--ghost small"
+                    onClick={async () => {
+                      if (!confirm('Delete this draft job?')) return;
+                      await deleteJob(job.id);
+                      await load();
+                    }}
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            </div>
           ))}
         </div>
       )}

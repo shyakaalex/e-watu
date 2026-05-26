@@ -29,7 +29,7 @@ export class PresignService {
   private readonly client: S3Client;
   private readonly bucket: string;
 
-  constructor(config: ConfigService) {
+  constructor(private readonly config: ConfigService) {
     const endpoint = config.getOrThrow<string>('S3_ENDPOINT');
     const region = config.get('S3_REGION', 'us-east-1');
     const accessKeyId = config.getOrThrow<string>('S3_ACCESS_KEY');
@@ -50,18 +50,28 @@ export class PresignService {
         'Presign requires a tenant-scoped account (tenant_id must be present in your access token).',
       );
     }
-    if (
-      !user.roles.includes(EwatuRole.TENANT_ADMIN) &&
-      !user.roles.includes(EwatuRole.PLATFORM_SUPER_ADMIN)
-    ) {
+    const canUpload =
+      user.roles.includes(EwatuRole.TENANT_ADMIN) ||
+      user.roles.includes(EwatuRole.PLATFORM_SUPER_ADMIN) ||
+      user.roles.includes(EwatuRole.HR_MANAGER) ||
+      user.roles.includes(EwatuRole.RECRUITER);
+    if (!canUpload) {
       throw new ForbiddenException(
-        'You need PLATFORM_SUPER_ADMIN or TENANT_ADMIN to upload files.',
+        'You need TENANT_ADMIN, HR_MANAGER, or RECRUITER to upload files.',
       );
     }
     return tenantId;
   }
 
   async createPresignedPut(user: AuthUser, dto: PresignUploadDto) {
+    const tenantId = this.resolveTenantId(user);
+    return this.createPresignedPutForTenant(tenantId, dto);
+  }
+
+  async createPresignedPutForTenant(
+    tenantId: string,
+    dto: Pick<PresignUploadDto, 'objectKey' | 'contentType' | 'fileSize'>,
+  ) {
     if (!ALLOWED_MIME_TYPES.includes(dto.contentType as (typeof ALLOWED_MIME_TYPES)[number])) {
       throw new BadRequestException(
         `File type not allowed. Allowed types: ${ALLOWED_MIME_TYPES.join(', ')}`,
@@ -74,7 +84,6 @@ export class PresignService {
       );
     }
 
-    const tenantId = this.resolveTenantId(user);
     const key = `tenants/${tenantId}/${dto.objectKey}`;
 
     const command = new PutObjectCommand({
@@ -92,8 +101,12 @@ export class PresignService {
       throw new ServiceUnavailableException(`Storage error: ${msg}`);
     }
 
+    const endpoint = this.config.get<string>('S3_ENDPOINT')?.replace(/\/$/, '') ?? '';
+    const objectUrl = endpoint ? `${endpoint}/${this.bucket}/${key}` : key;
+
     return {
       uploadUrl,
+      objectUrl,
       method: 'PUT' as const,
       headers: { 'Content-Type': dto.contentType },
       key,

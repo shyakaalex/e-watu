@@ -1,9 +1,11 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { dispatchNotification } from '../common/notification.dispatch';
 import type { CreateOfferDto } from './dtos/create-offer.dto';
 import type { UpdateOfferDto } from './dtos/update-offer.dto';
 
@@ -86,6 +88,82 @@ export class OffersService {
     return this.prisma.offer.update({
       where: { id },
       data,
+      include: {
+        application: { include: { candidate: true, job: true } },
+        placement: true,
+      },
+    });
+  }
+
+  async sendOffer(id: string, tenantId: string) {
+    const offer = await this.prisma.offer.findFirst({ where: { id, tenantId } });
+    if (!offer) throw new NotFoundException('Offer not found');
+    if (offer.status !== 'DRAFT') {
+      throw new BadRequestException('Offer can only be sent when in DRAFT status');
+    }
+    const updated = await this.prisma.offer.update({
+      where: { id },
+      data: { status: 'SENT' },
+      include: {
+        application: { include: { candidate: true, job: true } },
+        placement: true,
+      },
+    });
+    void dispatchNotification('offer-sent', {
+      offerId: updated.id,
+      candidateId: updated.candidateId,
+      jobId: updated.jobId,
+      salary: updated.salary,
+      currency: updated.currency,
+      tenantId,
+    });
+    return updated;
+  }
+
+  async acceptOffer(id: string, tenantId: string) {
+    const offer = await this.prisma.offer.findFirst({ where: { id, tenantId } });
+    if (!offer) throw new NotFoundException('Offer not found');
+    if (offer.status !== 'SENT') {
+      throw new BadRequestException('Offer can only be accepted when in SENT status');
+    }
+    return this.prisma.offer.update({
+      where: { id },
+      data: { status: 'ACCEPTED' },
+      include: {
+        application: { include: { candidate: true, job: true } },
+        placement: true,
+      },
+    });
+  }
+
+  async rejectOffer(id: string, tenantId: string, rejectionReason?: string) {
+    const offer = await this.prisma.offer.findFirst({ where: { id, tenantId } });
+    if (!offer) throw new NotFoundException('Offer not found');
+    if (offer.status !== 'SENT') {
+      throw new BadRequestException('Offer can only be rejected when in SENT status');
+    }
+    return this.prisma.offer.update({
+      where: { id },
+      data: {
+        status: 'REJECTED',
+        ...(rejectionReason ? { rejectionReason } : {}),
+      },
+      include: {
+        application: { include: { candidate: true, job: true } },
+        placement: true,
+      },
+    });
+  }
+
+  async withdrawOffer(id: string, tenantId: string) {
+    const offer = await this.prisma.offer.findFirst({ where: { id, tenantId } });
+    if (!offer) throw new NotFoundException('Offer not found');
+    if (offer.status === 'ACCEPTED') {
+      throw new BadRequestException('Accepted offers cannot be withdrawn');
+    }
+    return this.prisma.offer.update({
+      where: { id },
+      data: { status: 'WITHDRAWN' },
       include: {
         application: { include: { candidate: true, job: true } },
         placement: true,

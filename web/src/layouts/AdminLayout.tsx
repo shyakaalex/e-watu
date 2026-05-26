@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { fetchMe } from '../api';
+import { hasAnyRole, RECRUITMENT_ROLES, TALENT_POOL_ROLES } from '../lib/roles';
 import { clearAuthTokens } from '../auth/token';
 import { isAuthFailureStatus } from '../lib/auth-session';
 import './admin-layout.css';
@@ -51,6 +52,8 @@ export function AdminLayout() {
   }, [load]);
 
   const isSuper = me?.roles.includes('PLATFORM_SUPER_ADMIN') ?? false;
+  const showRecruitment = me ? hasAnyRole(me.roles, RECRUITMENT_ROLES) : false;
+  const showTalentPool = me ? hasAnyRole(me.roles, TALENT_POOL_ROLES) : false;
   const displayName = me?.username ?? me?.email ?? 'User';
   const initials = displayName
     .split(/\s+/)
@@ -156,15 +159,48 @@ export function AdminLayout() {
                 </span>
                 Team
               </NavLink>
-              <NavLink
-                to="/recruitment"
-                className={({ isActive }) => `adm-nav__link${isActive ? ' adm-nav__link--active' : ''}`}
-              >
-                <span className="adm-nav__icon" aria-hidden>
-                  📋
-                </span>
-                Recruitment
-              </NavLink>
+              {showRecruitment && (
+                <NavLink
+                  to="/recruitment"
+                  className={({ isActive }) => `adm-nav__link${isActive ? ' adm-nav__link--active' : ''}`}
+                >
+                  <span className="adm-nav__icon" aria-hidden>
+                    📋
+                  </span>
+                  Recruitment
+                </NavLink>
+              )}
+              {showTalentPool && (
+                <>
+                  <NavLink
+                    to="/talent-pool/pools"
+                    className={({ isActive }) => `adm-nav__link${isActive ? ' adm-nav__link--active' : ''}`}
+                  >
+                    <span className="adm-nav__icon" aria-hidden>
+                      🎯
+                    </span>
+                    Talent Pools
+                  </NavLink>
+                  <NavLink
+                    to="/talent-pool/profiles"
+                    className={({ isActive }) => `adm-nav__link${isActive ? ' adm-nav__link--active' : ''}`}
+                  >
+                    <span className="adm-nav__icon" aria-hidden>
+                      👤
+                    </span>
+                    Pool Profiles
+                  </NavLink>
+                  <NavLink
+                    to="/talent-pool/searches"
+                    className={({ isActive }) => `adm-nav__link${isActive ? ' adm-nav__link--active' : ''}`}
+                  >
+                    <span className="adm-nav__icon" aria-hidden>
+                      🔍
+                    </span>
+                    Saved Searches
+                  </NavLink>
+                </>
+              )}
             </>
           )}
         </nav>

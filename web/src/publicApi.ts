@@ -40,6 +40,22 @@ export async function fetchPublicJobs(slug: string): Promise<PublicJob[]> {
   return parseJson<PublicJob[]>(r);
 }
 
+export async function presignPublicCv(
+  slug: string,
+  body: { objectKey: string; contentType: string; fileSize: number },
+): Promise<{ uploadUrl: string; objectUrl: string; method: 'PUT'; headers: Record<string, string> }> {
+  const r = await fetch(
+    `${serviceUrl('recruitment')}/api/v1/public/${encodeURIComponent(slug)}/presign-cv`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+  );
+  if (!r.ok) throw new Error(await r.text());
+  return parseJson(r);
+}
+
 export async function submitPublicApplication(
   slug: string,
   jobId: string,

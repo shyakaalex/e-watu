@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { dispatchNotification } from '../common/notification.dispatch';
 import type { CreateInterviewDto, CreateScorecardDto } from './dtos/create-interview.dto';
 import type { UpdateInterviewDto } from './dtos/update-interview.dto';
 
@@ -46,7 +47,7 @@ export class InterviewsService {
     if (!application || application.tenantId !== tenantId) {
       throw new NotFoundException('Application not found');
     }
-    return this.prisma.interview.create({
+    const interview = await this.prisma.interview.create({
       data: {
         tenantId,
         applicationId: dto.applicationId,
@@ -63,6 +64,14 @@ export class InterviewsService {
         scorecards: true,
       },
     });
+    void dispatchNotification('interview-scheduled', {
+      applicationId: interview.applicationId,
+      scheduledAt: interview.scheduledAt,
+      type: interview.type,
+      locationOrLink: interview.locationOrLink,
+      tenantId,
+    });
+    return interview;
   }
 
   async update(tenantId: string, id: string, dto: UpdateInterviewDto) {

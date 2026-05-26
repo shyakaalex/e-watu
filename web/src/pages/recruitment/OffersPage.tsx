@@ -1,14 +1,19 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import {
+  acceptOffer,
   createOffer,
   fetchApplications,
   fetchOffers,
+  rejectOffer,
+  sendOffer,
   updateOffer,
+  withdrawOffer,
   type Application,
   type Offer,
   type OfferStatus,
   type SignatureStatus,
 } from '../../recruitmentApi';
+import { uploadViaPresign } from '../../documentApi';
 
 const STATUS_CLASS: Record<OfferStatus, string> = {
   DRAFT: 'badge badge--gray',
@@ -103,16 +108,6 @@ export function OffersPage() {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
-    }
-  };
-
-  const onUpdateStatus = async (id: string, status: OfferStatus) => {
-    setErr(null);
-    try {
-      await updateOffer(id, { status });
-      await load();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -242,7 +237,7 @@ export function OffersPage() {
             <OfferCard
               key={offer.id}
               offer={offer}
-              onUpdateStatus={onUpdateStatus}
+              onReload={load}
               onUpdateSignature={onUpdateSignature}
             />
           ))}
@@ -254,24 +249,34 @@ export function OffersPage() {
 
 function OfferCard({
   offer,
-  onUpdateStatus,
+  onReload,
   onUpdateSignature,
 }: {
   offer: Offer;
-  onUpdateStatus: (id: string, status: OfferStatus) => void;
+  onReload: () => Promise<void>;
   onUpdateSignature: (id: string, sig: SignatureStatus) => void;
 }) {
   const [showNeg, setShowNeg] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [busy, setBusy] = useState(false);
   const { application: app } = offer;
 
-  const nextStatuses: Partial<Record<OfferStatus, OfferStatus[]>> = {
-    DRAFT: ['SENT', 'WITHDRAWN'],
-    SENT: ['UNDER_REVIEW', 'WITHDRAWN'],
-    UNDER_REVIEW: ['NEGOTIATING', 'ACCEPTED', 'REJECTED'],
-    NEGOTIATING: ['ACCEPTED', 'REJECTED', 'WITHDRAWN'],
+  const runAction = async (fn: () => Promise<unknown>) => {
+    setBusy(true);
+    try {
+      await fn();
+      await onReload();
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const availableNext = nextStatuses[offer.status] ?? [];
+  const onUploadLetter = async (file: File) => {
+    const url = await uploadViaPresign(file, `offers/${offer.id}/${file.name}`);
+    await updateOffer(offer.id, { offerLetterUrl: url });
+    await onReload();
+  };
 
   return (
     <div className="offer-card card">
@@ -302,8 +307,21 @@ function OfferCard({
         )}
       </div>
 
+      <div className="offer-card__letter">
+        <label className="btn btn--ghost small">
+          Upload offer letter (PDF)
+          <input
+            type="file"
+            accept="application/pdf"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void runAction(() => onUploadLetter(f));
+            }}
+          />
+        </label>
       {offer.offerLetterUrl && (
-        <div className="offer-card__letter">
+        <>
           <a href={offer.offerLetterUrl} target="_blank" rel="noreferrer" className="btn btn--ghost small">
             View offer letter
           </a>
@@ -317,20 +335,48 @@ function OfferCard({
               Mark signed
             </button>
           )}
-        </div>
+        </>
       )}
+      </div>
 
-      {availableNext.length > 0 && (
-        <div className="offer-card__actions">
-          {availableNext.map((s) => (
-            <button
-              key={s}
-              className={`btn small ${s === 'ACCEPTED' ? 'btn--primary' : s === 'REJECTED' || s === 'WITHDRAWN' ? 'btn--danger' : 'btn--ghost'}`}
-              onClick={() => onUpdateStatus(offer.id, s)}
-            >
-              {STATUS_LABELS[s]}
+      <div className="offer-card__actions">
+        {offer.status === 'DRAFT' && (
+          <>
+            <button type="button" className="btn btn--primary small" disabled={busy} onClick={() => void runAction(() => sendOffer(offer.id))}>
+              Send offer
             </button>
-          ))}
+            <button type="button" className="btn btn--ghost small" disabled={busy} onClick={() => void runAction(() => withdrawOffer(offer.id))}>
+              Withdraw
+            </button>
+          </>
+        )}
+        {offer.status === 'SENT' && (
+          <>
+            <button type="button" className="btn btn--primary small" disabled={busy} onClick={() => void runAction(() => acceptOffer(offer.id))}>
+              Accept
+            </button>
+            <button type="button" className="btn btn--danger small" disabled={busy} onClick={() => setRejectOpen(true)}>
+              Reject
+            </button>
+            <button type="button" className="btn btn--ghost small" disabled={busy} onClick={() => void runAction(() => withdrawOffer(offer.id))}>
+              Withdraw
+            </button>
+          </>
+        )}
+      </div>
+
+      {rejectOpen && (
+        <div className="modal-overlay">
+          <div className="modal-card">
+            <h3 className="modal-card__title">Reject offer</h3>
+            <textarea className="auth-input rec-textarea" rows={3} value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Reason (optional)" />
+            <div className="rec-form__actions">
+              <button type="button" className="btn btn--danger" disabled={busy} onClick={() => void runAction(() => rejectOffer(offer.id, rejectReason || undefined)).then(() => setRejectOpen(false))}>
+                Confirm reject
+              </button>
+              <button type="button" className="btn btn--ghost" onClick={() => setRejectOpen(false)}>Cancel</button>
+            </div>
+          </div>
         </div>
       )}
 

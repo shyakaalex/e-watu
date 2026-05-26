@@ -9,14 +9,31 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { CreateCandidateDto } from './dtos/create-candidate.dto';
 import type { UpdateCandidateDto } from './dtos/update-candidate.dto';
 
+export type FindAllCandidatesFilters = {
+  q?: string;
+  source?: string;
+  tags?: string[];
+  page?: number;
+  limit?: number;
+};
+
 @Injectable()
 export class CandidatesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll(tenantId: string, query?: string) {
-    const where: Prisma.CandidateWhereInput = { tenantId };
-    if (query) {
-      const q = query.trim();
+  findAll(tenantId: string, filters: FindAllCandidatesFilters = {}) {
+    const page = Math.max(1, filters.page ?? 1);
+    const limit = Math.min(100, Math.max(1, filters.limit ?? 20));
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.CandidateWhereInput = {
+      tenantId,
+      archived: false,
+      ...(filters.source ? { source: filters.source } : {}),
+      ...(filters.tags?.length ? { tags: { hasSome: filters.tags } } : {}),
+    };
+    if (filters.q) {
+      const q = filters.q.trim();
       where.OR = [
         { firstName: { contains: q, mode: 'insensitive' } },
         { lastName: { contains: q, mode: 'insensitive' } },
@@ -24,9 +41,12 @@ export class CandidatesService {
         { currentTitle: { contains: q, mode: 'insensitive' } },
       ];
     }
+
     return this.prisma.candidate.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
     });
   }
 
@@ -56,14 +76,14 @@ export class CandidatesService {
           cvUrl: dto.cvUrl ?? null,
           linkedinUrl: dto.linkedinUrl ?? null,
           currentTitle: dto.currentTitle ?? null,
-          source: dto.source ?? 'DIRECT',
+          source: dto.source ?? 'MANUAL',
           notes: dto.notes ?? null,
           tags: dto.tags ?? [],
         },
       });
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-        throw new ConflictException('A candidate with this email already exists');
+        await this.throwDuplicateEmail(tenantId, dto.email);
       }
       throw e;
     }
@@ -79,10 +99,29 @@ export class CandidatesService {
       });
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-        throw new ConflictException('A candidate with this email already exists');
+        await this.throwDuplicateEmail(tenantId, dto.email ?? c.email);
       }
       throw e;
     }
+  }
+
+  async archive(tenantId: string, id: string) {
+    const c = await this.prisma.candidate.findFirst({ where: { id, tenantId } });
+    if (!c) throw new NotFoundException('Candidate not found');
+    return this.prisma.candidate.update({
+      where: { id },
+      data: { archived: true },
+    });
+  }
+
+  private async throwDuplicateEmail(tenantId: string, email: string) {
+    const existing = await this.prisma.candidate.findUnique({
+      where: { tenantId_email: { tenantId, email: email.toLowerCase() } },
+    });
+    throw new ConflictException({
+      message: 'Candidate with this email already exists',
+      existingId: existing?.id,
+    });
   }
 
   requireTenant(tenantId?: string): string {

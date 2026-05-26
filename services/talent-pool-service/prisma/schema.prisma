@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model TalentPool {
+  id          String              @id @default(uuid())
+  tenantId    String              @map("tenant_id")
+  name        String
+  description String?
+  tags        String[]
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+  profiles    TalentPoolProfile[]
+
+  @@index([tenantId])
+  @@map("talent_pools")
+}
+
+model TalentPoolProfile {
+  id          String     @id @default(uuid())
+  tenantId    String     @map("tenant_id")
+  poolId      String     @map("pool_id")
+  candidateId String     @map("candidate_id")
+  firstName   String?    @map("first_name")
+  lastName    String?    @map("last_name")
+  email       String?
+  tags        String[]
+  source      String?
+  notes       String?
+  addedAt     DateTime   @default(now()) @map("added_at")
+  pool        TalentPool @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  @@unique([poolId, candidateId])
+  @@index([tenantId])
+  @@map("talent_pool_profiles")
+}
+
+model SavedSearch {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  name      String
+  filters   Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId])
+  @@map("saved_searches")
+}

@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { dispatchNotification } from '../common/notification.dispatch';
 import type { PublicApplyDto, PublicTalentPoolDto } from './dtos/public-apply.dto';
 
 @Injectable()
@@ -90,6 +91,12 @@ export class PublicService {
           notes: dto.coverLetter ?? null,
         },
       });
+      void dispatchNotification('application-received', {
+        candidateEmail: candidate.email,
+        candidateName: `${candidate.firstName} ${candidate.lastName}`,
+        jobTitle: job.title,
+        tenantId,
+      });
       return { message: 'Application submitted', applicationId: application.id };
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
@@ -97,6 +104,25 @@ export class PublicService {
       }
       throw e;
     }
+  }
+
+  async presignCv(slug: string, dto: { objectKey: string; contentType: string; fileSize: number }) {
+    const tenantId = await this.resolveTenantId(slug);
+    const base = this.config.get<string>('DOCUMENT_SERVICE_URL')?.replace(/\/$/, '');
+    const key = this.config.get<string>('INTERNAL_API_KEY');
+    if (!base || !key) {
+      throw new BadGatewayException('DOCUMENT_SERVICE_URL not configured');
+    }
+    const r = await fetch(`${base}/api/v1/document/internal/presign`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-key': key,
+      },
+      body: JSON.stringify({ tenantId, ...dto }),
+    });
+    if (!r.ok) throw new BadGatewayException('Could not prepare file upload');
+    return r.json();
   }
 
   async joinTalentPool(slug: string, dto: PublicTalentPoolDto) {

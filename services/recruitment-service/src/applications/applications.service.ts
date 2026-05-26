@@ -155,6 +155,30 @@ export class ApplicationsService {
     return { updated: apps.length };
   }
 
+  async withdraw(tenantId: string, id: string, changedBy: string) {
+    const app = await this.prisma.application.findUnique({ where: { id } });
+    if (!app || app.tenantId !== tenantId) throw new NotFoundException('Application not found');
+
+    const [updated] = await this.prisma.$transaction([
+      this.prisma.application.update({
+        where: { id },
+        data: { stage: 'REJECTED', rejectionReason: 'Withdrawn' },
+        include: { candidate: true, job: true },
+      }),
+      this.prisma.stageHistory.create({
+        data: {
+          tenantId,
+          applicationId: id,
+          fromStage: app.stage,
+          toStage: 'REJECTED',
+          changedBy,
+          notes: 'Withdrawn',
+        },
+      }),
+    ]);
+    return updated;
+  }
+
   async getStageHistory(tenantId: string, applicationId: string) {
     const app = await this.prisma.application.findUnique({ where: { id: applicationId } });
     if (!app || app.tenantId !== tenantId) throw new NotFoundException('Application not found');

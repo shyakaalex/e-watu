@@ -92,8 +92,8 @@ export function PoolsPage() {
                 <div className="tp-pool-card__name">{pool.name}</div>
                 {pool.description && <p className="tp-pool-card__desc muted small">{pool.description}</p>}
                 <div className="tp-pool-card__count">
-                  <span className="tp-pool-card__count-num">{pool._count?.members ?? 0}</span>
-                  <span className="muted small"> member{(pool._count?.members ?? 0) !== 1 ? 's' : ''}</span>
+                  <span className="tp-pool-card__count-num">{pool._count?.profiles ?? pool.profiles?.length ?? 0}</span>
+                  <span className="muted small"> profile{(pool._count?.profiles ?? 0) !== 1 ? 's' : ''}</span>
                 </div>
                 {pool.tags.length > 0 && (
                   <div className="tp-pool-card__tags">

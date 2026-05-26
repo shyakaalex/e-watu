@@ -10,7 +10,10 @@ import {
 } from 'class-validator';
 
 export class PresignUploadDto {
-  /** Relative path under tenants/{tenantId}/, e.g. branding/logo.png */
+  /**
+   * Relative path under tenants/{tenantId}/.
+   * Examples: candidates/{uuid}/cv-filename.pdf, offers/{uuid}/offer-letter.pdf, branding/logo.png
+   */
   @IsString()
   @IsNotEmpty()
   @MinLength(1)
