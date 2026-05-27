@@ -1,5 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { fetchCandidates, type Candidate } from '../../recruitmentApi';
 import {
   addCandidateToPool,
   fetchPool,
@@ -20,6 +21,9 @@ export function PoolDetailPage() {
   const [email, setEmail] = useState('');
   const [notes, setNotes] = useState('');
   const [addBusy, setAddBusy] = useState(false);
+  const [recruitmentCandidates, setRecruitmentCandidates] = useState<Candidate[]>([]);
+  const [loadingRecruitmentCandidates, setLoadingRecruitmentCandidates] = useState(false);
+  const [selectedCandidateId, setSelectedCandidateId] = useState('');
 
   const load = useCallback(async () => {
     if (!poolId) return;
@@ -38,14 +42,41 @@ export function PoolDetailPage() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    if (!showAddForm) return;
+    let alive = true;
+    const loadCandidates = async () => {
+      setLoadingRecruitmentCandidates(true);
+      try {
+        const candidates = await fetchCandidates({ limit: 100 });
+        if (alive) setRecruitmentCandidates(candidates);
+      } catch (e) {
+        if (alive) setErr(e instanceof Error ? e.message : String(e));
+      } finally {
+        if (alive) setLoadingRecruitmentCandidates(false);
+      }
+    };
+    void loadCandidates();
+    return () => {
+      alive = false;
+    };
+  }, [showAddForm]);
+
+  const uuidLike = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
   const onAdd = async (ev: FormEvent) => {
     ev.preventDefault();
     if (!poolId || !candidateId.trim()) return;
+    const trimmedCandidateId = candidateId.trim();
+    if (!uuidLike.test(trimmedCandidateId)) {
+      setErr('Candidate ID must be a UUID from Recruitment candidates.');
+      return;
+    }
     setAddBusy(true);
     setErr(null);
     try {
       await addCandidateToPool(poolId, {
-        candidateId: candidateId.trim(),
+        candidateId: trimmedCandidateId,
         notes: notes.trim() || undefined,
         firstName: firstName.trim() || undefined,
         lastName: lastName.trim() || undefined,
@@ -56,6 +87,7 @@ export function PoolDetailPage() {
       setLastName('');
       setEmail('');
       setNotes('');
+      setSelectedCandidateId('');
       setShowAddForm(false);
       await load();
     } catch (e) {
@@ -105,8 +137,36 @@ export function PoolDetailPage() {
           <form className="rec-form" onSubmit={onAdd}>
             <div className="rec-form__grid">
               <label className="rec-form__label rec-form__label--full">
-                Candidate ID (from recruitment) *
+                Pick from recruitment candidates (recommended)
+                <select
+                  className="auth-input"
+                  value={selectedCandidateId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setSelectedCandidateId(id);
+                    const c = recruitmentCandidates.find((candidate) => candidate.id === id);
+                    if (!c) return;
+                    setCandidateId(c.id);
+                    setFirstName(c.firstName ?? '');
+                    setLastName(c.lastName ?? '');
+                    setEmail(c.email ?? '');
+                  }}
+                  disabled={loadingRecruitmentCandidates}
+                >
+                  <option value="">
+                    {loadingRecruitmentCandidates ? 'Loading candidates…' : 'Select candidate'}
+                  </option>
+                  {recruitmentCandidates.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.firstName} {c.lastName} - {c.email}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="rec-form__label rec-form__label--full">
+                Candidate ID (UUID from recruitment) *
                 <input className="auth-input" value={candidateId} onChange={(e) => setCandidateId(e.target.value)} required />
+                <span className="muted small">Numeric IDs like 101 are invalid here.</span>
               </label>
               <label className="rec-form__label">
                 First name

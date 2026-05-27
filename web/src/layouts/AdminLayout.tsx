@@ -39,7 +39,9 @@ export function AdminLayout() {
         return;
       }
       setLoadError(
-        'Could not load your profile. The server may be restarting — try again in a moment.',
+        status === 429
+          ? 'Too many profile checks in a short time. Please wait a few seconds, then retry.'
+          : 'Could not load your profile. The server may be restarting — try again in a moment.',
       );
       setMe(null);
     } finally {

@@ -1,11 +1,27 @@
-import { setAccessToken, setRefreshToken, clearAuthTokens } from './auth/token';
+import { setAccessToken, setRefreshToken, clearAuthTokens as clearStoredAuthTokens } from './auth/token';
 import { authFetch, parseJson, scheduleProactiveTokenRefresh, serviceUrl } from './lib/http';
 
-export { setAccessToken, clearAuthTokens };
+export { setAccessToken };
 
 const identityUrl = () => serviceUrl('identity');
 const platformUrl = () => serviceUrl('platform');
 const notificationUrl = () => serviceUrl('notification');
+
+type MePayload = {
+  sub: string;
+  email?: string;
+  username?: string;
+  roles: string[];
+  tenant_id?: string;
+};
+
+let meCache: MePayload | null = null;
+let meCacheAt = 0;
+let meInFlight: Promise<MePayload> | null = null;
+let meBackoffUntil = 0;
+
+const ME_CACHE_MS = 15_000;
+const ME_429_BACKOFF_MS = 5_000;
 
 export async function loginRequest(email: string, password: string) {
   const r = await fetch(`${identityUrl()}/api/v1/auth/login`, {
@@ -21,6 +37,9 @@ export async function loginRequest(email: string, password: string) {
   }>(r);
   setAccessToken(data.access_token);
   setRefreshToken(data.refresh_token);
+  meCache = null;
+  meCacheAt = 0;
+  meBackoffUntil = 0;
   scheduleProactiveTokenRefresh();
 }
 
@@ -42,19 +61,52 @@ export async function registerRequest(
   }>(r);
   setAccessToken(data.access_token);
   setRefreshToken(data.refresh_token);
+  meCache = null;
+  meCacheAt = 0;
+  meBackoffUntil = 0;
   scheduleProactiveTokenRefresh();
 }
 
-export async function fetchMe() {
-  const r = await authFetch(`${identityUrl()}/api/v1/me`);
-  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return parseJson<{
-    sub: string;
-    email?: string;
-    username?: string;
-    roles: string[];
-    tenant_id?: string;
-  }>(r);
+export async function fetchMe(options?: { force?: boolean }) {
+  const force = options?.force ?? false;
+  const now = Date.now();
+
+  if (!force && meCache && now - meCacheAt < ME_CACHE_MS) {
+    return meCache;
+  }
+
+  if (meInFlight) return meInFlight;
+
+  if (!force && now < meBackoffUntil) {
+    throw new Error('429: Too Many Requests');
+  }
+
+  meInFlight = (async () => {
+    const r = await authFetch(`${identityUrl()}/api/v1/me`);
+    if (!r.ok) {
+      if (r.status === 429) {
+        meBackoffUntil = Date.now() + ME_429_BACKOFF_MS;
+      }
+      throw new Error(`${r.status}: ${await r.text()}`);
+    }
+    const me = await parseJson<MePayload>(r);
+    meCache = me;
+    meCacheAt = Date.now();
+    meBackoffUntil = 0;
+    return me;
+  })().finally(() => {
+    meInFlight = null;
+  });
+
+  return meInFlight;
+}
+
+export function clearAuthTokens() {
+  meCache = null;
+  meCacheAt = 0;
+  meInFlight = null;
+  meBackoffUntil = 0;
+  clearStoredAuthTokens();
 }
 
 export type TenantRow = {

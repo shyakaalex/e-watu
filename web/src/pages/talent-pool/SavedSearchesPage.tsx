@@ -54,7 +54,8 @@ export function SavedSearchesPage() {
   const onRun = async (id: string) => {
     setRunLoading(id);
     try {
-      setRunResults((r) => ({ ...r, [id]: await runSavedSearch(id) }));
+      const results = await runSavedSearch(id);
+      setRunResults((r) => ({ ...r, [id]: results }));
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
