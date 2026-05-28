@@ -63,6 +63,22 @@ services:
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       PLATFORM_SERVICE_URL: ${PLATFORM_SERVICE_URL}
 
+  payroll-service:
+    build:
+      context: .
+      dockerfile: services/payroll-service/Dockerfile
+    ports:
+      - '3016:3016'
+    environment:
+      DATABASE_URL: ${PAYROLL_DATABASE_URL}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_ISSUER: ${JWT_ISSUER}
+      SERVICE_NAME: payroll-service
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3016
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+
   notification-service:
     build:
       context: .
@@ -116,6 +132,7 @@ services:
       IDENTITY_SERVICE_URL: ${IDENTITY_SERVICE_URL:-identity-service:3011}
       PLATFORM_SERVICE_URL: ${PLATFORM_SERVICE_URL:-platform-service:3012}
       RECRUITMENT_SERVICE_URL: ${RECRUITMENT_SERVICE_URL:-recruitment-service:3013}
+      PAYROLL_SERVICE_URL: ${PAYROLL_SERVICE_URL:-payroll-service:3016}
       NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL:-notification-service:3015}
       DOCUMENT_SERVICE_URL: ${DOCUMENT_SERVICE_URL:-document-service:3018}
 

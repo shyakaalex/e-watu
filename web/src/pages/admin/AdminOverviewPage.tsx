@@ -8,12 +8,12 @@ import {
   type TenantRow,
 } from '../../api';
 import { fetchCandidates, fetchInterviews, fetchJobs } from '../../recruitmentApi';
+import { hasAnyRole, PAYROLL_ROLES } from '../../lib/roles';
 import { StatusBadge } from './StatusBadge';
 import { parseError } from './parseError';
 import { useAdminContext } from './useAdminContext';
 
 const COMING_MODULES = [
-  { icon: '💰', name: 'Payroll', desc: 'Rwanda PAYE, RSSB, payslips' },
   { icon: '📊', name: 'Performance', desc: 'Goals, appraisals, 360 feedback' },
   { icon: '🛂', name: 'Work permits', desc: 'Immigration case management' },
   { icon: '🤝', name: 'Client CRM', desc: 'Client portal & service requests' },
@@ -262,6 +262,21 @@ export function AdminOverviewPage() {
                   <span className="status-badge status-badge--pending adm-module__badge">Locked</span>
                 </div>
               )}
+              {myTenant?.status === 'ACTIVE' && hasAnyRole(me.roles, PAYROLL_ROLES) ? (
+                <Link to="/payroll/runs" className="adm-module">
+                  <span className="adm-module__icon">💰</span>
+                  <span className="adm-module__name">Payroll & HR</span>
+                  <span className="adm-module__desc">Runs, payslips, leave, outsourcing</span>
+                  <span className="status-badge status-badge--active adm-module__badge">Active</span>
+                </Link>
+              ) : myTenant?.status === 'ACTIVE' ? (
+                <div className="adm-module adm-module--disabled" title="Requires HR or Finance role">
+                  <span className="adm-module__icon">💰</span>
+                  <span className="adm-module__name">Payroll & HR</span>
+                  <span className="adm-module__desc">Runs, payslips, leave, outsourcing</span>
+                  <span className="status-badge status-badge--pending adm-module__badge">No access</span>
+                </div>
+              ) : null}
               {COMING_MODULES.map((m) => (
                 <div key={m.name} className="adm-module adm-module--disabled">
                   <span className="adm-module__icon">{m.icon}</span>

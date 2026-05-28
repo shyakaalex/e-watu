@@ -1,0 +1,230 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+enum EmployeeType {
+  INTERNAL
+  OUTSOURCED
+  SECONDED
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  INACTIVE
+  TERMINATED
+}
+
+enum ContractType {
+  PERMANENT
+  FIXED_TERM
+  SECONDMENT
+}
+
+enum ContractStatus {
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+enum PeriodStatus {
+  DRAFT
+  SUBMITTED
+  HR_APPROVED
+  MD_APPROVED
+  CLIENT_APPROVED
+  FINALIZED
+}
+
+enum ApproverRole {
+  HR_MANAGER
+  MD
+  CLIENT_ADMIN
+}
+
+enum ApprovalAction {
+  APPROVED
+  REJECTED
+}
+
+model PayrollConfiguration {
+  id                    String   @id @default(uuid())
+  tenantId              String   @map("tenant_id")
+  clientId              String   @map("client_id")
+  payFrequency          String   @default("MONTHLY") @map("pay_frequency")
+  payDay                Int      @default(28) @map("pay_day")
+  currency              String   @default("RWF")
+  payeEnabled           Boolean  @default(true) @map("paye_enabled")
+  rssbPensionEmployee   Decimal  @default(0.05) @map("rssb_pension_employee") @db.Decimal(6,4)
+  rssbPensionEmployer   Decimal  @default(0.05) @map("rssb_pension_employer") @db.Decimal(6,4)
+  rssbMedical           Decimal  @default(0.075) @map("rssb_medical") @db.Decimal(6,4)
+  cbhiRate              Decimal  @default(0.005) @map("cbhi_rate") @db.Decimal(6,4)
+  maternityLevy         Decimal  @default(0.003) @map("maternity_levy") @db.Decimal(6,4)
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@unique([tenantId, clientId])
+  @@index([tenantId])
+  @@map("payroll_configurations")
+}
+
+model Employee {
+  id                    String           @id @default(uuid())
+  tenantId              String           @map("tenant_id")
+  candidateId           String?          @map("candidate_id")
+  clientId              String?          @map("client_id")
+  employeeType          EmployeeType     @default(OUTSOURCED) @map("employee_type")
+  firstName             String           @map("first_name")
+  lastName              String           @map("last_name")
+  email                 String
+  phone                 String?
+  nationalIdEncrypted   String?          @map("national_id_encrypted")
+  dateOfBirth           DateTime?        @map("date_of_birth")
+  gender                String?
+  nationality           String?
+  department            String?
+  jobTitle              String           @map("job_title")
+  startDate             DateTime         @map("start_date")
+  endDate               DateTime?        @map("end_date")
+  employmentStatus      EmploymentStatus @default(ACTIVE) @map("employment_status")
+  managerId             String?          @map("manager_id")
+  basicSalary           Decimal          @default(0) @map("basic_salary") @db.Decimal(15,2)
+  housingAllowance      Decimal          @default(0) @map("housing_allowance") @db.Decimal(15,2)
+  transportAllowance    Decimal          @default(0) @map("transport_allowance") @db.Decimal(15,2)
+  otherAllowances       Decimal          @default(0) @map("other_allowances") @db.Decimal(15,2)
+  bankAccountEncrypted  String?          @map("bank_account_encrypted")
+  bankName              String?          @map("bank_name")
+  bankBranch            String?          @map("bank_branch")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  manager               Employee?        @relation("EmployeeManager", fields: [managerId], references: [id])
+  reports               Employee[]       @relation("EmployeeManager")
+  contracts             EmployeeContract[]
+  payrollRecords        PayrollRecord[]
+
+  @@index([tenantId])
+  @@index([tenantId, clientId])
+  @@index([tenantId, employmentStatus])
+  @@map("employees")
+}
+
+model EmployeeContract {
+  id                    String         @id @default(uuid())
+  tenantId              String         @map("tenant_id")
+  employeeId            String         @map("employee_id")
+  contractType          ContractType   @default(PERMANENT) @map("contract_type")
+  startDate             DateTime       @map("start_date")
+  endDate               DateTime?      @map("end_date")
+  salary                Decimal        @db.Decimal(15,2)
+  currency              String         @default("RWF")
+  s3Key                 String?        @map("s3_key")
+  status                ContractStatus @default(ACTIVE)
+  expiryAlert90Sent     Boolean        @default(false) @map("expiry_alert_90_sent")
+  expiryAlert60Sent     Boolean        @default(false) @map("expiry_alert_60_sent")
+  expiryAlert30Sent     Boolean        @default(false) @map("expiry_alert_30_sent")
+  createdAt             DateTime       @default(now()) @map("created_at")
+
+  employee              Employee       @relation(fields: [employeeId], references: [id])
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@index([tenantId, status])
+  @@map("employee_contracts")
+}
+
+model PayrollPeriod {
+  id                    String       @id @default(uuid())
+  tenantId              String       @map("tenant_id")
+  clientId              String       @map("client_id")
+  periodMonth           Int          @map("period_month")
+  periodYear            Int          @map("period_year")
+  status                PeriodStatus @default(DRAFT)
+  preparedBy            String?      @map("prepared_by")
+  submittedAt           DateTime?    @map("submitted_at")
+  hrApprovedAt          DateTime?    @map("hr_approved_at")
+  hrApprovedBy          String?      @map("hr_approved_by")
+  mdApprovedAt          DateTime?    @map("md_approved_at")
+  mdApprovedBy          String?      @map("md_approved_by")
+  clientApprovedAt      DateTime?    @map("client_approved_at")
+  clientApprovedBy      String?      @map("client_approved_by")
+  finalizedAt           DateTime?    @map("finalized_at")
+  notes                 String?
+  createdAt             DateTime     @default(now()) @map("created_at")
+
+  records               PayrollRecord[]
+  approvals             PayrollApproval[]
+  bankFiles             BankPaymentFile[]
+
+  @@unique([tenantId, clientId, periodMonth, periodYear])
+  @@index([tenantId])
+  @@index([tenantId, clientId])
+  @@index([tenantId, status])
+  @@map("payroll_periods")
+}
+
+model PayrollRecord {
+  id                    String        @id @default(uuid())
+  tenantId              String        @map("tenant_id")
+  periodId              String        @map("period_id")
+  employeeId            String        @map("employee_id")
+  basicSalary           Decimal       @map("basic_salary") @db.Decimal(15,2)
+  housingAllowance      Decimal       @default(0) @map("housing_allowance") @db.Decimal(15,2)
+  transportAllowance    Decimal       @default(0) @map("transport_allowance") @db.Decimal(15,2)
+  otherAllowances       Decimal       @default(0) @map("other_allowances") @db.Decimal(15,2)
+  grossPay              Decimal       @map("gross_pay") @db.Decimal(15,2)
+  paye                  Decimal       @default(0) @db.Decimal(15,2)
+  rssbEmployee          Decimal       @default(0) @map("rssb_employee") @db.Decimal(15,2)
+  rssbEmployer          Decimal       @default(0) @map("rssb_employer") @db.Decimal(15,2)
+  rssbMedical           Decimal       @default(0) @map("rssb_medical") @db.Decimal(15,2)
+  cbhi                  Decimal       @default(0) @db.Decimal(15,2)
+  maternityLevy         Decimal       @default(0) @map("maternity_levy") @db.Decimal(15,2)
+  otherDeductions       Decimal       @default(0) @map("other_deductions") @db.Decimal(15,2)
+  totalDeductions       Decimal       @map("total_deductions") @db.Decimal(15,2)
+  netPay                Decimal       @map("net_pay") @db.Decimal(15,2)
+  payslipS3Key          String?       @map("payslip_s3_key")
+  payslipGeneratedAt    DateTime?     @map("payslip_generated_at")
+
+  period                PayrollPeriod @relation(fields: [periodId], references: [id])
+  employee              Employee      @relation(fields: [employeeId], references: [id])
+
+  @@unique([periodId, employeeId])
+  @@index([tenantId])
+  @@index([periodId])
+  @@map("payroll_records")
+}
+
+model PayrollApproval {
+  id                    String         @id @default(uuid())
+  tenantId              String         @map("tenant_id")
+  periodId              String         @map("period_id")
+  approverRole          ApproverRole   @map("approver_role")
+  approverId            String         @map("approver_id")
+  action                ApprovalAction
+  comments              String?
+  createdAt             DateTime       @default(now()) @map("created_at")
+
+  period                PayrollPeriod  @relation(fields: [periodId], references: [id])
+
+  @@index([periodId])
+  @@map("payroll_approvals")
+}
+
+model BankPaymentFile {
+  id                    String        @id @default(uuid())
+  tenantId              String        @map("tenant_id")
+  periodId              String        @map("period_id")
+  s3Key                 String?       @map("s3_key")
+  generatedAt           DateTime      @default(now()) @map("generated_at")
+  generatedBy           String        @map("generated_by")
+  totalAmount           Decimal       @map("total_amount") @db.Decimal(15,2)
+  recordCount           Int           @map("record_count")
+
+  period                PayrollPeriod @relation(fields: [periodId], references: [id])
+
+  @@index([periodId])
+  @@map("bank_payment_files")
+}

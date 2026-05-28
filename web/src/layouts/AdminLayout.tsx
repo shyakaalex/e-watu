@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { fetchMe } from '../api';
-import { hasAnyRole, RECRUITMENT_ROLES, TALENT_POOL_ROLES } from '../lib/roles';
+import { hasAnyRole, PAYROLL_ROLES, RECRUITMENT_ROLES, TALENT_POOL_ROLES } from '../lib/roles';
 import { clearAuthTokens } from '../auth/token';
 import { isAuthFailureStatus } from '../lib/auth-session';
 import './admin-layout.css';
@@ -56,6 +56,7 @@ export function AdminLayout() {
   const isSuper = me?.roles.includes('PLATFORM_SUPER_ADMIN') ?? false;
   const showRecruitment = me ? hasAnyRole(me.roles, RECRUITMENT_ROLES) : false;
   const showTalentPool = me ? hasAnyRole(me.roles, TALENT_POOL_ROLES) : false;
+  const showPayroll = me ? hasAnyRole(me.roles, PAYROLL_ROLES) : false;
   const displayName = me?.username ?? me?.email ?? 'User';
   const initials = displayName
     .split(/\s+/)
@@ -170,6 +171,49 @@ export function AdminLayout() {
                     📋
                   </span>
                   Recruitment
+                </NavLink>
+              )}
+              {showPayroll && (
+                <>
+                  <NavLink
+                    to="/payroll"
+                    end
+                    className={({ isActive }) => `adm-nav__link${isActive ? ' adm-nav__link--active' : ''}`}
+                  >
+                    <span className="adm-nav__icon" aria-hidden>
+                      💰
+                    </span>
+                    Payroll Dashboard
+                  </NavLink>
+                  <NavLink
+                    to="/payroll/employees"
+                    className={({ isActive }) => `adm-nav__link${isActive ? ' adm-nav__link--active' : ''}`}
+                  >
+                    <span className="adm-nav__icon" aria-hidden>
+                      👥
+                    </span>
+                    Payroll Employees
+                  </NavLink>
+                  <NavLink
+                    to="/payroll/periods"
+                    className={({ isActive }) => `adm-nav__link${isActive ? ' adm-nav__link--active' : ''}`}
+                  >
+                    <span className="adm-nav__icon" aria-hidden>
+                      📅
+                    </span>
+                    Payroll Periods
+                  </NavLink>
+                </>
+              )}
+              {me.roles.includes('CLIENT_ADMIN') && (
+                <NavLink
+                  to="/client-portal/payroll"
+                  className={({ isActive }) => `adm-nav__link${isActive ? ' adm-nav__link--active' : ''}`}
+                >
+                  <span className="adm-nav__icon" aria-hidden>
+                    🧾
+                  </span>
+                  Payroll Approvals
                 </NavLink>
               )}
               {showTalentPool && (

@@ -1,6 +1,8 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { fetchMe } from '../../api';
 import { hasAnyRole } from '../../lib/roles';
+import { createEmployeeFromPlacement, fetchEmployees, type Employee } from '../../payrollApi';
 import {
   createPlacement,
   fetchOffers,
@@ -27,7 +29,10 @@ const INVOICE_LABELS: Record<InvoiceStatus, string> = {
 
 export function PlacementsPage() {
   const [canManageInvoices, setCanManageInvoices] = useState(false);
+  const [canHandoffPayroll, setCanHandoffPayroll] = useState(false);
   const [placements, setPlacements] = useState<Placement[]>([]);
+  const [employeesByPlacement, setEmployeesByPlacement] = useState<Record<string, Employee>>({});
+  const [handoffBusyId, setHandoffBusyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -45,7 +50,16 @@ export function PlacementsPage() {
     setLoading(true);
     setErr(null);
     try {
-      setPlacements(await fetchPlacements());
+      const [placementList, employeeList] = await Promise.all([
+        fetchPlacements(),
+        fetchEmployees().catch(() => [] as Employee[]),
+      ]);
+      setPlacements(placementList);
+      const byPlacement: Record<string, Employee> = {};
+      for (const employee of employeeList) {
+        if (employee.placementId) byPlacement[employee.placementId] = employee;
+      }
+      setEmployeesByPlacement(byPlacement);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -57,8 +71,14 @@ export function PlacementsPage() {
 
   useEffect(() => {
     fetchMe()
-      .then((me) => setCanManageInvoices(hasAnyRole(me.roles, ['TENANT_ADMIN', 'FINANCE_OFFICER'])))
-      .catch(() => setCanManageInvoices(false));
+      .then((me) => {
+        setCanManageInvoices(hasAnyRole(me.roles, ['TENANT_ADMIN', 'FINANCE_OFFICER']));
+        setCanHandoffPayroll(hasAnyRole(me.roles, ['TENANT_ADMIN', 'HR_MANAGER']));
+      })
+      .catch(() => {
+        setCanManageInvoices(false);
+        setCanHandoffPayroll(false);
+      });
   }, []);
 
   const onOpenForm = async () => {
@@ -110,6 +130,29 @@ export function PlacementsPage() {
       await load();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const onCreateEmployee = async (placement: Placement) => {
+    const candidate = placement.offer.application.candidate;
+    setHandoffBusyId(placement.id);
+    setErr(null);
+    try {
+      const employee = await createEmployeeFromPlacement({
+        firstName: candidate.firstName,
+        lastName: candidate.lastName,
+        email: candidate.email ?? undefined,
+        baseSalary: placement.salary,
+        startDate: placement.startDate.slice(0, 10),
+        placementId: placement.id,
+        candidateId: placement.candidateId,
+        employeeCode: candidate.email?.split('@')[0]?.slice(0, 50),
+      });
+      setEmployeesByPlacement((prev) => ({ ...prev, [placement.id]: employee }));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setHandoffBusyId(null);
     }
   };
 
@@ -231,6 +274,7 @@ export function PlacementsPage() {
         <div className="rec-placements-list">
           {placements.map((p) => {
             const candidate = p.offer.application.candidate;
+            const linkedEmployee = employeesByPlacement[p.id];
             const nextInvoice: Partial<Record<InvoiceStatus, InvoiceStatus>> = {
               GENERATED: 'SENT',
               SENT: 'PAID',
@@ -284,6 +328,24 @@ export function PlacementsPage() {
                     >
                       Mark {INVOICE_LABELS[nextInvoice[p.invoiceStatus as InvoiceStatus]!]}
                     </button>
+                  </div>
+                )}
+                {canHandoffPayroll && (
+                  <div className="placement-card__actions">
+                    {linkedEmployee ? (
+                      <Link to={`/payroll/employees/${linkedEmployee.id}`} className="btn btn--primary small">
+                        View employee record →
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn--primary small"
+                        disabled={handoffBusyId === p.id}
+                        onClick={() => onCreateEmployee(p)}
+                      >
+                        {handoffBusyId === p.id ? 'Creating…' : 'Add to payroll'}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

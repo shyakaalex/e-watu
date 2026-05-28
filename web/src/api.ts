@@ -342,6 +342,7 @@ export async function fetchAllServiceHealth(): Promise<ServiceHealth[]> {
     pingHealth('Identity', serviceUrl('identity'), '/api/v1/identity/health'),
     pingHealth('Platform', serviceUrl('platform'), '/api/v1/platform/health'),
     pingHealth('Recruitment', serviceUrl('recruitment'), '/api/v1/recruitment/health'),
+    pingHealth('Payroll', import.meta.env.VITE_PAYROLL_API ?? 'http://localhost:3016', '/api/v1/payroll/health'),
     pingHealth('Document', serviceUrl('document'), '/api/v1/document/health'),
     pingHealth('Notification', serviceUrl('notification'), '/api/v1/notifications/health'),
   ]);

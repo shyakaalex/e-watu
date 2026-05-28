@@ -28,6 +28,14 @@ import { PublicCareersLayout } from './pages/public/PublicCareersLayout';
 import { PublicJobsPage } from './pages/public/PublicJobsPage';
 import { PublicApplyPage } from './pages/public/PublicApplyPage';
 import { PublicTalentPoolPage } from './pages/public/PublicTalentPoolPage';
+import { PayrollLayout } from './pages/payroll/PayrollLayout';
+import { PayrollDashboard } from './pages/payroll/PayrollDashboard';
+import { PayrollEmployeesPage } from './pages/payroll/PayrollEmployeesPage';
+import { PayrollEmployeeDetailPage } from './pages/payroll/PayrollEmployeeDetailPage';
+import { PayrollEmployeeFormPage } from './pages/payroll/PayrollEmployeeFormPage';
+import { PayrollPeriodsPage } from './pages/payroll/PayrollPeriodsPage';
+import { PayrollPeriodDetailPage } from './pages/payroll/PayrollPeriodDetailPage';
+import { ClientPortalPayrollPage } from './pages/client-portal/ClientPortalPayrollPage';
 
 export default function App() {
   return (
@@ -88,6 +96,23 @@ export default function App() {
         <Route path="profiles" element={<ProfilesPage />} />
         <Route path="searches" element={<SavedSearchesPage />} />
       </Route>
+      <Route
+        path="/payroll"
+        element={
+          <ProtectedRoute>
+            <PayrollLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<PayrollDashboard />} />
+        <Route path="employees" element={<PayrollEmployeesPage />} />
+        <Route path="employees/new" element={<PayrollEmployeeFormPage />} />
+        <Route path="employees/:employeeId" element={<PayrollEmployeeDetailPage />} />
+        <Route path="employees/:id/edit" element={<PayrollEmployeeFormPage />} />
+        <Route path="periods" element={<PayrollPeriodsPage />} />
+        <Route path="periods/:id" element={<PayrollPeriodDetailPage />} />
+      </Route>
+      <Route path="/client-portal/payroll" element={<ProtectedRoute><ClientPortalPayrollPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     </>
