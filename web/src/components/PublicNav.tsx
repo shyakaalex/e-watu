@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthLoggedIn } from '../hooks/useAuthLoggedIn';
 
@@ -5,71 +6,163 @@ type PublicNavProps = {
   variant?: 'dark' | 'light';
 };
 
-const marketingLinks = [
-  { href: '#features', label: 'Features' },
-  { href: '#solutions', label: 'Solutions' },
-  { href: '#pricing', label: 'Pricing' },
-  { href: '#resources', label: 'Resources' },
-  { href: '#about', label: 'About us' },
+type DropdownItem = {
+  icon: string;
+  label: string;
+  desc: string;
+  href: string;
+};
+
+type NavItem = {
+  label: string;
+  href: string;
+  dropdown?: DropdownItem[];
+};
+
+const navItems: NavItem[] = [
+  {
+    label: 'Features',
+    href: '#features',
+    dropdown: [
+      { icon: '👥', label: 'Recruitment & ATS', desc: 'Jobs, candidates, interviews and offers', href: '#features' },
+      { icon: '💰', label: 'Payroll & Compliance', desc: 'PAYE, RSSB, CBHI — automated', href: '#features' },
+      { icon: '📄', label: 'Document Management', desc: 'Contracts and files, securely stored', href: '#features' },
+      { icon: '🎯', label: 'Talent Pool', desc: 'Build and search curated candidate pools', href: '#features' },
+      { icon: '🔔', label: 'Smart Notifications', desc: 'Approvals, reminders and alerts', href: '#features' },
+      { icon: '🏢', label: 'Multi-Tenant Platform', desc: 'Manage multiple clients in one place', href: '#features' },
+    ],
+  },
+  {
+    label: 'Solutions',
+    href: '#solutions',
+    dropdown: [
+      { icon: '🧑‍💼', label: 'For HR Teams', desc: 'End-to-end hiring and employee management', href: '#solutions' },
+      { icon: '📊', label: 'For Finance & Payroll', desc: 'Rwanda-compliant payroll automation', href: '#solutions' },
+      { icon: '🏆', label: 'For Leaders & Executives', desc: 'Workforce visibility and approvals', href: '#solutions' },
+    ],
+  },
+  {
+    label: 'Pricing',
+    href: '#pricing',
+    dropdown: [
+      { icon: '💬', label: 'Talk to Sales', desc: 'Get a plan built around your headcount', href: '#about' },
+      { icon: '📅', label: 'Book a Demo', desc: 'See the platform live in 30 minutes', href: '#about' },
+      { icon: '🚀', label: 'Start Free Trial', desc: 'Up and running in under 10 minutes', href: '/register-company' },
+    ],
+  },
+  {
+    label: 'Resources',
+    href: '#resources',
+    dropdown: [
+      { icon: '📚', label: 'Platform Guides', desc: 'Step-by-step docs for every module', href: '#resources' },
+      { icon: '📝', label: 'HR Templates', desc: 'Offer letters, scorecards and checklists', href: '#resources' },
+      { icon: '⚖️', label: 'Rwanda Compliance Hub', desc: 'PAYE bands, RSSB rates, labour law', href: '#resources' },
+    ],
+  },
+  {
+    label: 'About us',
+    href: '#about',
+    dropdown: [
+      { icon: '🌍', label: 'Our Story', desc: 'Built for Africa, by people who know it', href: '#about' },
+      { icon: '📧', label: 'Contact Us', desc: 'Reach our team anytime', href: '#about' },
+      { icon: '📅', label: 'Book a Demo', desc: 'Live walkthrough tailored to you', href: '#about' },
+    ],
+  },
 ];
+
+function NavDropdown({ item }: { item: NavItem }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  if (!item.dropdown) {
+    return (
+      <a className="pnav__link" href={item.href}>
+        {item.label}
+      </a>
+    );
+  }
+
+  return (
+    <div
+      ref={ref}
+      className={`pnav__item${open ? ' pnav__item--open' : ''}`}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        className="pnav__link pnav__link--trigger"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-haspopup="true"
+      >
+        {item.label}
+        <svg className="pnav__chevron" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+          <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="pnav__dropdown">
+          {item.dropdown.map((d) => (
+            <a key={d.label} href={d.href} className="pnav__dropdown-item" onClick={() => setOpen(false)}>
+              <span className="pnav__dropdown-icon">{d.icon}</span>
+              <span className="pnav__dropdown-text">
+                <span className="pnav__dropdown-label">{d.label}</span>
+                <span className="pnav__dropdown-desc">{d.desc}</span>
+              </span>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function PublicNav({ variant = 'dark' }: PublicNavProps) {
   const loggedIn = useAuthLoggedIn();
   const isLight = variant === 'light';
 
   return (
-    <header className={`public-nav${isLight ? ' public-nav--light' : ''}`}>
-      <Link to="/" className="public-nav__brand">
-        {isLight ? (
-          <>
-            <span className="public-nav__logo-icon" aria-hidden>
-              <svg viewBox="0 0 24 24">
-                <path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
-              </svg>
-            </span>
-            <span className="public-nav__brand-copy">
-              <span className="public-nav__brand-name">E-Watu</span>
-              <span className="public-nav__brand-sub">HR operations platform</span>
-            </span>
-          </>
-        ) : (
-          <>
-            <span className="public-nav__mark" aria-hidden />
-            E-Watu
-          </>
-        )}
+    <header className={`pnav${isLight ? ' pnav--light' : ' pnav--dark'}`}>
+      <Link to="/" className="pnav__brand">
+        <span className="pnav__logo-icon" aria-hidden>
+          <svg viewBox="0 0 24 24">
+            <path d="M16 11c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 3-1.34 3-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+          </svg>
+        </span>
+        <span className="pnav__brand-copy">
+          <span className="pnav__brand-name">E-Watu</span>
+          <span className="pnav__brand-sub">HR operations platform</span>
+        </span>
       </Link>
 
-      {isLight ? (
-        <nav className="public-nav__links public-nav__links--center" aria-label="Primary">
-          {marketingLinks.map((link) => (
-            <a key={link.label} className="public-nav__link" href={link.href}>
-              {link.label}
-            </a>
-          ))}
-        </nav>
-      ) : (
-        <nav className="public-nav__links" aria-label="Primary">
-          <a className="public-nav__link" href="/#features">
-            Features
-          </a>
-          <a className="public-nav__link" href="/#how">
-            How it works
-          </a>
-        </nav>
-      )}
+      <nav className="pnav__links" aria-label="Primary">
+        {navItems.map((item) => (
+          <NavDropdown key={item.label} item={item} />
+        ))}
+      </nav>
 
-      <div className="public-nav__actions">
+      <div className="pnav__actions">
         {loggedIn ? (
-          <Link to="/platform" className="btn btn--nav-primary">
+          <Link to="/platform" className="pnav__btn pnav__btn--primary">
             Dashboard
           </Link>
         ) : (
           <>
-            <Link to="/login" className={`public-nav__link${isLight ? ' public-nav__link--button' : ''}`}>
+            <Link to="/login" className="pnav__link pnav__link--muted">
               Log in
             </Link>
-            <Link to="/register-company" className="btn btn--nav-primary">
+            <Link to="/register-company" className="pnav__btn pnav__btn--primary">
               Get started
             </Link>
           </>

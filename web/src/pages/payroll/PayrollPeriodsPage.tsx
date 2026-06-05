@@ -4,10 +4,10 @@ import { createPeriod, fetchPeriods } from '../../payrollApi';
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: '#6b7280',
-  SUBMITTED: '#2563eb',
-  HR_APPROVED: '#4f46e5',
-  MD_APPROVED: '#7e22ce',
-  CLIENT_APPROVED: '#ea580c',
+  SUBMITTED: '#0f4775',
+  HR_APPROVED: '#1a6aad',
+  MD_APPROVED: '#0a3358',
+  CLIENT_APPROVED: '#e38109',
   FINALIZED: '#16a34a',
 };
 
