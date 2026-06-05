@@ -1,4 +1,7 @@
 #!/bin/sh
+# Install OpenSSL if not present (required by Prisma)
+apk add --no-cache openssl libssl3 2>/dev/null || true
+
 set -e
 
 echo "Starting E-Watu service: ${SERVICE_NAME:-service}"
