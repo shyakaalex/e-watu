@@ -24,6 +24,7 @@ RUN npm prune --omit=dev
 FROM node:20-alpine
 RUN apk add --no-cache openssl libssl3
 WORKDIR /app
+RUN apk add --no-cache openssl libssl3
 ENV NODE_ENV=production
 ENV SERVICE_NAME=platform-service
 
