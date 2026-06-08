@@ -90,6 +90,7 @@ export class EmailService implements OnModuleInit {
     });
 
     await transporter.sendMail({ from, to, subject, text, html });
+    this.log.log(`[email sent] To: ${to} | ${subject}`);
     return { sent: true, mode: 'smtp' as const };
   }
 }

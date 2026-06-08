@@ -7,7 +7,6 @@ type PublicNavProps = {
 };
 
 type DropdownItem = {
-  icon: string;
   label: string;
   desc: string;
   href: string;
@@ -21,52 +20,36 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
-    label: 'Features',
+    label: 'Platform',
     href: '#features',
     dropdown: [
-      { icon: '👥', label: 'Recruitment & ATS', desc: 'Jobs, candidates, interviews and offers', href: '#features' },
-      { icon: '💰', label: 'Payroll & Compliance', desc: 'PAYE, RSSB, CBHI — automated', href: '#features' },
-      { icon: '📄', label: 'Document Management', desc: 'Contracts and files, securely stored', href: '#features' },
-      { icon: '🎯', label: 'Talent Pool', desc: 'Build and search curated candidate pools', href: '#features' },
-      { icon: '🔔', label: 'Smart Notifications', desc: 'Approvals, reminders and alerts', href: '#features' },
-      { icon: '🏢', label: 'Multi-Tenant Platform', desc: 'Manage multiple clients in one place', href: '#features' },
+      { label: 'Recruitment & ATS', desc: 'Jobs, candidates, interviews and offers', href: '#features' },
+      { label: 'Payroll & Compliance', desc: 'PAYE, RSSB, CBHI — automated', href: '#features' },
+      { label: 'Document Management', desc: 'Contracts and files, securely stored', href: '#features' },
+      { label: 'Talent Pool', desc: 'Build and search curated candidate pools', href: '#features' },
+      { label: 'Multi-Tenant ERP', desc: 'Manage multiple clients in one place', href: '#features' },
     ],
   },
   {
     label: 'Solutions',
     href: '#solutions',
     dropdown: [
-      { icon: '🧑‍💼', label: 'For HR Teams', desc: 'End-to-end hiring and employee management', href: '#solutions' },
-      { icon: '📊', label: 'For Finance & Payroll', desc: 'Rwanda-compliant payroll automation', href: '#solutions' },
-      { icon: '🏆', label: 'For Leaders & Executives', desc: 'Workforce visibility and approvals', href: '#solutions' },
+      { label: 'For HR Teams', desc: 'End-to-end hiring and employee management', href: '#solutions' },
+      { label: 'For Finance', desc: 'Rwanda-compliant payroll automation', href: '#solutions' },
+      { label: 'For Leadership', desc: 'Workforce visibility and approvals', href: '#solutions' },
     ],
+  },
+  {
+    label: 'How it works',
+    href: '#how-it-works',
   },
   {
     label: 'Pricing',
     href: '#pricing',
-    dropdown: [
-      { icon: '💬', label: 'Talk to Sales', desc: 'Get a plan built around your headcount', href: '#about' },
-      { icon: '📅', label: 'Book a Demo', desc: 'See the platform live in 30 minutes', href: '#about' },
-      { icon: '🚀', label: 'Start Free Trial', desc: 'Up and running in under 10 minutes', href: '/register-company' },
-    ],
   },
   {
-    label: 'Resources',
-    href: '#resources',
-    dropdown: [
-      { icon: '📚', label: 'Platform Guides', desc: 'Step-by-step docs for every module', href: '#resources' },
-      { icon: '📝', label: 'HR Templates', desc: 'Offer letters, scorecards and checklists', href: '#resources' },
-      { icon: '⚖️', label: 'Rwanda Compliance Hub', desc: 'PAYE bands, RSSB rates, labour law', href: '#resources' },
-    ],
-  },
-  {
-    label: 'About us',
+    label: 'Contact',
     href: '#about',
-    dropdown: [
-      { icon: '🌍', label: 'Our Story', desc: 'Built for Africa, by people who know it', href: '#about' },
-      { icon: '📧', label: 'Contact Us', desc: 'Reach our team anytime', href: '#about' },
-      { icon: '📅', label: 'Book a Demo', desc: 'Live walkthrough tailored to you', href: '#about' },
-    ],
   },
 ];
 
@@ -115,7 +98,6 @@ function NavDropdown({ item }: { item: NavItem }) {
         <div className="pnav__dropdown">
           {item.dropdown.map((d) => (
             <a key={d.label} href={d.href} className="pnav__dropdown-item" onClick={() => setOpen(false)}>
-              <span className="pnav__dropdown-icon">{d.icon}</span>
               <span className="pnav__dropdown-text">
                 <span className="pnav__dropdown-label">{d.label}</span>
                 <span className="pnav__dropdown-desc">{d.desc}</span>
@@ -142,7 +124,7 @@ export function PublicNav({ variant = 'dark' }: PublicNavProps) {
         </span>
         <span className="pnav__brand-copy">
           <span className="pnav__brand-name">E-Watu</span>
-          <span className="pnav__brand-sub">HR operations platform</span>
+          <span className="pnav__brand-sub">HR & Payroll ERP</span>
         </span>
       </Link>
 

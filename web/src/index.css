@@ -5,14 +5,8 @@
   --surface: #f8fafc;
   --card: #ffffff;
   --line: #e2e8f0;
-  --brand: #0f4775;
-  --brand-dark: #0a3358;
-  --brand-light: #dbedf8;
-  --accent: #e38109;
-  --accent-hover: #c97108;
-  --accent-soft: rgba(227, 129, 9, 0.12);
-  --hero-deep: #060d18;
-  --hero-mid: #0f2744;
+  /* Brand tokens defined in styles/brand.css */
+  --hero-deep: #002233;
   --shadow: 0 18px 50px rgba(15, 23, 42, 0.25);
   --radius: 12px;
   --radius-sm: 8px;
@@ -129,7 +123,7 @@ code {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: #0f4775;
+  background: var(--brand);
   flex-shrink: 0;
 }
 .pnav__logo-icon svg { width: 20px; height: 20px; fill: #fff; }
@@ -283,11 +277,11 @@ code {
   transition: background 0.15s, color 0.15s;
 }
 .pnav__btn--primary {
-  background: #e38109;
+  background: var(--accent);
   color: #fff;
   border: none;
 }
-.pnav__btn--primary:hover { background: #c97108; text-decoration: none; }
+.pnav__btn--primary:hover { background: var(--accent-hover); text-decoration: none; }
 
 /* Responsive: hide nav links on small screens */
 @media (max-width: 860px) {
@@ -299,7 +293,7 @@ code {
 .btn--nav-primary {
   padding: 0.45rem 1rem !important;
   border-radius: 8px !important;
-  background: #e38109 !important;
+  background: var(--accent) !important;
   border: none !important;
   color: #fff !important;
   font-weight: 600 !important;
@@ -310,7 +304,7 @@ code {
   justify-content: center;
 }
 .btn--nav-primary:hover {
-  background: #c97108 !important;
+  background: var(--accent-hover) !important;
   text-decoration: none !important;
 }
 
@@ -434,7 +428,7 @@ code {
 }
 
 .landing__accent {
-  background: linear-gradient(90deg, #fbbf60, #e38109);
+  background: linear-gradient(90deg, #fbbf60, var(--accent));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -655,7 +649,7 @@ code {
 }
 
 .auth-panel--intro {
-  background: linear-gradient(160deg, #0f4775 0%, #0a3358 100%);
+  background: linear-gradient(160deg, var(--brand) 0%, var(--brand-dark) 100%);
   border-radius: var(--radius) 0 0 var(--radius);
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: #e2e8f0;
@@ -1003,7 +997,7 @@ code {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #e38109;
+  background: var(--accent);
   box-shadow: 0 0 8px rgba(227, 129, 9, 0.6);
 }
 
@@ -1116,7 +1110,7 @@ code {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #e38109;
+  background: var(--accent);
   left: 14px;
   top: 50%;
   transform: translateY(-50%);
@@ -1239,8 +1233,8 @@ code {
   inset: 0;
   border-radius: inherit;
   opacity: 0.12;
-  background-image: radial-gradient(circle at 20% 30%, #e38109 0, transparent 45%),
-    radial-gradient(circle at 80% 70%, #0f4775 0, transparent 40%);
+  background-image: radial-gradient(circle at 20% 30%, var(--accent) 0, transparent 45%),
+    radial-gradient(circle at 80% 70%, var(--brand) 0, transparent 40%);
   pointer-events: none;
 }
 

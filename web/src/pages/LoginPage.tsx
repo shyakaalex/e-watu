@@ -14,6 +14,7 @@ export function LoginPage() {
   const sp = new URLSearchParams(location.search);
   const fromState = (location.state as { from?: string } | null)?.from;
   const returnPath = resolveReturnPath(sp, fromState, '/platform');
+  const emailJustVerified = sp.get('verified') === '1';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -56,6 +57,11 @@ export function LoginPage() {
     >
       <h2 className="auth-heading auth-heading--compact">Sign in</h2>
       <p className="auth-lead auth-lead--tight">Enter your credentials to continue.</p>
+      {emailJustVerified && (
+        <div className="alert alert--info" role="status">
+          Your email is verified. Sign in with the administrator account you registered.
+        </div>
+      )}
       {err && <AuthErrorAlert error={err} />}
       <form className="auth-form" onSubmit={onSubmit}>
         <label className="auth-label">

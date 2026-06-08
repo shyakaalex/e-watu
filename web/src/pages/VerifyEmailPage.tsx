@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { verifyEmailRequest } from '../api';
 import { AuthLayout } from '../components/AuthLayout';
 
 export function VerifyEmailPage() {
+  const navigate = useNavigate();
   const [params] = useSearchParams();
   const token = params.get('token') ?? '';
   const [status, setStatus] = useState<'idle' | 'ok' | 'err'>('idle');
@@ -21,7 +22,10 @@ export function VerifyEmailPage() {
         await verifyEmailRequest(token);
         if (!cancelled) {
           setStatus('ok');
-          setMsg('Your administrator email is verified. Once your workspace is approved, you can sign in.');
+          setMsg('Your email is verified. You can sign in now.');
+          window.setTimeout(() => {
+            navigate('/login?verified=1', { replace: true });
+          }, 2500);
         }
       } catch (e) {
         if (!cancelled) {
