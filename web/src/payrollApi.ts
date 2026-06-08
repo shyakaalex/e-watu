@@ -86,17 +86,90 @@ export type LeaveRequest = {
   leaveType?: LeaveType;
 };
 
+export type DeploymentStatus = 'ACTIVE' | 'ON_LEAVE' | 'RECALLED' | 'TRANSFERRED' | 'ON_BENCH';
+export type OutsourcingEmploymentType = 'FULL_TIME' | 'PART_TIME' | 'FIXED_TERM';
+export type SecondmentContractStatus = 'ACTIVE' | 'EXPIRED' | 'TERMINATED' | 'RENEWED';
+
 export type OutsourcingAssignment = {
   id: string;
+  tenantId: string;
   employeeId: string;
   clientName: string;
+  clientId: string | null;
   roleName: string;
   deploymentSite: string | null;
+  employmentType: OutsourcingEmploymentType;
+  deploymentStatus: DeploymentStatus;
   startDate: string;
   endDate: string | null;
+  availabilityDate: string | null;
   monthlyFee: string | null;
-  currency: string | null;
+  currency: string;
+  noticePeriodDays: number;
+  createdAt: string;
+  updatedAt: string;
+  employee?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    jobTitle: string;
+  };
+  contracts?: SecondmentContract[];
 };
+
+export type SecondmentContract = {
+  id: string;
+  tenantId: string;
+  assignmentId: string;
+  contractRef: string | null;
+  clientName: string;
+  role: string;
+  billingRate: string;
+  currency: string;
+  workingHoursPerWeek: number;
+  noticePeriodDays: number;
+  governingLaw: string | null;
+  startDate: string;
+  endDate: string | null;
+  renewalDate: string | null;
+  status: SecondmentContractStatus;
+  terminationReason: string | null;
+  terminatedAt: string | null;
+  terminatedBy: string | null;
+  alert90Sent: boolean;
+  alert60Sent: boolean;
+  alert30Sent: boolean;
+  s3Key: string | null;
+  createdAt: string;
+  updatedAt: string;
+  assignment?: OutsourcingAssignment;
+  amendments?: ContractAmendment[];
+};
+
+export type ContractAmendment = {
+  id: string;
+  tenantId: string;
+  contractId: string;
+  changedBy: string;
+  reason: string;
+  changesSummary: string;
+  snapshotJson: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type DeploymentHistoryEntry = {
+  id: string;
+  tenantId: string;
+  assignmentId: string;
+  clientName: string;
+  roleName: string;
+  startDate: string;
+  endDate: string | null;
+  reason: string | null;
+  createdAt: string;
+};
+
 
 export type ChecklistItem = {
   id: string;
@@ -315,19 +388,33 @@ export async function emailPayslips(runId: string, employeeIds?: string[]): Prom
   return parseJson(r);
 }
 
-export async function fetchOutsourcingAssignments(): Promise<OutsourcingAssignment[]> {
-  const r = await payrollFetch('/api/v1/outsourcing/assignments');
+// ── Outsourcing Assignments ───────────────────────────────────────
+
+export async function fetchOutsourcingAssignments(
+  params?: Record<string, string>,
+): Promise<OutsourcingAssignment[]> {
+  const qs = params ? `?${new URLSearchParams(params)}` : '';
+  const r = await payrollFetch(`/api/v1/outsourcing/assignments${qs}`);
+  return parseJson(r);
+}
+
+export async function fetchOutsourcingBench(): Promise<OutsourcingAssignment[]> {
+  const r = await payrollFetch('/api/v1/outsourcing/bench');
   return parseJson(r);
 }
 
 export async function createOutsourcingAssignment(body: {
   employeeId: string;
   clientName: string;
+  clientId?: string;
   roleName: string;
   deploymentSite?: string;
+  employmentType?: string;
   startDate: string;
   endDate?: string;
   monthlyFee?: number;
+  currency?: string;
+  noticePeriodDays?: number;
 }): Promise<OutsourcingAssignment> {
   const r = await payrollFetch('/api/v1/outsourcing/assignments', {
     method: 'POST',
@@ -335,6 +422,115 @@ export async function createOutsourcingAssignment(body: {
   });
   return parseJson(r);
 }
+
+export async function updateOutsourcingAssignment(
+  id: string,
+  body: Partial<{
+    clientName: string;
+    roleName: string;
+    deploymentSite: string;
+    deploymentStatus: DeploymentStatus;
+    employmentType: OutsourcingEmploymentType;
+    endDate: string;
+    availabilityDate: string;
+    monthlyFee: number;
+    currency: string;
+    noticePeriodDays: number;
+    transferReason: string;
+  }>,
+): Promise<OutsourcingAssignment> {
+  const r = await payrollFetch(`/api/v1/outsourcing/assignments/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  return parseJson(r);
+}
+
+export async function fetchDeploymentHistory(assignmentId: string): Promise<DeploymentHistoryEntry[]> {
+  const r = await payrollFetch(`/api/v1/outsourcing/assignments/${assignmentId}/history`);
+  return parseJson(r);
+}
+
+// ── Secondment Contracts ──────────────────────────────────────────
+
+export async function fetchSecondmentContracts(
+  params?: Record<string, string>,
+): Promise<SecondmentContract[]> {
+  const qs = params ? `?${new URLSearchParams(params)}` : '';
+  const r = await payrollFetch(`/api/v1/outsourcing/contracts${qs}`);
+  return parseJson(r);
+}
+
+export async function createSecondmentContract(body: {
+  assignmentId: string;
+  contractRef?: string;
+  clientName: string;
+  role: string;
+  billingRate: number;
+  currency?: string;
+  workingHoursPerWeek?: number;
+  noticePeriodDays?: number;
+  governingLaw?: string;
+  startDate: string;
+  endDate?: string;
+  renewalDate?: string;
+}): Promise<SecondmentContract> {
+  const r = await payrollFetch('/api/v1/outsourcing/contracts', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return parseJson(r);
+}
+
+export async function updateSecondmentContract(
+  id: string,
+  body: Partial<{
+    contractRef: string;
+    role: string;
+    billingRate: number;
+    workingHoursPerWeek: number;
+    noticePeriodDays: number;
+    governingLaw: string;
+    endDate: string;
+    renewalDate: string;
+    amendmentReason: string;
+  }>,
+): Promise<SecondmentContract> {
+  const r = await payrollFetch(`/api/v1/outsourcing/contracts/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  return parseJson(r);
+}
+
+export async function terminateSecondmentContract(
+  id: string,
+  body: { reason: string; terminationDate?: string },
+): Promise<SecondmentContract> {
+  const r = await payrollFetch(`/api/v1/outsourcing/contracts/${id}/terminate`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return parseJson(r);
+}
+
+export async function renewSecondmentContract(
+  id: string,
+  body: { newEndDate: string; renewalDate?: string; billingRate?: number; notes?: string },
+): Promise<SecondmentContract> {
+  const r = await payrollFetch(`/api/v1/outsourcing/contracts/${id}/renew`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return parseJson(r);
+}
+
+export async function fetchContractAmendments(contractId: string): Promise<ContractAmendment[]> {
+  const r = await payrollFetch(`/api/v1/outsourcing/contracts/${contractId}/amendments`);
+  return parseJson(r);
+}
+
+// ── Billing ───────────────────────────────────────────────────────
 
 export type OutsourcingBillingSummary = {
   period: string;
@@ -345,14 +541,16 @@ export type OutsourcingBillingSummary = {
   lines: Array<{
     assignmentId: string;
     employeeId: string;
-    employeeCode: string | null;
     employeeName: string;
     clientName: string;
+    clientId: string | null;
     roleName: string;
     deploymentSite: string | null;
-    monthlyFee: string;
+    billingRate: string;
     currency: string;
+    period: string;
   }>;
+  byClient: Record<string, OutsourcingBillingSummary['lines']>;
   totalsByCurrency: Record<string, string>;
 };
 

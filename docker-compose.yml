@@ -30,6 +30,13 @@ services:
     volumes:
       - ewatu_minio:/data
 
+  # Local SMTP catcher — verification emails appear at http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+
   identity-service:
     build:
       context: .

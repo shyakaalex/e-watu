@@ -11,6 +11,7 @@ import { PayrollConfigModule } from './payroll-config/payroll-config.module';
 import { PeriodsModule } from './periods/periods.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ReportsModule } from './reports/reports.module';
+import { OutsourcingModule } from './outsourcing/outsourcing.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ReportsModule } from './reports/reports.module';
     ReportsModule,
     PayslipModule,
     JobsModule,
+    OutsourcingModule,
   ],
 })
 export class AppModule implements NestModule {

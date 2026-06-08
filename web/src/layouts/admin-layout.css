@@ -75,11 +75,11 @@
   text-decoration: none;
 }
 .adm-nav__link--active {
-  background: rgba(13, 148, 136, 0.22);
-  color: #5eead4;
+  background: rgba(227, 129, 9, 0.22);
+  color: #fbbf60;
 }
 .adm-nav__link--active:hover {
-  color: #99f6e4;
+  color: #fcd385;
 }
 
 .adm-nav__icon {
@@ -106,7 +106,7 @@
   height: 36px;
   border-radius: 50%;
   background: var(--accent-soft);
-  color: #5eead4;
+  color: #fbbf60;
   font-weight: 700;
   font-size: 0.8rem;
   display: flex;
@@ -247,7 +247,7 @@
 }
 .adm-module:hover:not(.adm-module--disabled) {
   border-color: var(--accent);
-  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.1);
+  box-shadow: 0 4px 14px rgba(15, 71, 117, 0.12);
   text-decoration: none;
 }
 .adm-module--disabled {
