@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
@@ -54,8 +54,15 @@ export class ContractsService {
 
   async uploadContract(tenantId: string, id: string, _objectKey: string) {
     const contract = await this.findOne(tenantId, id);
-    const s3Key = `contracts/${contract.employeeId}/${contract.id}.pdf`;
-    return this.prisma.employeeContract.update({ where: { id }, data: { s3Key } });
+    const objectKey = `contracts/${tenantId}/${contract.id}/contract.pdf`;
+    const presign = await this.requestPresign(objectKey);
+
+    await this.prisma.employeeContract.update({
+      where: { id: contract.id },
+      data: { s3Key: objectKey },
+    });
+
+    return { uploadUrl: presign.url, objectKey };
   }
 
   async findExpiring(tenantId: string, days: number) {
@@ -68,5 +75,26 @@ export class ContractsService {
       },
       orderBy: { endDate: 'asc' },
     });
+  }
+
+  private async requestPresign(objectKey: string, expiresIn = 3600): Promise<{ url: string; objectKey: string }> {
+    const base = (process.env.DOCUMENT_SERVICE_URL ?? 'http://document-service:3018').replace(/\/$/, '');
+    const key = process.env.INTERNAL_API_KEY;
+    if (!key) throw new ServiceUnavailableException('Document service not configured');
+
+    const response = await fetch(`${base}/api/v1/document/internal/presign`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-key': key,
+      },
+      body: JSON.stringify({ objectKey, expiresIn }),
+    });
+
+    if (!response.ok) {
+      throw new ServiceUnavailableException('Failed to obtain upload URL from document service');
+    }
+
+    return response.json() as Promise<{ url: string; objectKey: string }>;
   }
 }

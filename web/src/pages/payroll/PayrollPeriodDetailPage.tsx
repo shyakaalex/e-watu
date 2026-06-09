@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { fetchMe } from '../../api';
 import {
   approvePayroll,
   downloadBankFile,
@@ -13,9 +14,15 @@ import {
   submitPayroll,
 } from '../../payrollApi';
 
+function hasRole(roles: string[], role: string): boolean {
+  return roles.includes(role);
+}
+
 export function PayrollPeriodDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [period, setPeriod] = useState<any>(null);
+  const [roles, setRoles] = useState<string[]>([]);
+  const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
 
   const load = useCallback(async () => {
@@ -25,9 +32,31 @@ export function PayrollPeriodDetailPage() {
 
   useEffect(() => {
     load();
+    fetchMe().then((me) => setRoles(me.roles)).catch(() => setRoles([]));
   }, [load]);
 
   if (!period) return <div className="rec-page"><p className="muted">Loading period...</p></div>;
+
+  const status = period.status as string;
+  const canRun = status === 'DRAFT' && (hasRole(roles, 'FINANCE_OFFICER') || hasRole(roles, 'TENANT_ADMIN'));
+  const canSubmit = status === 'DRAFT' && (hasRole(roles, 'FINANCE_OFFICER') || hasRole(roles, 'TENANT_ADMIN')) && (period.records?.length ?? 0) > 0;
+  const canHrApprove = status === 'SUBMITTED' && hasRole(roles, 'HR_MANAGER');
+  const canMdApprove = status === 'HR_APPROVED' && hasRole(roles, 'TENANT_ADMIN');
+  const canClientApprove = status === 'MD_APPROVED' && hasRole(roles, 'CLIENT_ADMIN');
+  const canFinalize = status === 'CLIENT_APPROVED' && (hasRole(roles, 'FINANCE_OFFICER') || hasRole(roles, 'TENANT_ADMIN'));
+  const canReject =
+    (status === 'SUBMITTED' && hasRole(roles, 'HR_MANAGER')) ||
+    (status === 'HR_APPROVED' && hasRole(roles, 'TENANT_ADMIN')) ||
+    (status === 'MD_APPROVED' && hasRole(roles, 'CLIENT_ADMIN')) ||
+    (status === 'CLIENT_APPROVED' && hasRole(roles, 'FINANCE_OFFICER'));
+
+  const handleReject = async () => {
+    if (!rejectReason.trim()) return;
+    await rejectPayroll(period.id, rejectReason);
+    setRejectReason('');
+    setShowRejectModal(false);
+    await load();
+  };
 
   return (
     <div className="rec-page">
@@ -35,17 +64,65 @@ export function PayrollPeriodDetailPage() {
       <p>Client ID: {period.clientId}</p>
       <p>Status: {period.status}</p>
       <div className="rec-page__actions">
-        {period.status === 'DRAFT' && <button className="btn btn--ghost" onClick={async () => { await runPayroll(period.id); await load(); }}>Run Payroll</button>}
-        {period.status === 'DRAFT' && (period.records?.length ?? 0) > 0 && <button className="btn btn--primary" onClick={async () => { await submitPayroll(period.id); await load(); }}>Submit for Approval</button>}
-        {['SUBMITTED', 'HR_APPROVED', 'MD_APPROVED'].includes(period.status) && <button className="btn btn--primary" onClick={async () => { await approvePayroll(period.id, {}); await load(); }}>Approve</button>}
-        {['SUBMITTED', 'HR_APPROVED', 'MD_APPROVED', 'CLIENT_APPROVED'].includes(period.status) && (
-          <>
-            <input className="auth-input" placeholder="Rejection reason" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
-            <button className="btn btn--ghost" onClick={async () => { await rejectPayroll(period.id, rejectReason); setRejectReason(''); await load(); }}>Reject</button>
-          </>
+        {canRun && (
+          <button className="btn btn--ghost" onClick={async () => { await runPayroll(period.id); await load(); }}>
+            Run Payroll
+          </button>
         )}
-        {period.status === 'CLIENT_APPROVED' && <button className="btn btn--primary" onClick={async () => { await finalizePayroll(period.id); await load(); }}>Finalize</button>}
+        {canSubmit && (
+          <button className="btn btn--primary" onClick={async () => { await submitPayroll(period.id); await load(); }}>
+            Submit for Approval
+          </button>
+        )}
+        {canHrApprove && (
+          <button className="btn btn--primary" onClick={async () => { await approvePayroll(period.id, {}); await load(); }}>
+            HR Approve
+          </button>
+        )}
+        {canMdApprove && (
+          <button className="btn btn--primary" onClick={async () => { await approvePayroll(period.id, {}); await load(); }}>
+            MD Approve
+          </button>
+        )}
+        {canClientApprove && (
+          <button className="btn btn--primary" onClick={async () => { await approvePayroll(period.id, {}); await load(); }}>
+            Client Approve
+          </button>
+        )}
+        {canFinalize && (
+          <button className="btn btn--primary" onClick={async () => { await finalizePayroll(period.id); await load(); }}>
+            Finalize Payroll
+          </button>
+        )}
+        {canReject && (
+          <button className="btn btn--ghost" onClick={() => setShowRejectModal(true)}>Reject</button>
+        )}
       </div>
+
+      {showRejectModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setShowRejectModal(false)}
+        >
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '1.5rem', width: '400px', maxWidth: '90vw' }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 1rem' }}>Reject payroll period</h3>
+            <label className="rec-form__label">
+              Rejection reason <span className="rec-form__req">*</span>
+              <textarea
+                className="auth-input"
+                rows={3}
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Explain why this period is being rejected…"
+              />
+            </label>
+            <div className="rec-form__actions" style={{ marginTop: '1rem' }}>
+              <button className="btn" onClick={() => setShowRejectModal(false)}>Cancel</button>
+              <button className="btn btn--danger" disabled={!rejectReason.trim()} onClick={handleReject}>Confirm Reject</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card" style={{ marginBottom: '1rem' }}>
         <h2 className="rec-form-card__title">Totals</h2>
@@ -74,7 +151,10 @@ export function PayrollPeriodDetailPage() {
           <button className="btn btn--ghost" onClick={() => downloadPAYEReport(period.id)}>Download PAYE Report</button>
           <button className="btn btn--ghost" onClick={() => downloadRSSBReport(period.id)}>Download RSSB Report</button>
           <button className="btn btn--ghost" onClick={() => downloadBankFile(period.id)}>Download Bank File</button>
-          <button className="btn btn--ghost" onClick={async () => alert(JSON.stringify(await fetchPeriodPayslips(period.id), null, 2))}>View Payslips</button>
+          <button className="btn btn--ghost" onClick={async () => {
+            const slips = await fetchPeriodPayslips(period.id);
+            slips.forEach((s: any) => { if (s.downloadUrl) window.open(s.downloadUrl, '_blank'); });
+          }}>Download Payslips</button>
         </div>
       )}
     </div>

@@ -13,8 +13,8 @@ export function SettingsPage() {
 
   const [name, setName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
-  const [primaryColor, setPrimaryColor] = useState('#0d9488');
-  const [accentColor, setAccentColor] = useState('#0f766e');
+  const [primaryColor, setPrimaryColor] = useState('#00466c');
+  const [accentColor, setAccentColor] = useState('#f5911e');
   const [website, setWebsite] = useState('');
   const [baseCurrency, setBaseCurrency] = useState('RWF');
   const [fiscalYearStartMonth, setFiscalYearStartMonth] = useState(1);
@@ -28,8 +28,8 @@ export function SettingsPage() {
       if (t) {
         setName(t.name);
         setLogoUrl(t.logoUrl ?? '');
-        setPrimaryColor(t.primaryColor ?? '#0d9488');
-        setAccentColor(t.accentColor ?? '#0f766e');
+        setPrimaryColor(t.primaryColor ?? '#00466c');
+        setAccentColor(t.accentColor ?? '#f5911e');
         setWebsite(t.website ?? '');
         setBaseCurrency(t.baseCurrency ?? 'RWF');
         setFiscalYearStartMonth(t.fiscalYearStartMonth ?? 1);

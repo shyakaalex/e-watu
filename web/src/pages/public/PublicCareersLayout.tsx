@@ -15,7 +15,7 @@ export function PublicCareersLayout() {
       .catch((e) => setErr(e instanceof Error ? e.message : String(e)));
   }, [slug]);
 
-  const brand = tenant?.primaryColor ?? '#0d9488';
+  const brand = tenant?.primaryColor ?? '#00466c';
 
   return (
     <div className="careers" style={{ '--careers-brand': brand } as CSSProperties}>

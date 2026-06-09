@@ -10,6 +10,20 @@ export interface PayrollInput {
   otherDeductions: number;
 }
 
+export interface EmployeeDeductions {
+  paye: number;
+  rssbEmployee: number;
+  rssbMedical: number;
+  cbhi: number;
+  otherDeductions: number;
+  totalDeductions: number;
+}
+
+export interface EmployerCosts {
+  rssbEmployer: number;
+  maternityLevy: number;
+}
+
 export interface PayrollResult {
   basicSalary: number;
   housingAllowance: number;
@@ -25,6 +39,8 @@ export interface PayrollResult {
   otherDeductions: number;
   totalDeductions: number;
   netPay: number;
+  employeeDeductions: EmployeeDeductions;
+  employerCosts: EmployerCosts;
 }
 
 export interface PayrollConfig {
@@ -49,8 +65,22 @@ export function calculatePayroll(input: PayrollInput, config: PayrollConfig): Pa
   const cbhi = calculateCBHI(grossPay, config.cbhiRate);
   const maternityLevy = grossPay * config.maternityLevy;
   const totalDeductions =
-    paye + rssb.rssbEmployee + rssb.rssbMedical + cbhi + maternityLevy + input.otherDeductions;
+    paye + rssb.rssbEmployee + rssb.rssbMedical + cbhi + input.otherDeductions;
   const netPay = grossPay - totalDeductions;
+
+  const employeeDeductions: EmployeeDeductions = {
+    paye,
+    rssbEmployee: rssb.rssbEmployee,
+    rssbMedical: rssb.rssbMedical,
+    cbhi,
+    otherDeductions: input.otherDeductions,
+    totalDeductions,
+  };
+
+  const employerCosts: EmployerCosts = {
+    rssbEmployer: rssb.rssbEmployer,
+    maternityLevy,
+  };
 
   return {
     basicSalary: input.basicSalary,
@@ -67,5 +97,7 @@ export function calculatePayroll(input: PayrollInput, config: PayrollConfig): Pa
     otherDeductions: input.otherDeductions,
     totalDeductions,
     netPay,
+    employeeDeductions,
+    employerCosts,
   };
 }

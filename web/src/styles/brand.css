@@ -1,0 +1,10 @@
+:root {
+  --brand: #00466c;
+  --brand-dark: #003352;
+  --brand-mid: #005580;
+  --brand-light: #d9ecf4;
+  --accent: #f5911e;
+  --accent-hover: #d97d0f;
+  --accent-soft: rgba(245, 145, 30, 0.12);
+  --hero-mid: #003d5c;
+}

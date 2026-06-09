@@ -35,6 +35,12 @@ import { PayrollEmployeeDetailPage } from './pages/payroll/PayrollEmployeeDetail
 import { PayrollEmployeeFormPage } from './pages/payroll/PayrollEmployeeFormPage';
 import { PayrollPeriodsPage } from './pages/payroll/PayrollPeriodsPage';
 import { PayrollPeriodDetailPage } from './pages/payroll/PayrollPeriodDetailPage';
+import { PayrollApprovalsPage } from './pages/payroll/PayrollApprovalsPage';
+import { PayrollOutsourcingPage } from './pages/payroll/PayrollOutsourcingPage';
+import { OutsourcingContractsPage } from './pages/payroll/OutsourcingContractsPage';
+import { PayrollReportsPage } from './pages/payroll/PayrollReportsPage';
+import { PayrollConfigPage } from './pages/payroll/PayrollConfigPage';
+import { PayrollBillingPage } from './pages/payroll/PayrollBillingPage';
 import { ClientPortalPayrollPage } from './pages/client-portal/ClientPortalPayrollPage';
 
 export default function App() {
@@ -111,6 +117,12 @@ export default function App() {
         <Route path="employees/:id/edit" element={<PayrollEmployeeFormPage />} />
         <Route path="periods" element={<PayrollPeriodsPage />} />
         <Route path="periods/:id" element={<PayrollPeriodDetailPage />} />
+        <Route path="approvals" element={<PayrollApprovalsPage />} />
+        <Route path="outsourcing" element={<PayrollOutsourcingPage />} />
+        <Route path="outsourcing/contracts" element={<OutsourcingContractsPage />} />
+        <Route path="reports" element={<PayrollReportsPage />} />
+        <Route path="config" element={<PayrollConfigPage />} />
+        <Route path="billing" element={<PayrollBillingPage />} />
       </Route>
       <Route path="/client-portal/payroll" element={<ProtectedRoute><ClientPortalPayrollPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />

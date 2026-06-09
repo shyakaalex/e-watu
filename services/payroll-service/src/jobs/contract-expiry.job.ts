@@ -31,15 +31,17 @@ export class ContractExpiryJob {
         tenantId: contract.tenantId,
       };
 
+      if (daysLeft <= 90 && !contract.expiryAlert90Sent) {
+        void dispatchNotification('contract-expiry-90', payload);
+        await this.prisma.employeeContract.update({ where: { id: contract.id }, data: { expiryAlert90Sent: true } });
+      }
+      if (daysLeft <= 60 && !contract.expiryAlert60Sent) {
+        void dispatchNotification('contract-expiry-60', payload);
+        await this.prisma.employeeContract.update({ where: { id: contract.id }, data: { expiryAlert60Sent: true } });
+      }
       if (daysLeft <= 30 && !contract.expiryAlert30Sent) {
         void dispatchNotification('contract-expiry-30', payload);
         await this.prisma.employeeContract.update({ where: { id: contract.id }, data: { expiryAlert30Sent: true } });
-      } else if (daysLeft <= 60 && !contract.expiryAlert60Sent) {
-        void dispatchNotification('contract-expiry-60', payload);
-        await this.prisma.employeeContract.update({ where: { id: contract.id }, data: { expiryAlert60Sent: true } });
-      } else if (daysLeft <= 90 && !contract.expiryAlert90Sent) {
-        void dispatchNotification('contract-expiry-90', payload);
-        await this.prisma.employeeContract.update({ where: { id: contract.id }, data: { expiryAlert90Sent: true } });
       }
     }
   }

@@ -50,6 +50,27 @@ enum ApprovalAction {
   REJECTED
 }
 
+enum DeploymentStatus {
+  ACTIVE
+  ON_LEAVE
+  RECALLED
+  TRANSFERRED
+  ON_BENCH
+}
+
+enum OutsourcingEmploymentType {
+  FULL_TIME
+  PART_TIME
+  FIXED_TERM
+}
+
+enum SecondmentContractStatus {
+  ACTIVE
+  EXPIRED
+  TERMINATED
+  RENEWED
+}
+
 model PayrollConfiguration {
   id                    String   @id @default(uuid())
   tenantId              String   @map("tenant_id")
@@ -105,6 +126,7 @@ model Employee {
   reports               Employee[]       @relation("EmployeeManager")
   contracts             EmployeeContract[]
   payrollRecords        PayrollRecord[]
+  outsourcingAssignments OutsourcingAssignment[]
 
   @@index([tenantId])
   @@index([tenantId, clientId])
@@ -227,4 +249,102 @@ model BankPaymentFile {
 
   @@index([periodId])
   @@map("bank_payment_files")
+}
+
+model OutsourcingAssignment {
+  id                String                    @id @default(uuid())
+  tenantId          String                    @map("tenant_id")
+  employeeId        String                    @map("employee_id")
+  clientName        String                    @map("client_name")
+  clientId          String?                   @map("client_id")
+  roleName          String                    @map("role_name")
+  deploymentSite    String?                   @map("deployment_site")
+  employmentType    OutsourcingEmploymentType @default(FULL_TIME) @map("employment_type")
+  deploymentStatus  DeploymentStatus          @default(ACTIVE) @map("deployment_status")
+  startDate         DateTime                  @map("start_date")
+  endDate           DateTime?                 @map("end_date")
+  availabilityDate  DateTime?                 @map("availability_date")
+  monthlyFee        Decimal?                  @map("monthly_fee") @db.Decimal(14, 2)
+  currency          String                    @default("RWF")
+  noticePeriodDays  Int                       @default(30) @map("notice_period_days")
+  createdAt         DateTime                  @default(now()) @map("created_at")
+  updatedAt         DateTime                  @updatedAt @map("updated_at")
+
+  employee          Employee                  @relation(fields: [employeeId], references: [id])
+  contracts         SecondmentContract[]
+  deploymentHistory DeploymentHistory[]
+
+  @@index([tenantId])
+  @@index([tenantId, clientName])
+  @@index([tenantId, deploymentStatus])
+  @@map("outsourcing_assignments")
+}
+
+model SecondmentContract {
+  id                  String                   @id @default(uuid())
+  tenantId            String                   @map("tenant_id")
+  assignmentId        String                   @map("assignment_id")
+  contractRef         String?                  @map("contract_ref")
+  clientName          String                   @map("client_name")
+  role                String
+  billingRate         Decimal                  @map("billing_rate") @db.Decimal(14, 2)
+  currency            String                   @default("RWF")
+  workingHoursPerWeek Int                      @default(40) @map("working_hours_per_week")
+  noticePeriodDays    Int                      @default(30) @map("notice_period_days")
+  governingLaw        String?                  @map("governing_law")
+  startDate           DateTime                 @map("start_date")
+  endDate             DateTime?                @map("end_date")
+  renewalDate         DateTime?                @map("renewal_date")
+  status              SecondmentContractStatus @default(ACTIVE)
+  terminationReason   String?                  @map("termination_reason")
+  terminatedAt        DateTime?                @map("terminated_at")
+  terminatedBy        String?                  @map("terminated_by")
+  alert90Sent         Boolean                  @default(false) @map("alert_90_sent")
+  alert60Sent         Boolean                  @default(false) @map("alert_60_sent")
+  alert30Sent         Boolean                  @default(false) @map("alert_30_sent")
+  s3Key               String?                  @map("s3_key")
+  createdAt           DateTime                 @default(now()) @map("created_at")
+  updatedAt           DateTime                 @updatedAt @map("updated_at")
+  createdBy           String?                  @map("created_by")
+
+  assignment          OutsourcingAssignment    @relation(fields: [assignmentId], references: [id])
+  amendments          ContractAmendment[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([assignmentId])
+  @@map("secondment_contracts")
+}
+
+model ContractAmendment {
+  id           String             @id @default(uuid())
+  tenantId     String             @map("tenant_id")
+  contractId   String             @map("contract_id")
+  changedBy    String             @map("changed_by")
+  reason       String
+  changesSummary String           @map("changes_summary")
+  snapshotJson Json               @map("snapshot_json")
+  createdAt    DateTime           @default(now()) @map("created_at")
+
+  contract     SecondmentContract @relation(fields: [contractId], references: [id])
+
+  @@index([contractId])
+  @@map("contract_amendments")
+}
+
+model DeploymentHistory {
+  id           String                @id @default(uuid())
+  tenantId     String                @map("tenant_id")
+  assignmentId String                @map("assignment_id")
+  clientName   String                @map("client_name")
+  roleName     String                @map("role_name")
+  startDate    DateTime              @map("start_date")
+  endDate      DateTime?             @map("end_date")
+  reason       String?
+  createdAt    DateTime              @default(now()) @map("created_at")
+
+  assignment   OutsourcingAssignment @relation(fields: [assignmentId], references: [id])
+
+  @@index([assignmentId])
+  @@map("deployment_history")
 }
