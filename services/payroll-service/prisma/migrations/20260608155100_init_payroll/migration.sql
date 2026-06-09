@@ -238,3 +238,29 @@ ALTER TABLE "payroll_approvals" ADD CONSTRAINT "payroll_approvals_period_id_fkey
 
 -- AddForeignKey
 ALTER TABLE "bank_payment_files" ADD CONSTRAINT "bank_payment_files_period_id_fkey" FOREIGN KEY ("period_id") REFERENCES "payroll_periods"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- Outsourcing assignments base table (extended by outsourcing_module migration)
+CREATE TABLE IF NOT EXISTS "outsourcing_assignments" (
+  "id"               TEXT         NOT NULL,
+  "tenant_id"        TEXT         NOT NULL,
+  "employee_id"      TEXT         NOT NULL,
+  "client_name"      TEXT         NOT NULL,
+  "role_name"        TEXT         NOT NULL,
+  "deployment_site"  TEXT,
+  "start_date"       TIMESTAMP(3) NOT NULL,
+  "end_date"         TIMESTAMP(3),
+  "monthly_fee"      DECIMAL(14,2),
+  "currency"         TEXT         NOT NULL DEFAULT 'RWF',
+  "created_at"       TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updated_at"       TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "outsourcing_assignments_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "outsourcing_assignments_employee_id_fkey"
+    FOREIGN KEY ("employee_id") REFERENCES "employees"("id")
+    ON DELETE RESTRICT ON UPDATE CASCADE
+);
+CREATE INDEX IF NOT EXISTS "outsourcing_assignments_tenant_id_idx" 
+  ON "outsourcing_assignments" ("tenant_id");
+CREATE INDEX IF NOT EXISTS "outsourcing_assignments_tenant_id_client_name_idx" 
+  ON "outsourcing_assignments" ("tenant_id", "client_name");
+CREATE INDEX IF NOT EXISTS "outsourcing_assignments_tenant_id_deployment_status_idx"
+  ON "outsourcing_assignments" ("tenant_id");
