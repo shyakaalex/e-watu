@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import {
   AuthUser,
   CurrentUser,
@@ -10,6 +10,13 @@ import {
 import { ApprovePeriodDto } from './dto/approve-period.dto';
 import { CreatePeriodDto } from './dto/create-period.dto';
 import { PeriodsService } from './periods.service';
+
+function derivePayrollApproverRole(roles: string[]): string | undefined {
+  if (roles.includes(EwatuRole.HR_MANAGER)) return EwatuRole.HR_MANAGER;
+  if (roles.includes(EwatuRole.TENANT_ADMIN)) return EwatuRole.TENANT_ADMIN;
+  if (roles.includes(EwatuRole.CLIENT_ADMIN)) return EwatuRole.CLIENT_ADMIN;
+  return undefined;
+}
 
 @Controller('payroll/periods')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -50,22 +57,22 @@ export class PeriodsController {
   @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.CLIENT_ADMIN)
   approve(
     @CurrentUser() user: AuthUser,
-    @Req() req: { user: { role: string } },
     @Param('id') id: string,
     @Body() dto: ApprovePeriodDto,
   ) {
-    return this.service.approve(user.tenant_id as string, id, user.sub, req.user.role, dto);
+    const derivedRole = derivePayrollApproverRole(user.roles);
+    return this.service.approve(user.tenant_id as string, id, user.sub, derivedRole ?? '', dto);
   }
 
   @Post(':id/reject')
   @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.CLIENT_ADMIN)
   reject(
     @CurrentUser() user: AuthUser,
-    @Req() req: { user: { role: string } },
     @Param('id') id: string,
     @Body() dto: ApprovePeriodDto,
   ) {
-    return this.service.reject(user.tenant_id as string, id, user.sub, req.user.role, dto);
+    const derivedRole = derivePayrollApproverRole(user.roles);
+    return this.service.reject(user.tenant_id as string, id, user.sub, derivedRole ?? '', dto);
   }
 
   @Post(':id/finalize')

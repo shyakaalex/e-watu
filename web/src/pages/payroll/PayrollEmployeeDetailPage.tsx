@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
+  createContract,
   fetchContracts,
   fetchEmployee,
   fetchEmployeePayslips,
@@ -8,6 +9,16 @@ import {
   uploadContractFile,
   type Employee,
 } from '../../payrollApi';
+
+const CONTRACT_TYPES = ['PERMANENT', 'FIXED_TERM', 'SECONDMENT'] as const;
+
+const INIT_CONTRACT = {
+  contractType: 'PERMANENT' as (typeof CONTRACT_TYPES)[number],
+  startDate: '',
+  endDate: '',
+  salary: '',
+  currency: 'RWF',
+};
 
 export function PayrollEmployeeDetailPage() {
   const { employeeId } = useParams<{ employeeId: string }>();
@@ -18,6 +29,10 @@ export function PayrollEmployeeDetailPage() {
   const [tab, setTab] = useState<'profile' | 'contracts' | 'payslips'>('profile');
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [showContractForm, setShowContractForm] = useState(false);
+  const [contractForm, setContractForm] = useState(INIT_CONTRACT);
+  const [busy, setBusy] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!employeeId) return;
@@ -43,6 +58,61 @@ export function PayrollEmployeeDetailPage() {
     load();
   }, [load]);
 
+  const onCreateContract = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!employeeId) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await createContract(employeeId, {
+        contractType: contractForm.contractType,
+        startDate: contractForm.startDate,
+        endDate: contractForm.endDate || undefined,
+        salary: Number(contractForm.salary),
+        currency: contractForm.currency,
+      });
+      setShowContractForm(false);
+      setContractForm(INIT_CONTRACT);
+      await load();
+    } catch (ex) {
+      setErr(ex instanceof Error ? ex.message : String(ex));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onUploadContract = async (contractId: string) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf,.pdf';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      setBusy(true);
+      setUploadMsg(null);
+      setErr(null);
+      try {
+        const { uploadUrl } = (await uploadContractFile(contractId, 'pending')) as {
+          uploadUrl: string;
+          objectKey: string;
+        };
+        const putRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type || 'application/pdf' },
+          body: file,
+        });
+        if (!putRes.ok) throw new Error('Failed to upload file to storage');
+        setUploadMsg('Contract PDF uploaded successfully.');
+        await load();
+      } catch (ex) {
+        setErr(ex instanceof Error ? ex.message : String(ex));
+      } finally {
+        setBusy(false);
+      }
+    };
+    input.click();
+  };
+
   if (loading) return <div className="rec-page"><p className="muted">Loading employee…</p></div>;
   if (!employee) return <div className="rec-page"><p className="alert alert--err">{err ?? 'Employee not found'}</p></div>;
 
@@ -65,6 +135,7 @@ export function PayrollEmployeeDetailPage() {
       </div>
 
       {err && <div className="alert alert--err">{err}</div>}
+      {uploadMsg && <div className="alert alert--ok">{uploadMsg}</div>}
 
       <div className="rec-page__actions" style={{ marginBottom: '0.75rem' }}>
         <button className={`btn ${tab === 'profile' ? 'btn--primary' : 'btn--ghost'}`} onClick={() => setTab('profile')}>Profile</button>
@@ -97,10 +168,55 @@ export function PayrollEmployeeDetailPage() {
 
       {tab === 'contracts' && (
         <div className="card">
-          <h2 className="rec-form-card__title">Contracts</h2>
+          <div className="rec-page__header" style={{ marginBottom: '1rem' }}>
+            <h2 className="rec-form-card__title" style={{ margin: 0 }}>Contracts</h2>
+            <button className="btn btn--primary" onClick={() => setShowContractForm((v) => !v)}>
+              {showContractForm ? 'Cancel' : '+ Add Contract'}
+            </button>
+          </div>
+
+          {showContractForm && (
+            <form className="rec-form" onSubmit={onCreateContract} style={{ marginBottom: '1.25rem' }}>
+              <div className="rec-form__grid">
+                <label className="rec-form__label">
+                  Contract type
+                  <select
+                    className="auth-input"
+                    value={contractForm.contractType}
+                    onChange={(e) => setContractForm((p) => ({ ...p, contractType: e.target.value as typeof contractForm.contractType }))}
+                  >
+                    {CONTRACT_TYPES.map((t) => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
+                  </select>
+                </label>
+                <label className="rec-form__label">
+                  Start date <span className="rec-form__req">*</span>
+                  <input className="auth-input" type="date" required value={contractForm.startDate} onChange={(e) => setContractForm((p) => ({ ...p, startDate: e.target.value }))} />
+                </label>
+                <label className="rec-form__label">
+                  End date {contractForm.contractType === 'PERMANENT' ? '(optional)' : ''}
+                  <input className="auth-input" type="date" value={contractForm.endDate} onChange={(e) => setContractForm((p) => ({ ...p, endDate: e.target.value }))} />
+                </label>
+                <label className="rec-form__label">
+                  Salary (RWF) <span className="rec-form__req">*</span>
+                  <input className="auth-input" type="number" min={0} required value={contractForm.salary} onChange={(e) => setContractForm((p) => ({ ...p, salary: e.target.value }))} />
+                </label>
+                <label className="rec-form__label">
+                  Currency
+                  <input className="auth-input" value={contractForm.currency} onChange={(e) => setContractForm((p) => ({ ...p, currency: e.target.value }))} />
+                </label>
+              </div>
+              <div className="rec-form__actions">
+                <button className="btn btn--primary" type="submit" disabled={busy}>{busy ? 'Saving…' : 'Create contract'}</button>
+              </div>
+            </form>
+          )}
+
           <table className="rec-table">
-            <thead><tr><th>Type</th><th>Start</th><th>End</th><th>Salary</th><th>Status</th><th>Upload</th></tr></thead>
+            <thead><tr><th>Type</th><th>Start</th><th>End</th><th>Salary</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
+              {contracts.length === 0 && (
+                <tr><td colSpan={6} className="muted" style={{ textAlign: 'center', padding: '1.5rem' }}>No contracts yet</td></tr>
+              )}
               {contracts.map((contract) => (
                 <tr key={contract.id}>
                   <td>{contract.contractType}</td>
@@ -108,7 +224,11 @@ export function PayrollEmployeeDetailPage() {
                   <td>{contract.endDate?.slice(0, 10) ?? '-'}</td>
                   <td>{contract.salary}</td>
                   <td>{contract.status}</td>
-                  <td><button className="btn btn--ghost small" onClick={() => uploadContractFile(contract.id, 'manual-upload')}>Upload</button></td>
+                  <td>
+                    <button className="btn btn--ghost small" disabled={busy} onClick={() => onUploadContract(contract.id)}>
+                      Upload Contract PDF
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -121,11 +241,11 @@ export function PayrollEmployeeDetailPage() {
           <h2 className="rec-form-card__title">Payslips</h2>
           <ul>
             {payslips.map((p) => (
-              <li key={p.id}>
-                {p.periodMonth}/{p.periodYear} - {p.netPay}{' '}
-                <button className="btn btn--ghost small" onClick={() => alert(p.payslipText)}>
-                  View payslip
-                </button>
+              <li key={p.id ?? p.periodId}>
+                {p.periodMonth}/{p.periodYear} — {p.netPay}{' '}
+                {p.downloadUrl && (
+                  <a className="btn btn--ghost small" href={p.downloadUrl} target="_blank" rel="noreferrer">Download PDF</a>
+                )}
               </li>
             ))}
           </ul>

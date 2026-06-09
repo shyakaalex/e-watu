@@ -48,6 +48,7 @@ export class UpdateAssignmentDto {
   @IsOptional() @IsString() currency?: string;
   @IsOptional() @IsInt() @Min(0) noticePeriodDays?: number;
   @IsOptional() @IsString() transferReason?: string;
+  @IsOptional() @IsString() statusChangeReason?: string;
 }
 
 export class CreateContractDto {

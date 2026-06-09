@@ -35,10 +35,7 @@ import { PayrollEmployeeDetailPage } from './pages/payroll/PayrollEmployeeDetail
 import { PayrollEmployeeFormPage } from './pages/payroll/PayrollEmployeeFormPage';
 import { PayrollPeriodsPage } from './pages/payroll/PayrollPeriodsPage';
 import { PayrollPeriodDetailPage } from './pages/payroll/PayrollPeriodDetailPage';
-import { PayrollRunsPage } from './pages/payroll/PayrollRunsPage';
-import { PayrollRunDetailPage } from './pages/payroll/PayrollRunDetailPage';
 import { PayrollApprovalsPage } from './pages/payroll/PayrollApprovalsPage';
-import { PayrollLeavePage } from './pages/payroll/PayrollLeavePage';
 import { PayrollOutsourcingPage } from './pages/payroll/PayrollOutsourcingPage';
 import { OutsourcingContractsPage } from './pages/payroll/OutsourcingContractsPage';
 import { PayrollReportsPage } from './pages/payroll/PayrollReportsPage';
@@ -120,10 +117,7 @@ export default function App() {
         <Route path="employees/:id/edit" element={<PayrollEmployeeFormPage />} />
         <Route path="periods" element={<PayrollPeriodsPage />} />
         <Route path="periods/:id" element={<PayrollPeriodDetailPage />} />
-        <Route path="runs" element={<PayrollRunsPage />} />
-        <Route path="runs/:runId" element={<PayrollRunDetailPage />} />
         <Route path="approvals" element={<PayrollApprovalsPage />} />
-        <Route path="leave" element={<PayrollLeavePage />} />
         <Route path="outsourcing" element={<PayrollOutsourcingPage />} />
         <Route path="outsourcing/contracts" element={<OutsourcingContractsPage />} />
         <Route path="reports" element={<PayrollReportsPage />} />

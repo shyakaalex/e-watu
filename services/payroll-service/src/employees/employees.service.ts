@@ -1,5 +1,6 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { AuthUser } from '@ewatu/common-auth';
+import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 import { EmploymentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEmployeeDto } from './dtos/create-employee.dto';
@@ -15,17 +16,58 @@ export class EmployeesService {
     return tenantId;
   }
 
+  private getEncryptionKey(): Buffer {
+    const hex = process.env.ENCRYPTION_KEY;
+    if (!hex || hex.length !== 64) {
+      throw new ForbiddenException('ENCRYPTION_KEY not configured');
+    }
+    return Buffer.from(hex, 'hex');
+  }
+
+  private encrypt(plaintext: string): string {
+    const key = this.getEncryptionKey();
+    const iv = randomBytes(16);
+    const cipher = createCipheriv('aes-256-cbc', key, iv);
+    const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+    return `${iv.toString('hex')}:${encrypted.toString('hex')}`;
+  }
+
+  private decrypt(stored: string): string {
+    const [ivHex, cipherHex] = stored.split(':');
+    if (!ivHex || !cipherHex) return '';
+    const key = this.getEncryptionKey();
+    const decipher = createDecipheriv('aes-256-cbc', key, Buffer.from(ivHex, 'hex'));
+    const decrypted = Buffer.concat([
+      decipher.update(Buffer.from(cipherHex, 'hex')),
+      decipher.final(),
+    ]);
+    return decrypted.toString('utf8');
+  }
+
   private sanitizeEmployee<T extends Record<string, unknown>>(employee: T) {
     const { nationalIdEncrypted: _nationalIdEncrypted, bankAccountEncrypted: _bankAccountEncrypted, ...rest } =
       employee;
     return rest;
   }
 
+  private enrichDetail<T extends { nationalIdEncrypted?: string | null; bankAccountEncrypted?: string | null }>(
+    employee: T,
+  ) {
+    const sanitized = this.sanitizeEmployee(employee as Record<string, unknown>);
+    return {
+      ...sanitized,
+      ...(employee.nationalIdEncrypted
+        ? { nationalId: this.decrypt(employee.nationalIdEncrypted) }
+        : {}),
+      ...(employee.bankAccountEncrypted
+        ? { bankAccount: this.decrypt(employee.bankAccountEncrypted) }
+        : {}),
+    };
+  }
+
   async create(tenantId: string, dto: CreateEmployeeDto) {
-    const nationalIdEncrypted = dto.nationalId ? Buffer.from(dto.nationalId).toString('base64') : undefined;
-    const bankAccountEncrypted = dto.bankAccount
-      ? Buffer.from(dto.bankAccount).toString('base64')
-      : undefined;
+    const nationalIdEncrypted = dto.nationalId ? this.encrypt(dto.nationalId) : undefined;
+    const bankAccountEncrypted = dto.bankAccount ? this.encrypt(dto.bankAccount) : undefined;
     const { nationalId: _nationalId, bankAccount: _bankAccount, ...rest } = dto;
 
     const created = await this.prisma.employee.create({
@@ -103,7 +145,7 @@ export class EmployeesService {
       },
     });
     if (!employee) throw new NotFoundException('Employee not found');
-    return this.sanitizeEmployee(employee);
+    return this.enrichDetail(employee);
   }
 
   async update(tenantId: string, id: string, dto: UpdateEmployeeDto) {
@@ -112,10 +154,8 @@ export class EmployeesService {
     });
     if (!existing) throw new NotFoundException('Employee not found');
 
-    const nationalIdEncrypted = dto.nationalId ? Buffer.from(dto.nationalId).toString('base64') : undefined;
-    const bankAccountEncrypted = dto.bankAccount
-      ? Buffer.from(dto.bankAccount).toString('base64')
-      : undefined;
+    const nationalIdEncrypted = dto.nationalId ? this.encrypt(dto.nationalId) : undefined;
+    const bankAccountEncrypted = dto.bankAccount ? this.encrypt(dto.bankAccount) : undefined;
     const { nationalId: _nationalId, bankAccount: _bankAccount, ...rest } = dto;
 
     const updated = await this.prisma.employee.update({
@@ -129,7 +169,7 @@ export class EmployeesService {
         ...(bankAccountEncrypted ? { bankAccountEncrypted } : {}),
       },
     });
-    return this.sanitizeEmployee(updated);
+    return this.enrichDetail(updated);
   }
 
   async terminate(tenantId: string, id: string) {
@@ -143,13 +183,15 @@ export class EmployeesService {
 
   async createFromPlacement(user: AuthUser, dto: CreateEmployeeFromPlacementDto) {
     const tenantId = this.requireTenant(user.tenant_id);
-    const duplicate = dto.placementId
-      ? await this.prisma.employee.findFirst({ where: { tenantId, clientId: dto.placementId } })
+    const lookupId = dto.candidateId ?? dto.placementId;
+    const duplicate = lookupId
+      ? await this.prisma.employee.findFirst({ where: { tenantId, candidateId: lookupId } })
       : null;
-    if (duplicate) throw new ConflictException('An employee record already exists for this placement');
+    if (duplicate) throw new ConflictException('Employee already exists for this candidate');
     return this.create(tenantId, {
       ...dto,
       clientId: dto.clientId ?? dto.placementId,
+      candidateId: lookupId,
       employeeType: dto.employeeType ?? 'OUTSOURCED',
       jobTitle: dto.jobTitle ?? 'Employee',
       startDate: dto.startDate ?? new Date().toISOString(),

@@ -41,10 +41,6 @@ export function PayrollLayout() {
             <span className="rec-nav__icon">📅</span>
             Periods
           </NavLink>
-          <NavLink to="/payroll/runs" className={({ isActive }) => `rec-nav__link${isActive ? ' rec-nav__link--active' : ''}`}>
-            <span className="rec-nav__icon">▶️</span>
-            Runs
-          </NavLink>
           <NavLink to="/payroll/approvals" className={({ isActive }) => `rec-nav__link${isActive ? ' rec-nav__link--active' : ''}`}>
             <span className="rec-nav__icon">✅</span>
             Approvals
@@ -54,10 +50,6 @@ export function PayrollLayout() {
           <NavLink to="/payroll/employees" className={({ isActive }) => `rec-nav__link${isActive ? ' rec-nav__link--active' : ''}`}>
             <span className="rec-nav__icon">👥</span>
             Employees
-          </NavLink>
-          <NavLink to="/payroll/leave" className={({ isActive }) => `rec-nav__link${isActive ? ' rec-nav__link--active' : ''}`}>
-            <span className="rec-nav__icon">🌴</span>
-            Leave
           </NavLink>
 
           <div className="rec-nav__section">Outsourcing</div>

@@ -110,6 +110,28 @@ export class OutsourcingService {
       });
     }
 
+    const statusChanged =
+      dto.deploymentStatus && dto.deploymentStatus !== existing.deploymentStatus && !isTransfer;
+    if (statusChanged) {
+      await this.prisma.deploymentHistory.updateMany({
+        where: { assignmentId: id, endDate: null },
+        data: {
+          endDate: new Date(),
+          reason: dto.statusChangeReason ?? dto.deploymentStatus,
+        },
+      });
+      await this.prisma.deploymentHistory.create({
+        data: {
+          tenantId,
+          assignmentId: id,
+          clientName: dto.clientName ?? existing.clientName,
+          roleName: dto.roleName ?? existing.roleName,
+          startDate: new Date(),
+          reason: dto.statusChangeReason ?? dto.deploymentStatus,
+        },
+      });
+    }
+
     return this.prisma.outsourcingAssignment.update({
       where: { id },
       data: {
@@ -291,7 +313,7 @@ export class OutsourcingService {
   // ── Billing ─────────────────────────────────────────────────────
 
   async getBillingSummary(tenantId: string, period: string) {
-    const [yearStr, monthStr] = period.split('-');
+    const [yearStr = '0', monthStr = '0'] = period.split('-');
     const periodYear = parseInt(yearStr, 10);
     const periodMonth = parseInt(monthStr, 10);
 
@@ -334,8 +356,7 @@ export class OutsourcingService {
     // Group by client for invoice breakdown
     const byClient: Record<string, typeof lines> = {};
     for (const line of lines) {
-      if (!byClient[line.clientName]) byClient[line.clientName] = [];
-      byClient[line.clientName].push(line);
+      (byClient[line.clientName] ??= []).push(line);
     }
 
     return {

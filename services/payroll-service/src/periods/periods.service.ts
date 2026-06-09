@@ -1,13 +1,17 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { calculatePayroll } from '../calculation/payroll.calculator';
 import { dispatchNotification } from '../common/notification.dispatch';
+import { PayslipService } from '../payslip/payslip.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ApprovePeriodDto } from './dto/approve-period.dto';
 import { CreatePeriodDto } from './dto/create-period.dto';
 
 @Injectable()
 export class PeriodsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly payslipService: PayslipService,
+  ) {}
 
   async create(tenantId: string, userId: string, dto: CreatePeriodDto) {
     const existing = await this.prisma.payrollPeriod.findFirst({
@@ -86,10 +90,12 @@ export class PeriodsService {
         },
       );
 
+      const { employeeDeductions: _ed, employerCosts: _ec, ...recordFields } = result;
+
       await this.prisma.payrollRecord.upsert({
         where: { periodId_employeeId: { periodId: period.id, employeeId: employee.id } },
-        create: { tenantId, periodId: period.id, employeeId: employee.id, ...result },
-        update: { ...result },
+        create: { tenantId, periodId: period.id, employeeId: employee.id, ...recordFields },
+        update: recordFields,
       });
     }
     return this.findOne(tenantId, periodId);
@@ -197,12 +203,31 @@ export class PeriodsService {
       where: { id: periodId },
       data: { status: 'FINALIZED', finalizedAt: new Date() },
     });
+
     for (const record of period.records) {
-      await this.prisma.payrollRecord.update({
-        where: { id: record.id },
-        data: { payslipGeneratedAt: new Date(), payslipS3Key: `payslips/${record.employeeId}/${record.id}.txt` },
+      await this.payslipService.generateAndUploadPayslip(
+        tenantId,
+        record.id,
+        periodId,
+        {
+          id: record.employee.id,
+          firstName: record.employee.firstName,
+          lastName: record.employee.lastName,
+          jobTitle: record.employee.jobTitle,
+          email: record.employee.email,
+        },
+        record,
+        { periodMonth: period.periodMonth, periodYear: period.periodYear },
+      );
+
+      void dispatchNotification('payslip-ready', {
+        employeeId: record.employeeId,
+        employeeEmail: record.employee.email,
+        periodId,
+        tenantId,
       });
     }
+
     const totalAmount = period.records.reduce((sum, rec) => sum + Number(rec.netPay), 0);
     await this.prisma.bankPaymentFile.create({
       data: {
