@@ -7,6 +7,15 @@ import { UpdateConfigDto } from './dto/update-config.dto';
 export class PayrollConfigService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async listClients(tenantId: string) {
+    const configs = await this.prisma.payrollConfiguration.findMany({
+      where: { tenantId },
+      select: { clientId: true },
+      orderBy: { clientId: 'asc' },
+    });
+    return configs.map((c) => ({ clientId: c.clientId }));
+  }
+
   async getByClient(tenantId: string, clientId: string) {
     const config = await this.prisma.payrollConfiguration.findFirst({ where: { tenantId, clientId } });
     if (!config) throw new NotFoundException('Payroll configuration not found');
