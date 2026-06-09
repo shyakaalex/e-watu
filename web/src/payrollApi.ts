@@ -260,6 +260,11 @@ export async function createEmployeeFromPlacement(body: {
   return parseJson(r);
 }
 
+export async function fetchPayrollConfigClients(): Promise<{ clientId: string }[]> {
+  const r = await payrollFetch('/api/v1/payroll/config/clients');
+  return parseJson(r);
+}
+
 export async function fetchPayrollConfig(clientId?: string): Promise<PayrollConfig> {
   const r = await payrollFetch(`/api/v1/payroll/config${clientId ? `/${clientId}` : ''}`);
   return parseJson(r);

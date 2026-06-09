@@ -122,6 +122,7 @@ export default function App() {
         <Route path="outsourcing/contracts" element={<OutsourcingContractsPage />} />
         <Route path="reports" element={<PayrollReportsPage />} />
         <Route path="config" element={<PayrollConfigPage />} />
+        <Route path="config/new" element={<PayrollConfigPage />} />
         <Route path="billing" element={<PayrollBillingPage />} />
       </Route>
       <Route path="/client-portal/payroll" element={<ProtectedRoute><ClientPortalPayrollPage /></ProtectedRoute>} />

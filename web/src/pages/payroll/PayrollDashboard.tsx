@@ -1,20 +1,17 @@
 import { useEffect, useState } from 'react';
-import { authFetch, parseJson, serviceUrl } from '../../lib/http';
-import { createPeriod, fetchEmployees, fetchExpiringContracts, fetchPeriods } from '../../payrollApi';
-
-type ClientOption = { id: string; name: string };
-
-async function fetchClients(): Promise<ClientOption[]> {
-  const r = await authFetch(`${serviceUrl('platform')}/api/v1/clients`);
-  if (!r.ok) return [];
-  const data = await parseJson<ClientOption[] | { data: ClientOption[] }>(r);
-  return Array.isArray(data) ? data : (data as { data: ClientOption[] }).data ?? [];
-}
+import { Link } from 'react-router-dom';
+import {
+  createPeriod,
+  fetchEmployees,
+  fetchExpiringContracts,
+  fetchPayrollConfigClients,
+  fetchPeriods,
+} from '../../payrollApi';
 
 export function PayrollDashboard() {
   const [stats, setStats] = useState({ activeEmployees: 0, periodsNeedingAction: 0, expiringContracts: 0 });
   const [recentPeriods, setRecentPeriods] = useState<any[]>([]);
-  const [clients, setClients] = useState<ClientOption[]>([]);
+  const [clients, setClients] = useState<{ clientId: string }[]>([]);
   const [selectedClientId, setSelectedClientId] = useState('');
   const [creating, setCreating] = useState(false);
   const [createMsg, setCreateMsg] = useState<string | null>(null);
@@ -24,8 +21,8 @@ export function PayrollDashboard() {
       fetchEmployees({ employmentStatus: 'ACTIVE' }),
       fetchPeriods({}),
       fetchExpiringContracts(30),
-      fetchClients(),
-    ]).then(([employees, periods, contracts, clientList]: any) => {
+      fetchPayrollConfigClients(),
+    ]).then(([employees, periods, contracts, clientList]) => {
       const list = Array.isArray(periods) ? periods : [];
       setStats({
         activeEmployees: Array.isArray(employees) ? employees.length : (employees?.data?.length ?? 0),
@@ -34,7 +31,7 @@ export function PayrollDashboard() {
       });
       setRecentPeriods(list.slice(0, 5));
       setClients(clientList);
-      if (clientList.length > 0) setSelectedClientId(clientList[0].id);
+      if (clientList.length > 0) setSelectedClientId(clientList[0].clientId);
     });
   }, []);
 
@@ -71,14 +68,21 @@ export function PayrollDashboard() {
       <div className="card rec-form-card" style={{ marginTop: '1rem' }}>
         <h2 className="rec-form-card__title">Quick New Payroll Period</h2>
         {clients.length === 0 ? (
-          <p className="muted">No clients configured yet. Add a client first.</p>
+          <div>
+            <p className="muted">
+              No clients configured yet. Go to Payroll → Configuration to add your first client payroll setup.
+            </p>
+            <Link to="/payroll/config/new" className="btn btn--primary" style={{ marginTop: '0.75rem', display: 'inline-block' }}>
+              Add payroll configuration
+            </Link>
+          </div>
         ) : (
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <label className="rec-form__label" style={{ margin: 0 }}>
               Client
               <select className="auth-input" value={selectedClientId} onChange={(e) => setSelectedClientId(e.target.value)}>
                 {clients.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name ?? c.id}</option>
+                  <option key={c.clientId} value={c.clientId}>{c.clientId}</option>
                 ))}
               </select>
             </label>
