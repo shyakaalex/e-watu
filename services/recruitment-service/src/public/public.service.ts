@@ -28,7 +28,8 @@ export class PublicService {
     });
     if (r.status === 404) throw new NotFoundException('Company not found');
     if (!r.ok) throw new BadGatewayException('Could not resolve company');
-    const data = (await r.json()) as { id: string; status: string };
+    const envelope = (await r.json()) as { data: { id: string; status: string } };
+    const data = envelope.data;
     if (data.status !== 'ACTIVE') {
       throw new NotFoundException('Company not found');
     }
@@ -122,7 +123,8 @@ export class PublicService {
       body: JSON.stringify({ tenantId, ...dto }),
     });
     if (!r.ok) throw new BadGatewayException('Could not prepare file upload');
-    return r.json();
+    const envelope = (await r.json()) as { data: unknown };
+    return envelope.data;
   }
 
   async joinTalentPool(slug: string, dto: PublicTalentPoolDto) {
