@@ -20,7 +20,7 @@ function derivePayrollApproverRole(roles: string[]): string | undefined {
   return undefined;
 }
 
-@Controller('payroll/periods')
+@Controller('payroll/runs')
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class PeriodsController {
   constructor(private readonly service: PeriodsService) {}

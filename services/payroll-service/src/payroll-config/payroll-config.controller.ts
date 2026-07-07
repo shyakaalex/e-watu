@@ -16,6 +16,12 @@ import { PayrollConfigService } from './payroll-config.service';
 export class PayrollConfigController {
   constructor(private readonly service: PayrollConfigService) {}
 
+  @Get()
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.FINANCE_OFFICER)
+  getDefault(@CurrentUser() user: AuthUser) {
+    return this.service.getDefault(user.tenant_id as string);
+  }
+
   @Get('clients')
   @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.FINANCE_OFFICER)
   listClients(@CurrentUser() user: AuthUser) {
