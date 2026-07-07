@@ -100,12 +100,9 @@ export function PayrollPeriodDetailPage() {
       </div>
 
       {showRejectModal && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => setShowRejectModal(false)}
-        >
-          <div style={{ background: '#fff', borderRadius: '12px', padding: '1.5rem', width: '400px', maxWidth: '90vw' }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 1rem' }}>Reject payroll period</h3>
+        <div className="rec-modal-backdrop" onClick={() => setShowRejectModal(false)}>
+          <div className="rec-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="rec-modal__title">Reject payroll period</h3>
             <label className="rec-form__label">
               Rejection reason <span className="rec-form__req">*</span>
               <textarea

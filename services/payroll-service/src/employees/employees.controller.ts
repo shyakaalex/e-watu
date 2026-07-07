@@ -17,10 +17,14 @@ import {
   Roles,
   RolesGuard,
 } from '@ewatu/common-auth';
-import { EmployeesService } from './employees.service';
+import { EmployeesService, BulkImportRow } from './employees.service';
 import { CreateEmployeeDto } from './dtos/create-employee.dto';
 import { CreateEmployeeFromPlacementDto } from './dtos/create-employee-from-placement.dto';
 import { UpdateEmployeeDto } from './dtos/update-employee.dto';
+
+export class BulkImportEmployeesDto {
+  rows: BulkImportRow[];
+}
 
 @Controller('employees')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -31,6 +35,13 @@ export class EmployeesController {
   @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.FINANCE_OFFICER)
   list(@CurrentUser() user: AuthUser, @Query() query: Record<string, string | undefined>) {
     return this.employees.findAll(user.tenant_id as string, query);
+  }
+
+  // Static segment before `:id` routes to avoid path conflicts.
+  @Post('import/csv')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  bulkImport(@CurrentUser() user: AuthUser, @Body() body: BulkImportEmployeesDto) {
+    return this.employees.bulkImport(user.tenant_id as string, body.rows);
   }
 
   @Get(':id')

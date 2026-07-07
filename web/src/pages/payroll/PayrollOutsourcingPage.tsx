@@ -109,8 +109,8 @@ export function PayrollOutsourcingPage() {
           <h1 className="rec-page__title">Outsourced Employee Registry</h1>
           <p className="rec-page__sub">{items.length} deployed · {bench.length} on bench</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <Link to="/payroll/outsourcing/contracts" className="btn">Contracts</Link>
+        <div className="rec-page__actions">
+          <Link to="/payroll/contracts" className="btn">Contracts</Link>
           <button className="btn btn--primary" onClick={() => setShowForm(v => !v)}>
             {showForm ? 'Cancel' : '+ New assignment'}
           </button>
@@ -119,33 +119,32 @@ export function PayrollOutsourcingPage() {
 
       {err && <div className="alert alert--err">{err}</div>}
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: '1rem', borderBottom: '1px solid var(--line)' }}>
+      <div className="rec-tabs">
         {(['registry', 'bench'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            padding: '0.5rem 1.1rem', border: 'none', background: 'none', cursor: 'pointer',
-            fontWeight: tab === t ? '700' : '400', fontSize: '0.9rem',
-            borderBottom: tab === t ? '2px solid var(--brand)' : '2px solid transparent',
-            color: tab === t ? 'var(--brand)' : 'var(--ink-muted)',
-          }}>
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={`rec-tabs__btn${tab === t ? ' rec-tabs__btn--active' : ''}`}
+          >
             {t === 'registry' ? `Registry (${items.length})` : `Bench (${bench.length})`}
           </button>
         ))}
       </div>
 
       {tab === 'registry' && (
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-          <select className="auth-input" style={{ width: 'auto' }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+        <div className="rec-toolbar rec-toolbar--filters">
+          <select className="auth-input" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
             <option value="ALL">All statuses</option>
             {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
-          <select className="auth-input" style={{ width: 'auto' }} value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+          <select className="auth-input" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
             <option value="ALL">All types</option>
             {Object.entries(TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
-          <input className="auth-input" style={{ width: '150px' }} placeholder="Client…" value={clientFilter} onChange={e => setClientFilter(e.target.value)} />
-          <input className="auth-input" style={{ width: '150px' }} placeholder="Role…" value={roleFilter} onChange={e => setRoleFilter(e.target.value)} />
-          <button className="btn" onClick={load}>Apply</button>
+          <input className="auth-input" placeholder="Client…" value={clientFilter} onChange={e => setClientFilter(e.target.value)} />
+          <input className="auth-input" placeholder="Role…" value={roleFilter} onChange={e => setRoleFilter(e.target.value)} />
+          <button type="button" className="btn" onClick={load}>Apply</button>
         </div>
       )}
 

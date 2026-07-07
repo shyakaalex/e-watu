@@ -7,6 +7,24 @@ import { CreateEmployeeDto } from './dtos/create-employee.dto';
 import { CreateEmployeeFromPlacementDto } from './dtos/create-employee-from-placement.dto';
 import { UpdateEmployeeDto } from './dtos/update-employee.dto';
 
+export type BulkImportRow = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  jobTitle: string;
+  startDate: string;
+  phone?: string;
+  department?: string;
+  clientId?: string;
+  basicSalary?: number;
+};
+
+export type BulkImportResult = {
+  created: number;
+  skipped: number;
+  errors: Array<{ row: number; error: string }>;
+};
+
 @Injectable()
 export class EmployeesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -196,6 +214,61 @@ export class EmployeesService {
       jobTitle: dto.jobTitle ?? 'Employee',
       startDate: dto.startDate ?? new Date().toISOString(),
     });
+  }
+
+  async bulkImport(tenantId: string, rows: BulkImportRow[]): Promise<BulkImportResult> {
+    let created = 0;
+    let skipped = 0;
+    const errors: Array<{ row: number; error: string }> = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row: BulkImportRow | undefined = rows[i];
+      const rowNumber = i + 1;
+
+      if (!row || !row.firstName || !row.lastName || !row.email || !row.jobTitle || !row.startDate) {
+        errors.push({
+          row: rowNumber,
+          error: 'Missing required fields: firstName, lastName, email, jobTitle, startDate',
+        });
+        continue;
+      }
+
+      const email = row.email.toLowerCase().trim();
+
+      try {
+        const existing = await this.prisma.employee.findFirst({ where: { tenantId, email } });
+        if (existing) {
+          skipped++;
+          continue;
+        }
+
+        if (Number.isNaN(new Date(row.startDate).getTime())) {
+          errors.push({ row: rowNumber, error: `Invalid startDate: ${row.startDate}` });
+          continue;
+        }
+
+        await this.create(tenantId, {
+          firstName: row.firstName.trim(),
+          lastName: row.lastName.trim(),
+          email,
+          jobTitle: row.jobTitle.trim(),
+          startDate: row.startDate,
+          phone: row.phone?.trim() || undefined,
+          department: row.department?.trim() || undefined,
+          clientId: row.clientId?.trim() || undefined,
+          basicSalary: row.basicSalary != null && !Number.isNaN(Number(row.basicSalary))
+            ? Number(row.basicSalary)
+            : undefined,
+        });
+
+        created++;
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        errors.push({ row: rowNumber, error: message });
+      }
+    }
+
+    return { created, skipped, errors };
   }
 
   async convertFromPlacement(

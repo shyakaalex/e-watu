@@ -4,5 +4,6 @@ export interface AuthUser {
   email?: string;
   tenant_id?: string;
   roles: string[];
+  permissions: string[];
   raw: Record<string, unknown>;
 }

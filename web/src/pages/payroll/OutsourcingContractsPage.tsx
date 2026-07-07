@@ -16,7 +16,7 @@ function daysUntil(d: string | null | undefined) {
   return Math.ceil((new Date(d).getTime() - Date.now()) / 86400000);
 }
 
-function ExpiryCell({ endDate, alert30, alert60, alert90 }: { endDate: string | null; alert30: boolean; alert60: boolean; alert90: boolean }) {
+function ExpiryCell({ endDate }: { endDate: string | null }) {
   const days = daysUntil(endDate);
   if (!endDate) return <span className="muted">Open-ended</span>;
   const dateStr = new Date(endDate).toLocaleDateString();
@@ -148,9 +148,9 @@ export function OutsourcingContractsPage() {
 
       {err && <div className="alert alert--err">{err}</div>}
 
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+      <div className="rec-page__actions" style={{ marginBottom: '1rem' }}>
         {(['ALL', 'ACTIVE', 'EXPIRED', 'TERMINATED', 'RENEWED'] as const).map(s => (
-          <button key={s} className={`btn btn--sm${statusFilter === s ? ' btn--primary' : ''}`} onClick={() => setStatusFilter(s)}>
+          <button key={s} type="button" className={`btn btn--sm${statusFilter === s ? ' btn--primary' : ''}`} onClick={() => setStatusFilter(s)}>
             {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
           </button>
         ))}
@@ -251,8 +251,8 @@ export function OutsourcingContractsPage() {
 
       {/* Modals */}
       {modal && selected && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={closeModal}>
-          <div style={{ background: '#fff', borderRadius: '14px', padding: '2rem', width: '440px', maxWidth: '94vw', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+        <div className="rec-modal-backdrop" onClick={closeModal}>
+          <div className="rec-modal" style={{ maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
 
             {modal === 'amend' && (
               <form onSubmit={submitAmend}>

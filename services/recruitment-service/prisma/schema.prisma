@@ -44,23 +44,49 @@ model Job {
 }
 
 model Candidate {
-  id           String   @id @default(uuid())
-  tenantId     String   @map("tenant_id")
-  firstName    String   @map("first_name")
-  lastName     String   @map("last_name")
-  email        String
-  phone        String?
-  cvUrl        String?  @map("cv_url")
-  linkedinUrl  String?  @map("linkedin_url")
-  currentTitle String?  @map("current_title")
-  source       String   @default("MANUAL")
-  notes        String?
-  tags         String[]
-  archived     Boolean  @default(false)
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id                    String   @id @default(uuid())
+  tenantId              String   @map("tenant_id")
+  firstName             String   @map("first_name")
+  lastName              String   @map("last_name")
+  email                 String
+  phone                 String?
+  cvUrl                 String?  @map("cv_url")
+  linkedinUrl           String?  @map("linkedin_url")
+  currentTitle          String?  @map("current_title")
+  source                String   @default("MANUAL")
+  notes                 String?
+  tags                  String[]
+  archived              Boolean  @default(false)
 
-  applications Application[]
+  // Extended profile fields
+  dob                   DateTime? @map("dob")
+  gender                String?
+  nationality           String?
+  city                  String?
+  country               String?
+  contactPreference     String?   @map("contact_preference")
+  communicationLanguage String?   @default("English") @map("communication_language")
+  currentEmployer       String?   @map("current_employer")
+  yearsExperience       Int?      @map("years_experience")
+  employmentStatus      String?   @map("employment_status")
+  summary               String?
+  salaryExpMin          Int?      @map("salary_exp_min")
+  salaryExpMax          Int?      @map("salary_exp_max")
+  salaryCurrency        String?   @default("RWF") @map("salary_currency")
+  availability          String?   @default("IMMEDIATE")
+  availableFrom         DateTime? @map("available_from")
+  status                String    @default("ACTIVE")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  applications    Application[]
+  workHistory     WorkHistory[]
+  educations      Education[]
+  languages       CandidateLanguage[]
+  documents       CandidateDocument[]
+  recruiterNotes  RecruiterNote[]
+  activities      CandidateActivity[]
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -201,4 +227,103 @@ model Placement {
   @@index([jobId])
   @@index([candidateId])
   @@map("placements")
+}
+
+model WorkHistory {
+  id               String    @id @default(uuid())
+  tenantId         String    @map("tenant_id")
+  candidateId      String    @map("candidate_id")
+  employer         String
+  title            String
+  startDate        DateTime  @map("start_date")
+  endDate          DateTime? @map("end_date")
+  isCurrent        Boolean   @default(false) @map("is_current")
+  responsibilities String?
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@map("work_history")
+}
+
+model Education {
+  id          String    @id @default(uuid())
+  tenantId    String    @map("tenant_id")
+  candidateId String    @map("candidate_id")
+  institution String
+  degree      String?
+  field       String?
+  startYear   Int?      @map("start_year")
+  endYear     Int?      @map("end_year")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@map("educations")
+}
+
+model CandidateLanguage {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  candidateId String   @map("candidate_id")
+  language    String
+  proficiency String   @default("CONVERSATIONAL")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@map("candidate_languages")
+}
+
+model CandidateDocument {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  candidateId String   @map("candidate_id")
+  fileName    String   @map("file_name")
+  fileKey     String   @map("file_key")
+  fileUrl     String   @map("file_url")
+  mimeType    String   @default("application/pdf") @map("mime_type")
+  version     Int      @default(1)
+  label       String   @default("CV")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@map("candidate_documents")
+}
+
+model RecruiterNote {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  candidateId String   @map("candidate_id")
+  content     String
+  authorId    String   @map("author_id")
+  authorName  String   @map("author_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@map("recruiter_notes")
+}
+
+model CandidateActivity {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  candidateId String   @map("candidate_id")
+  type        String
+  description String
+  metadata    Json?
+  userId      String?  @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId])
+  @@index([tenantId, candidateId])
+  @@map("candidate_activities")
 }

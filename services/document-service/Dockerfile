@@ -2,6 +2,7 @@
 # NOTE: NODE_ENV is runtime-only. Do not pass as build ARG.
 # Build stage always installs devDependencies for TypeScript compilation.
 FROM node:20-alpine AS build
+RUN apk add --no-cache openssl libssl3
 WORKDIR /repo
 
 # Build shared library
@@ -19,6 +20,7 @@ RUN npm prune --omit=dev
 
 # ── Production stage ─────────────────────────────────
 FROM node:20-alpine
+RUN apk add --no-cache openssl libssl3
 WORKDIR /app
 ENV NODE_ENV=production
 ENV SERVICE_NAME=document-service

@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RequisitionStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  ISSUED
+  APPROVED
+  CLOSED
+}
+
+enum GoodsReceivedStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Vendor {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  name      String
+  email     String
+  phone     String?
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  purchaseOrders PurchaseOrder[]
+
+  @@index([tenantId])
+  @@map("vendors")
+}
+
+model ProcurementRequisition {
+  id          String            @id @default(uuid())
+  tenantId    String            @map("tenant_id")
+  title       String
+  description String?
+  status      RequisitionStatus @default(DRAFT)
+  totalAmount Decimal           @map("total_amount") @db.Decimal(12, 2)
+  requestedBy String            @map("requested_by")
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  purchaseOrders PurchaseOrder[]
+
+  @@index([tenantId])
+  @@map("procurement_requisitions")
+}
+
+model PurchaseOrder {
+  id            String              @id @default(uuid())
+  tenantId      String              @map("tenant_id")
+  vendorId      String              @map("vendor_id")
+  requisitionId String              @map("requisition_id")
+  status        PurchaseOrderStatus @default(DRAFT)
+  totalAmount   Decimal             @map("total_amount") @db.Decimal(12, 2)
+  approvedBy    String?             @map("approved_by")
+  createdAt     DateTime            @default(now()) @map("created_at")
+
+  vendor      Vendor                 @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  requisition ProcurementRequisition @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
+  goodsReceipts GoodsReceivedNote[]
+
+  @@index([tenantId])
+  @@index([vendorId])
+  @@index([requisitionId])
+  @@map("purchase_orders")
+}
+
+model GoodsReceivedNote {
+  id              String              @id @default(uuid())
+  tenantId        String              @map("tenant_id")
+  purchaseOrderId String              @map("purchase_order_id")
+  status          GoodsReceivedStatus @default(PENDING)
+  receivedDate    DateTime            @default(now()) @map("received_date")
+  receivedBy      String              @map("received_by")
+  createdAt       DateTime            @default(now()) @map("created_at")
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([purchaseOrderId])
+  @@map("goods_received_notes")
+}
+
+model SecurityAuditLog {
+  id         String   @id @default(uuid())
+  tenantId   String   @map("tenant_id")
+  userId     String   @map("user_id")
+  action     String
+  resource   String
+  resourceId String   @map("resource_id")
+  payload    String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId])
+  @@index([userId])
+  @@map("security_audit_logs")
+}

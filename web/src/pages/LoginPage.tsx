@@ -14,8 +14,6 @@ export function LoginPage() {
   const sp = new URLSearchParams(location.search);
   const fromState = (location.state as { from?: string } | null)?.from;
   const returnPath = resolveReturnPath(sp, fromState, '/platform');
-  const emailJustVerified = sp.get('verified') === '1';
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [err, setErr] = useState<ParsedApiError | null>(null);
@@ -46,10 +44,10 @@ export function LoginPage() {
       introContent={
         <>
           <p className="auth-intro__lead">
-            Access your workspace with the administrator email you verified during registration.
+            Access your workspace with the credentials you created during registration.
           </p>
           <ul className="auth-intro__list">
-            <li>Company owners must complete email verification before first login.</li>
+            <li>Sign up as a company to get access.</li>
             <li>Your dashboard reflects your role: platform operator or company administrator.</li>
           </ul>
         </>
@@ -57,11 +55,6 @@ export function LoginPage() {
     >
       <h2 className="auth-heading auth-heading--compact">Sign in</h2>
       <p className="auth-lead auth-lead--tight">Enter your credentials to continue.</p>
-      {emailJustVerified && (
-        <div className="alert alert--info" role="status">
-          Your email is verified. Sign in with the administrator account you registered.
-        </div>
-      )}
       {err && <AuthErrorAlert error={err} />}
       <form className="auth-form" onSubmit={onSubmit}>
         <label className="auth-label">

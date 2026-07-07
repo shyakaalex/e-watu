@@ -1,0 +1,418 @@
+/* ── Welcome header ───────────────────────────────────────────────────────── */
+.dash-welcome {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.85rem;
+  flex-wrap: wrap;
+}
+
+.dash-welcome__greeting {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0 0 0.3rem;
+}
+
+.dash-welcome__sub {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.92rem;
+}
+
+.dash-welcome__date {
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  padding-top: 0.4rem;
+  flex-shrink: 0;
+}
+
+/* ── KPI Grid ─────────────────────────────────────────────────────────────── */
+.dash-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.15rem;
+}
+
+@media (max-width: 960px) {
+  .dash-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 520px) {
+  .dash-kpi-grid { grid-template-columns: 1fr; }
+}
+
+.dash-kpi {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.15rem 1.2rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  transition: box-shadow 0.18s, transform 0.18s;
+}
+.dash-kpi:hover {
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1);
+  transform: translateY(-1px);
+}
+
+.dash-kpi__icon-wrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dash-kpi__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-kpi__label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+  margin-bottom: 0.28rem;
+}
+
+.dash-kpi__value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin-bottom: 0.28rem;
+}
+
+.dash-kpi__secondary {
+  font-size: 0.76rem;
+  color: var(--ink-muted);
+}
+
+/* ── 2-column row ─────────────────────────────────────────────────────────── */
+.dash-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 800px) {
+  .dash-row-2 { grid-template-columns: 1fr; }
+}
+
+/* ── Chart cards ──────────────────────────────────────────────────────────── */
+.dash-chart-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.2rem 1.3rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  margin-bottom: 0;
+}
+
+.dash-chart-card__title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+/* ── Donut chart ──────────────────────────────────────────────────────────── */
+.dash-donut {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.dash-donut__legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.48rem;
+  flex: 1;
+}
+
+.dash-donut__row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.81rem;
+}
+
+.dash-donut__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dash-donut__lbl {
+  flex: 1;
+  color: var(--ink);
+}
+
+.dash-donut__cnt {
+  font-weight: 700;
+  color: var(--ink);
+  min-width: 24px;
+  text-align: right;
+}
+
+/* ── Funnel chart ─────────────────────────────────────────────────────────── */
+.dash-funnel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.58rem;
+}
+
+.dash-funnel__row {
+  display: grid;
+  grid-template-columns: 82px 1fr 48px;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.dash-funnel__label {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.dash-funnel__track {
+  background: var(--surface);
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.dash-funnel__fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.45s ease;
+  min-width: 4px;
+}
+
+.dash-funnel__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.dash-funnel__count {
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.dash-funnel__pct {
+  font-size: 0.68rem;
+  color: var(--ink-muted);
+}
+
+/* ── Top list ─────────────────────────────────────────────────────────────── */
+.dash-toplist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.72rem;
+}
+
+.dash-toplist__row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.dash-toplist__rank {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+  flex-shrink: 0;
+}
+
+.dash-toplist__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-toplist__name {
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.22rem;
+}
+
+.dash-toplist__track {
+  background: var(--surface);
+  border-radius: 999px;
+  height: 5px;
+  overflow: hidden;
+}
+
+.dash-toplist__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand), var(--brand-mid));
+  border-radius: 999px;
+  transition: width 0.45s ease;
+}
+
+.dash-toplist__val {
+  font-size: 0.82rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  min-width: 26px;
+  text-align: right;
+}
+
+/* ── Activity feed ────────────────────────────────────────────────────────── */
+.dash-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.dash-activity__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.dash-activity__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.dash-activity__body {
+  flex: 1;
+  font-size: 0.81rem;
+  line-height: 1.45;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-activity__name {
+  font-weight: 600;
+}
+
+.dash-activity__desc {
+  color: var(--ink-muted);
+}
+
+.dash-activity__time {
+  font-size: 0.73rem;
+  color: var(--ink-muted);
+  flex-shrink: 0;
+  padding-top: 2px;
+  white-space: nowrap;
+}
+
+/* ── Dashboard Switcher Tabs ────────────────────────────────────────────── */
+.dash-tabs {
+  display: flex;
+  gap: 1.5rem;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.2rem;
+}
+
+.dash-tab {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  padding: 0.5rem 0.25rem 0.75rem;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s ease;
+}
+
+.dash-tab:hover {
+  color: var(--ink);
+}
+
+.dash-tab--active {
+  color: var(--brand);
+}
+
+.dash-tab--active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--brand);
+  border-radius: 99px;
+}
+
+/* ── Stat Lists & Checklists ────────────────────────────────────────────── */
+.stat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.8rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+
+.stat-item__name {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.stat-item__meta {
+  font-size: 0.76rem;
+  color: var(--ink-muted);
+}
+
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+@media (max-width: 480px) {
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -59,10 +59,10 @@ export function PayrollDashboard() {
   return (
     <div className="rec-page">
       <h1 className="rec-page__title">Payroll Dashboard</h1>
-      <div className="rec-form__grid">
-        <div className="card"><h3>Total Active Employees</h3><p>{stats.activeEmployees}</p></div>
-        <div className="card"><h3>Periods Needing Action</h3><p>{stats.periodsNeedingAction}</p></div>
-        <div className="card"><h3>Contracts Expiring Soon</h3><p>{stats.expiringContracts}</p></div>
+      <div className="rec-stats-grid" style={{ marginBottom: '1rem' }}>
+        <div className="card rec-kpi-card"><h3>Total Active Employees</h3><p>{stats.activeEmployees}</p></div>
+        <div className="card rec-kpi-card"><h3>Periods Needing Action</h3><p>{stats.periodsNeedingAction}</p></div>
+        <div className="card rec-kpi-card"><h3>Contracts Expiring Soon</h3><p>{stats.expiringContracts}</p></div>
       </div>
 
       <div className="card rec-form-card" style={{ marginTop: '1rem' }}>
@@ -72,12 +72,12 @@ export function PayrollDashboard() {
             <p className="muted">
               No clients configured yet. Go to Payroll → Configuration to add your first client payroll setup.
             </p>
-            <Link to="/payroll/config/new" className="btn btn--primary" style={{ marginTop: '0.75rem', display: 'inline-block' }}>
+            <Link to="/payroll/settings" className="btn btn--primary" style={{ marginTop: '0.75rem', display: 'inline-block' }}>
               Add payroll configuration
             </Link>
           </div>
         ) : (
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div className="rec-period-picker">
             <label className="rec-form__label" style={{ margin: 0 }}>
               Client
               <select className="auth-input" value={selectedClientId} onChange={(e) => setSelectedClientId(e.target.value)}>

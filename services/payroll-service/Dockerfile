@@ -1,4 +1,5 @@
 FROM node:20-alpine AS build
+RUN apk add --no-cache openssl libssl3
 WORKDIR /repo
 
 COPY libs/common-auth ./libs/common-auth
@@ -14,7 +15,9 @@ RUN npm ci --include=dev && \
 RUN npm prune --omit=dev
 
 FROM node:20-alpine
+RUN apk add --no-cache openssl libssl3
 WORKDIR /app
+RUN apk add --no-cache openssl libssl3
 ENV NODE_ENV=production
 ENV SERVICE_NAME=payroll-service
 

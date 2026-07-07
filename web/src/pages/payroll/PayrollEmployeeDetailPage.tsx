@@ -211,6 +211,7 @@ export function PayrollEmployeeDetailPage() {
             </form>
           )}
 
+          <div className="rec-table-wrap">
           <table className="rec-table">
             <thead><tr><th>Type</th><th>Start</th><th>End</th><th>Salary</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
@@ -233,6 +234,7 @@ export function PayrollEmployeeDetailPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

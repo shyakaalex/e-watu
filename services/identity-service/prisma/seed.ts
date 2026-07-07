@@ -1,4 +1,3 @@
-import { execSync } from 'node:child_process';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -6,14 +5,21 @@ const prisma = new PrismaClient();
 const DEV_PASSWORD = 'DevPassword12!';
 const BCRYPT_ROUNDS = 12;
 
-function demoTenantId(): string | null {
+async function demoTenantId(): Promise<string | null> {
   try {
-    const id = execSync(
-      `PGPASSWORD=ewatu_dev psql -h 127.0.0.1 -p 15432 -U ewatu -d platform_db -tAc "SELECT id FROM \\"Tenant\\" WHERE slug = 'demo-tenant' LIMIT 1"`,
-      { encoding: 'utf8' },
-    ).trim();
-    return id || null;
-  } catch {
+    const platformPrisma = new PrismaClient({
+      datasources: {
+        db: {
+          url: 'postgresql://ewatu:ewatu_dev@127.0.0.1:15432/platform_db',
+        },
+      },
+    });
+    const result = await platformPrisma.$queryRaw<Array<{ id: string }>>`
+      SELECT id FROM "Tenant" WHERE slug = 'demo-tenant' LIMIT 1
+    `;
+    await platformPrisma.$disconnect();
+    return result[0]?.id || null;
+  } catch (err) {
     return null;
   }
 }
@@ -39,7 +45,7 @@ async function main() {
     },
   });
 
-  const tenantId = demoTenantId();
+  const tenantId = await demoTenantId();
   await prisma.user.upsert({
     where: { email: 'tenant@ewatu.dev' },
     update: {

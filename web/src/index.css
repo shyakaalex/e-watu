@@ -348,6 +348,26 @@ code {
   color: var(--accent);
 }
 
+.btn--success {
+  background: #16a34a;
+  color: #fff;
+  border-color: #16a34a;
+}
+.btn--success:hover {
+  background: #15803d;
+  border-color: #15803d;
+}
+
+.btn--danger {
+  background: #dc2626;
+  color: #fff;
+  border-color: #dc2626;
+}
+.btn--danger:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
 .btn--xl {
   padding: 0.85rem 1.35rem;
   font-size: 1rem;
@@ -960,6 +980,12 @@ code {
   background: #fef2f2;
   border: 1px solid #fecaca;
   color: #991b1b;
+}
+
+.alert--ok {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
 }
 
 .alert pre {
@@ -1730,6 +1756,18 @@ code {
   background: var(--accent-soft);
   color: var(--accent-hover);
   border: 1px solid rgba(15, 71, 117, 0.2);
+}
+
+.badge--orange {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.badge--purple {
+  background: rgba(139, 92, 246, 0.1);
+  color: #7c3aed;
+  border: 1px solid rgba(139, 92, 246, 0.2);
 }
 
 /* —— Jobs list —— */

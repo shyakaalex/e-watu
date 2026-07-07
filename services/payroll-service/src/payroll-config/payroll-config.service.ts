@@ -7,6 +7,31 @@ import { UpdateConfigDto } from './dto/update-config.dto';
 export class PayrollConfigService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getDefault(tenantId: string) {
+    let config = await this.prisma.payrollConfiguration.findFirst({
+      where: { tenantId },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (!config) {
+      config = await this.prisma.payrollConfiguration.create({
+        data: {
+          tenantId,
+          clientId: 'default',
+          payDay: 28,
+          currency: 'RWF',
+          payeEnabled: true,
+          rssbPensionEmployee: 0.05,
+          rssbPensionEmployer: 0.05,
+          rssbMedical: 0.075,
+          cbhiRate: 0.005,
+          maternityLevy: 0.003,
+        },
+      });
+    }
+    return config;
+  }
+
   async listClients(tenantId: string) {
     const configs = await this.prisma.payrollConfiguration.findMany({
       where: { tenantId },

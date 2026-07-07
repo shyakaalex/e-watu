@@ -18,6 +18,7 @@ export class MeController {
       username: user.preferred_username,
       tenant_id: user.tenant_id,
       roles: user.roles,
+      permissions: user.permissions,
     };
   }
 }

@@ -16,7 +16,6 @@ export function RegisterCompanyPage() {
   const [done, setDone] = useState<{
     message: string;
     slug: string;
-    devVerifyUrl?: string;
     subdomainExample?: string;
   } | null>(null);
 
@@ -37,7 +36,6 @@ export function RegisterCompanyPage() {
       setDone({
         message: res.message,
         slug: res.slug,
-        devVerifyUrl: res.devVerifyUrl,
         subdomainExample: res.access?.subdomainExample,
       });
     } catch (e) {
@@ -70,7 +68,7 @@ export function RegisterCompanyPage() {
               <span className="auth-step__label">Register</span> company details &amp; owner
             </li>
             <li>
-              <span className="auth-step__label">Verify</span> administrator email
+              <span className="auth-step__label">Sign in</span> straight away with your credentials
             </li>
             <li>
               <span className="auth-step__label">Review</span> by platform operators
@@ -109,12 +107,6 @@ export function RegisterCompanyPage() {
               </p>
             ) : null}
           </div>
-          {done.devVerifyUrl ? (
-            <div className="alert alert--info">
-              <strong>Demo shortcut:</strong> In production, administrators receive an email. For this preview,{' '}
-              <a href={done.devVerifyUrl}>open the verification link</a>.
-            </div>
-          ) : null}
           <div className="auth-success__actions">
             <Link to="/login" className="btn btn--primary btn--lg">
               Continue to sign in
