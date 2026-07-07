@@ -290,9 +290,9 @@ export function PayrollLeavePage() {
 
       {/* Request Leave Modal */}
       {showModal && (
-        <div className="modal-backdrop">
-          <div className="modal" style={{ maxWidth: '500px', padding: '2rem' }}>
-            <h3 className="modal-title mb-4">Request Leave</h3>
+        <div className="rec-modal-backdrop">
+          <div className="rec-modal" style={{ maxWidth: '500px', padding: '2rem' }}>
+            <h3 className="rec-modal__title mb-4">Request Leave</h3>
             <form onSubmit={handleCreateRequest}>
               <div className="mb-4">
                 <label className="rec-form__label">Employee ID (Self)</label>
