@@ -44,11 +44,10 @@ export class OnboardingService {
       throw new ServiceUnavailableException('IDENTITY_SERVICE_URL and INTERNAL_API_KEY must be configured');
     }
 
-    let emailVerificationToken: string | undefined;
     let ownerUserId: string | undefined;
     try {
       const { data } = await firstValueFrom(
-        this.http.post<{ userId: string; emailVerificationToken: string }>(
+        this.http.post<{ userId: string }>(
           `${identityUrl}/api/v1/internal/provision-tenant-owner`,
           {
             email: dto.adminEmail,
@@ -64,7 +63,6 @@ export class OnboardingService {
         where: { id: tenant.id },
         data: { ownerUserId: data.userId },
       });
-      emailVerificationToken = data.emailVerificationToken;
     } catch (e: unknown) {
       await this.prisma.tenant.delete({ where: { id: tenant.id } }).catch(() => {});
       if (e && typeof e === 'object' && 'response' in e) {
@@ -75,33 +73,26 @@ export class OnboardingService {
       throw new BadGatewayException('Could not reach identity service');
     }
 
-    const webOrigin = this.config.get<string>('WEB_APP_ORIGIN')?.replace(/\/$/, '') ?? 'http://localhost:5173';
-    const devHints = this.config.get<string>('ONBOARDING_DEV_HINTS') === 'true';
-
-    const verifyUrl = `${webOrigin}/verify-email?token=${emailVerificationToken}`;
     await this.notify.dispatch({
       channel: 'both',
       to: dto.adminEmail,
       userId: ownerUserId,
       tenantId: tenant.id,
-      template: 'verify-email',
-      payload: { verifyUrl, companyName: dto.companyName },
-      title: 'Verify your email',
-      body: 'Please verify your administrator email to complete company registration.',
+      template: 'welcome',
+      payload: { companyName: dto.companyName },
+      title: 'Application received',
+      body: `Your application for ${dto.companyName} is under review. You can sign in while you wait for approval.`,
     });
 
     return {
       message:
-        'Registration received. Check your email to verify your address. Your company will be reviewed by the platform team.',
+        'Application received. Your company is under review by the platform team. You can sign in straight away while you wait.',
       tenantId: tenant.id,
       slug: tenant.slug,
       access: {
         subdomainExample: `${tenant.slug}.erp.yourdomain.com`,
         pathExample: `/company/${tenant.slug}`,
       },
-      ...(devHints && emailVerificationToken
-        ? { devVerifyUrl: `${webOrigin}/verify-email?token=${emailVerificationToken}` }
-        : {}),
     };
   }
 

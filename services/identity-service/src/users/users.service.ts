@@ -5,7 +5,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { generateRawToken, hashToken } from '../common/token-hash';
 import { EwatuRole, type AuthUser } from '@ewatu/common-auth';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateUserDto } from './dtos/create-user.dto';
@@ -67,8 +66,6 @@ export class UsersService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
-    const rawVerificationToken = generateRawToken(32);
-    const emailVerificationToken = hashToken(rawVerificationToken);
 
     const created = await this.prisma.user.create({
       data: {
@@ -77,8 +74,7 @@ export class UsersService {
         displayName: dto.displayName?.trim() || null,
         roles: safe,
         tenantId: user.tenant_id!,
-        emailVerified: false,
-        emailVerificationToken,
+        emailVerified: true,
         active: true,
       },
       select: {
@@ -92,7 +88,7 @@ export class UsersService {
       },
     });
 
-    return { ...created, emailVerificationToken: rawVerificationToken };
+    return created;
   }
 
   async updateForTenant(user: AuthUser, userId: string, dto: UpdateUserDto) {

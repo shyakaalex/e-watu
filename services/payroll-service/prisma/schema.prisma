@@ -127,6 +127,12 @@ model Employee {
   contracts             EmployeeContract[]
   payrollRecords        PayrollRecord[]
   outsourcingAssignments OutsourcingAssignment[]
+  leaveRequests         LeaveRequest[]
+  leaveBalances         LeaveBalance[]
+  goals                 Goal[]
+  appraisals            Appraisal[]
+  feedbackNominees      FeedbackRequest[] @relation("FeedbackNominee")
+  feedbackReviewers     FeedbackRequest[] @relation("FeedbackReviewer")
 
   @@index([tenantId])
   @@index([tenantId, clientId])
@@ -347,4 +353,310 @@ model DeploymentHistory {
 
   @@index([assignmentId])
   @@map("deployment_history")
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model LeaveType {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  name        String
+  code        String   // e.g. ANNUAL, SICK, MATERNITY, PATERNITY, UNPAID
+  description String?
+  defaultDays Decimal  @map("default_days") @db.Decimal(5, 2)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  leaveRequests LeaveRequest[]
+  leaveBalances LeaveBalance[]
+
+  @@unique([tenantId, code])
+  @@map("leave_types")
+}
+
+model LeaveRequest {
+  id              String      @id @default(uuid())
+  tenantId        String      @map("tenant_id")
+  employeeId      String      @map("employee_id")
+  leaveTypeId     String      @map("leave_type_id")
+  startDate       DateTime    @map("start_date")
+  endDate         DateTime    @map("end_date")
+  numberOfDays    Decimal     @map("number_of_days") @db.Decimal(5, 2)
+  reason          String?
+  status          LeaveStatus @default(PENDING)
+  approvedById    String?     @map("approved_by_id")
+  approvedAt      DateTime?   @map("approved_at")
+  rejectionReason String?     @map("rejection_reason")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  employee        Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType       LeaveType   @relation(fields: [leaveTypeId], references: [id])
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@map("leave_requests")
+}
+
+model LeaveBalance {
+  id            String    @id @default(uuid())
+  tenantId      String    @map("tenant_id")
+  employeeId    String    @map("employee_id")
+  leaveTypeId   String    @map("leave_type_id")
+  year          Int
+  allocatedDays Decimal   @map("allocated_days") @db.Decimal(5, 2)
+  usedDays      Decimal   @default(0) @map("used_days") @db.Decimal(5, 2)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType     LeaveType @relation(fields: [leaveTypeId], references: [id])
+
+  @@unique([employeeId, leaveTypeId, year])
+  @@index([tenantId])
+  @@map("leave_balances")
+}
+
+enum CycleStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+}
+
+enum GoalStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum AppraisalStatus {
+  SELF_ASSESSMENT
+  MANAGER_REVIEW
+  HR_REVIEW
+  COMPLETED
+}
+
+enum FeedbackRelationship {
+  PEER
+  SUBORDINATE
+  MANAGER
+}
+
+enum FeedbackStatus {
+  PENDING
+  COMPLETED
+  DECLINED
+}
+
+model AppraisalCycle {
+  id                      String        @id @default(uuid())
+  tenantId                String        @map("tenant_id")
+  clientId                String?       @map("client_id")
+  name                    String
+  frequency               String        @default("ANNUAL")
+  startDate               DateTime      @map("start_date")
+  endDate                 DateTime      @map("end_date")
+  selfAssessmentDeadline  DateTime      @map("self_assessment_deadline")
+  managerReviewDeadline   DateTime      @map("manager_review_deadline")
+  hrValidationDeadline    DateTime      @map("hr_validation_deadline")
+  status                  CycleStatus   @default(DRAFT)
+  createdAt               DateTime      @default(now()) @map("created_at")
+  updatedAt               DateTime      @updatedAt @map("updated_at")
+
+  appraisals              Appraisal[]
+  goals                   Goal[]
+
+  @@index([tenantId])
+  @@map("appraisal_cycles")
+}
+
+model CompetencyFramework {
+  id          String       @id @default(uuid())
+  tenantId    String       @map("tenant_id")
+  name        String
+  description String?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  competencies Competency[]
+
+  @@index([tenantId])
+  @@map("competency_frameworks")
+}
+
+model Competency {
+  id          String              @id @default(uuid())
+  frameworkId String              @map("framework_id")
+  name        String
+  description String?
+  weight      Decimal             @default(1.0) @db.Decimal(5, 2)
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+
+  framework   CompetencyFramework @relation(fields: [frameworkId], references: [id], onDelete: Cascade)
+  ratings     AppraisalCompetencyRating[]
+
+  @@map("competencies")
+}
+
+model Goal {
+  id                String         @id @default(uuid())
+  tenantId          String         @map("tenant_id")
+  employeeId        String         @map("employee_id")
+  appraisalCycleId  String         @map("appraisal_cycle_id")
+  title             String
+  description       String?
+  target            String
+  measurementMethod String         @map("measurement_method")
+  weight            Decimal        @db.Decimal(5, 2)
+  deadline          DateTime
+  status            GoalStatus     @default(DRAFT)
+  progress          Decimal        @default(0.0) @db.Decimal(5, 2)
+  managerComment    String?        @map("manager_comment")
+  objectiveId       String?        @map("objective_id")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  employee          Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  cycle             AppraisalCycle @relation(fields: [appraisalCycleId], references: [id], onDelete: Cascade)
+  ratings           AppraisalGoalRating[]
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@map("goals")
+}
+
+model GoalTemplate {
+  id                String   @id @default(uuid())
+  tenantId          String   @map("tenant_id")
+  roleType          String?  @map("role_type")
+  title             String
+  description       String?
+  target            String
+  measurementMethod String   @map("measurement_method")
+  weight            Decimal  @default(20.0) @db.Decimal(5, 2)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@map("goal_templates")
+}
+
+model Appraisal {
+  id                String         @id @default(uuid())
+  tenantId          String         @map("tenant_id")
+  employeeId        String         @map("employee_id")
+  cycleId           String         @map("cycle_id")
+  status            AppraisalStatus @default(SELF_ASSESSMENT)
+  selfScore         Decimal?       @map("self_score") @db.Decimal(5, 2)
+  managerScore      Decimal?       @map("manager_score") @db.Decimal(5, 2)
+  hrScore           Decimal?       @map("hr_score") @db.Decimal(5, 2)
+  finalScore        Decimal?       @map("final_score") @db.Decimal(5, 2)
+  managerAdjustment Decimal?       @map("manager_adjustment") @db.Decimal(5, 2)
+  selfComment       String?        @map("self_comment")
+  managerComment    String?        @map("manager_comment")
+  hrComment         String?        @map("hr_comment")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  employee          Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  cycle             AppraisalCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  goalRatings       AppraisalGoalRating[]
+  competencyRatings AppraisalCompetencyRating[]
+  feedbackRequests  FeedbackRequest[]
+
+  @@unique([employeeId, cycleId])
+  @@index([tenantId])
+  @@map("appraisals")
+}
+
+model AppraisalGoalRating {
+  id             String    @id @default(uuid())
+  appraisalId    String    @map("appraisal_id")
+  goalId         String    @map("goal_id")
+  selfRating     Decimal?  @map("self_rating") @db.Decimal(5, 2)
+  selfComment    String?   @map("self_comment")
+  managerRating  Decimal?  @map("manager_rating") @db.Decimal(5, 2)
+  managerComment String?   @map("manager_comment")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  appraisal      Appraisal @relation(fields: [appraisalId], references: [id], onDelete: Cascade)
+  goal           Goal      @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@unique([appraisalId, goalId])
+  @@map("appraisal_goal_ratings")
+}
+
+model AppraisalCompetencyRating {
+  id             String     @id @default(uuid())
+  appraisalId    String     @map("appraisal_id")
+  competencyId   String     @map("competency_id")
+  selfRating     Decimal?   @map("self_rating") @db.Decimal(5, 2)
+  selfComment    String?    @map("self_comment")
+  managerRating  Decimal?   @map("manager_rating") @db.Decimal(5, 2)
+  managerComment String?    @map("manager_comment")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  appraisal      Appraisal  @relation(fields: [appraisalId], references: [id], onDelete: Cascade)
+  competency     Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  @@unique([appraisalId, competencyId])
+  @@map("appraisal_competency_ratings")
+}
+
+model FeedbackRequest {
+  id           String               @id @default(uuid())
+  tenantId     String               @map("tenant_id")
+  appraisalId  String               @map("appraisal_id")
+  employeeId   String               @map("employee_id")
+  reviewerId   String               @map("reviewer_id")
+  relationship FeedbackRelationship
+  status       FeedbackStatus       @default(PENDING)
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
+
+  appraisal    Appraisal            @relation(fields: [appraisalId], references: [id], onDelete: Cascade)
+  employee     Employee             @relation("FeedbackNominee", fields: [employeeId], references: [id], onDelete: Cascade)
+  reviewer     Employee             @relation("FeedbackReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  response     FeedbackResponse?
+
+  @@index([tenantId])
+  @@index([appraisalId])
+  @@map("feedback_requests")
+}
+
+model FeedbackResponse {
+  id                String          @id @default(uuid())
+  feedbackRequestId String          @unique @map("feedback_request_id")
+  anonymized        Boolean         @default(true)
+  competencyRatings Json
+  generalComment    String?         @map("general_comment")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  request           FeedbackRequest @relation(fields: [feedbackRequestId], references: [id], onDelete: Cascade)
+
+  @@map("feedback_responses")
+}
+
+model SecurityAuditLog {
+  id         String   @id @default(uuid())
+  tenantId   String   @map("tenant_id")
+  userId     String   @map("user_id")
+  action     String
+  resource   String
+  resourceId String   @map("resource_id")
+  payload    String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId])
+  @@index([userId])
+  @@map("security_audit_logs")
 }

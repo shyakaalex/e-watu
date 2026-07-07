@@ -14,6 +14,7 @@ import { RecruitmentLayout } from './pages/recruitment/RecruitmentLayout';
 import { JobsPage } from './pages/recruitment/JobsPage';
 import { JobPipelinePage } from './pages/recruitment/JobPipelinePage';
 import { CandidatesPage } from './pages/recruitment/CandidatesPage';
+import { CandidateDetailPage } from './pages/recruitment/CandidateDetailPage';
 import { InterviewsPage } from './pages/recruitment/InterviewsPage';
 import { OffersPage } from './pages/recruitment/OffersPage';
 import { PlacementsPage } from './pages/recruitment/PlacementsPage';
@@ -41,7 +42,17 @@ import { OutsourcingContractsPage } from './pages/payroll/OutsourcingContractsPa
 import { PayrollReportsPage } from './pages/payroll/PayrollReportsPage';
 import { PayrollConfigPage } from './pages/payroll/PayrollConfigPage';
 import { PayrollBillingPage } from './pages/payroll/PayrollBillingPage';
+import { PayrollRunsPage } from './pages/payroll/PayrollRunsPage';
+import { PayrollRunDetailPage } from './pages/payroll/PayrollRunDetailPage';
+import { PayrollClientsPage } from './pages/payroll/PayrollClientsPage';
+import { PayrollPlaceholderPage } from './pages/payroll/PayrollPlaceholderPage';
 import { ClientPortalPayrollPage } from './pages/client-portal/ClientPortalPayrollPage';
+import { PayrollLeavePage } from './pages/payroll/PayrollLeavePage';
+import { PerformanceCyclesPage } from './pages/payroll/PerformanceCyclesPage';
+import { PerformanceGoalsPage } from './pages/payroll/PerformanceGoalsPage';
+import { PerformanceAppraisalsPage } from './pages/payroll/PerformanceAppraisalsPage';
+import { Feedback360Page } from './pages/payroll/Feedback360Page';
+
 
 export default function App() {
   return (
@@ -84,6 +95,7 @@ export default function App() {
         <Route path="jobs" element={<JobsPage />} />
         <Route path="jobs/:jobId" element={<JobPipelinePage />} />
         <Route path="candidates" element={<CandidatesPage />} />
+        <Route path="candidates/:id" element={<CandidateDetailPage />} />
         <Route path="interviews" element={<InterviewsPage />} />
         <Route path="offers" element={<OffersPage />} />
         <Route path="placements" element={<PlacementsPage />} />
@@ -110,20 +122,37 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<PayrollDashboard />} />
+        <Route index element={<Navigate to="approvals" replace />} />
+        <Route path="approvals" element={<PayrollApprovalsPage />} />
+        <Route path="clients" element={<PayrollClientsPage />} />
         <Route path="employees" element={<PayrollEmployeesPage />} />
         <Route path="employees/new" element={<PayrollEmployeeFormPage />} />
         <Route path="employees/:employeeId" element={<PayrollEmployeeDetailPage />} />
         <Route path="employees/:id/edit" element={<PayrollEmployeeFormPage />} />
+        <Route path="bulk-upload" element={<PayrollPlaceholderPage title="Bulk Upload" />} />
+        <Route path="consultants-upload" element={<PayrollPlaceholderPage title="Consultants Upload" />} />
+        <Route path="runs" element={<PayrollRunsPage />} />
+        <Route path="runs/:id" element={<PayrollRunDetailPage />} />
         <Route path="periods" element={<PayrollPeriodsPage />} />
         <Route path="periods/:id" element={<PayrollPeriodDetailPage />} />
-        <Route path="approvals" element={<PayrollApprovalsPage />} />
+        <Route path="contracts" element={<OutsourcingContractsPage />} />
+        <Route path="contract-templates" element={<PayrollPlaceholderPage title="Contract Templates" />} />
+        <Route path="reports" element={<PayrollReportsPage />} />
+        <Route path="email-settings" element={<PayrollPlaceholderPage title="Email Settings" />} />
+        <Route path="email-templates" element={<PayrollPlaceholderPage title="Email Templates" />} />
+        <Route path="notifications" element={<PayrollPlaceholderPage title="Notifications" />} />
+        <Route path="settings" element={<PayrollConfigPage />} />
+        <Route path="dashboard" element={<PayrollDashboard />} />
         <Route path="outsourcing" element={<PayrollOutsourcingPage />} />
         <Route path="outsourcing/contracts" element={<OutsourcingContractsPage />} />
-        <Route path="reports" element={<PayrollReportsPage />} />
-        <Route path="config" element={<PayrollConfigPage />} />
-        <Route path="config/new" element={<PayrollConfigPage />} />
+        <Route path="config" element={<Navigate to="/payroll/settings" replace />} />
+        <Route path="config/new" element={<Navigate to="/payroll/settings" replace />} />
         <Route path="billing" element={<PayrollBillingPage />} />
+        <Route path="leave" element={<PayrollLeavePage />} />
+        <Route path="performance/cycles" element={<PerformanceCyclesPage />} />
+        <Route path="performance/goals" element={<PerformanceGoalsPage />} />
+        <Route path="performance/appraisals" element={<PerformanceAppraisalsPage />} />
+        <Route path="performance/360-feedback" element={<Feedback360Page />} />
       </Route>
       <Route path="/client-portal/payroll" element={<ProtectedRoute><ClientPortalPayrollPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />

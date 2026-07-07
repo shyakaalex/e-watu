@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchOutsourcingBilling, type OutsourcingBillingSummary } from '../../payrollApi';
 
-function defaultPeriod() {
+function _defaultPeriod() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
@@ -45,7 +45,7 @@ export function PayrollBillingPage() {
       </div>
 
       <div className="card rec-form-card" style={{ marginBottom: '1.25rem' }}>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <div className="rec-period-picker">
           <label className="rec-form__label" style={{ margin: 0 }}>
             Year
             <select className="auth-input" value={periodYear} onChange={e => setPeriodYear(e.target.value)}>
@@ -67,19 +67,19 @@ export function PayrollBillingPage() {
       {summary && (
         <>
           {/* Summary cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}>
-            <div className="card" style={{ padding: '1rem 1.1rem' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink-muted)', marginBottom: '0.35rem' }}>Employees billed</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em' }}>{summary.lineCount}</div>
+          <div className="rec-stats-grid" style={{ marginBottom: '1.5rem' }}>
+            <div className="card rec-kpi-card">
+              <div className="rec-kpi-card__label">Employees billed</div>
+              <div className="rec-kpi-card__value">{summary.lineCount}</div>
             </div>
-            <div className="card" style={{ padding: '1rem 1.1rem' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink-muted)', marginBottom: '0.35rem' }}>Clients</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em' }}>{Object.keys(summary.byClient).length}</div>
+            <div className="card rec-kpi-card">
+              <div className="rec-kpi-card__label">Clients</div>
+              <div className="rec-kpi-card__value">{Object.keys(summary.byClient).length}</div>
             </div>
             {Object.entries(summary.totalsByCurrency).map(([currency, total]) => (
-              <div key={currency} className="card" style={{ padding: '1rem 1.1rem' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink-muted)', marginBottom: '0.35rem' }}>Total {currency}</div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em' }}>{Number(total).toLocaleString()}</div>
+              <div key={currency} className="card rec-kpi-card">
+                <div className="rec-kpi-card__label">Total {currency}</div>
+                <div className="rec-kpi-card__value">{Number(total).toLocaleString()}</div>
               </div>
             ))}
           </div>
@@ -98,26 +98,26 @@ export function PayrollBillingPage() {
                   <div key={clientName} className="card" style={{ padding: 0, overflow: 'hidden' }}>
                     {/* Client header */}
                     <div
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', cursor: 'pointer', borderBottom: isExpanded ? '1px solid var(--line)' : 'none', background: 'var(--surface)' }}
+                      className="rec-billing-header"
+                      style={{ borderBottom: isExpanded ? '1px solid var(--line)' : 'none' }}
                       onClick={() => setExpandedClient(isExpanded ? null : clientName)}
                     >
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: '1rem' }}>{clientName}</div>
+                      <div className="rec-billing-header__meta">
+                        <div className="rec-billing-header__name">{clientName}</div>
                         <div className="muted" style={{ fontSize: '0.825rem' }}>{lines.length} employee{lines.length !== 1 ? 's' : ''}</div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>{clientTotal.toLocaleString()} {currency}</div>
+                      <div className="rec-billing-header__side">
+                        <div className="rec-billing-header__amount">
+                          <div className="rec-billing-header__total">{clientTotal.toLocaleString()} {currency}</div>
                           <div className="muted" style={{ fontSize: '0.78rem' }}>DRAFT · {MONTHS[summary.periodMonth - 1]} {summary.periodYear}</div>
                         </div>
                         <span style={{ color: 'var(--ink-muted)', fontSize: '1rem' }}>{isExpanded ? '▲' : '▼'}</span>
                       </div>
                     </div>
 
-                    {/* Invoice line items */}
                     {isExpanded && (
-                      <div style={{ padding: '0' }}>
-                        <table className="rec-table" style={{ margin: 0, border: 'none' }}>
+                      <div className="rec-table-wrap" style={{ border: 'none', borderRadius: 0 }}>
+                        <table className="rec-table rec-table--plain">
                           <thead>
                             <tr>
                               <th>Employee</th>

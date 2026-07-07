@@ -158,6 +158,25 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  procurement-service:
+    build:
+      context: .
+      dockerfile: services/procurement-service/Dockerfile
+    ports:
+      - '3020:3020'
+    environment:
+      DATABASE_URL: postgresql://ewatu:ewatu_dev@postgres:5432/procurement_db
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_ISSUER: ${JWT_ISSUER:-http://localhost:3011/auth}
+      SERVICE_NAME: procurement-service
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3020
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
   web:
     build:
       context: .
@@ -167,21 +186,7 @@ services:
     environment:
       VITE_API_URL: http://localhost
     depends_on:
-      - gateway
-    restart: unless-stopped
-
-  gateway:
-    build: ./gateway
-    ports:
-      - '80:80'
-    depends_on:
       - identity-service
-      - platform-service
-      - recruitment-service
-      - document-service
-      - notification-service
-      - talent-pool-service
-      - payroll-service
     restart: unless-stopped
 
 volumes:

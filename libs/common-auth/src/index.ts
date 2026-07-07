@@ -1,4 +1,4 @@
-export { EwatuRole, type EwatuRoleName } from './ewatu-role';
+export { EwatuRole, type EwatuRoleName, getPermissionsForRoles, EwatuRolePermissions } from './ewatu-role';
 export type { AuthUser } from './auth-user';
 export { CommonAuthModule } from './common-auth.module';
 export { CurrentUser } from './current-user.decorator';
@@ -6,6 +6,9 @@ export { JwtAuthGuard } from './jwt-auth.guard';
 export { JwtStrategy } from './jwt.strategy';
 export { ROLES_KEY, Roles } from './roles.decorator';
 export { RolesGuard } from './roles.guard';
+export { PERMISSIONS_KEY, RequirePermissions } from './permissions.decorator';
+export { PermissionsGuard } from './permissions.guard';
+export { hasPermission } from './permission-matcher';
 export { RequestLoggerMiddleware } from './middleware/request-logger.middleware';
 export { ResponseInterceptor, type ApiResponse } from './interceptors/response.interceptor';
 export { readJwtPemFromEnv } from './jwt-pem';

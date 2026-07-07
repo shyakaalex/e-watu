@@ -54,7 +54,115 @@ export type CandidateSource =
   | 'REFERRAL'
   | 'LINKEDIN'
   | 'WALK_IN'
-  | 'IMPORT';
+  | 'IMPORT'
+  | 'PORTAL';
+
+export type CandidateStatus =
+  | 'ACTIVE'
+  | 'IN_PIPELINE'
+  | 'PLACED'
+  | 'PASSIVE'
+  | 'DO_NOT_CONTACT'
+  | 'ARCHIVED';
+
+export type CandidateAvailability = 'IMMEDIATE' | 'FROM_DATE' | 'PASSIVE';
+
+export type EmploymentStatus = 'EMPLOYED' | 'UNEMPLOYED' | 'FREELANCE' | 'STUDENT';
+
+// ── Candidate sub-resource types ──────────────────────────────────────────
+
+export type WorkHistoryInput = {
+  company: string;
+  title: string;
+  startDate: string;
+  endDate?: string | null;
+  current?: boolean;
+  description?: string | null;
+  location?: string | null;
+};
+
+export type WorkHistory = WorkHistoryInput & {
+  id: string;
+  candidateId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type EducationInput = {
+  institution: string;
+  degree: string;
+  fieldOfStudy?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  current?: boolean;
+  grade?: string | null;
+  description?: string | null;
+};
+
+export type Education = EducationInput & {
+  id: string;
+  candidateId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CandidateLanguage = {
+  id: string;
+  candidateId: string;
+  language: string;
+  proficiency: string;
+  createdAt: string;
+};
+
+export type DocumentInput = {
+  name: string;
+  type: string;
+  url: string;
+  size?: number | null;
+  mimeType?: string | null;
+};
+
+export type CandidateDocument = DocumentInput & {
+  id: string;
+  candidateId: string;
+  uploadedBy: string;
+  createdAt: string;
+};
+
+export type RecruiterNote = {
+  id: string;
+  candidateId: string;
+  content: string;
+  authorId: string;
+  authorName: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CandidateActivity = {
+  id: string;
+  candidateId: string;
+  type: string;
+  description: string;
+  metadata: Record<string, unknown> | null;
+  actorId: string | null;
+  actorName: string | null;
+  createdAt: string;
+};
+
+export type BulkImportRow = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  currentTitle?: string;
+  currentEmployer?: string;
+  source?: string;
+  tags?: string[];
+  linkedinUrl?: string;
+  cvUrl?: string;
+  notes?: string;
+};
 
 export type Candidate = {
   id: string;
@@ -66,11 +174,37 @@ export type Candidate = {
   cvUrl: string | null;
   linkedinUrl: string | null;
   currentTitle: string | null;
+  currentEmployer: string | null;
   source: CandidateSource;
+  status: CandidateStatus | null;
+  availability: CandidateAvailability | null;
+  gender: string | null;
+  nationality: string | null;
+  city: string | null;
+  country: string | null;
+  yearsExperience: number | null;
+  employmentStatus: EmploymentStatus | null;
+  summary: string | null;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  salaryCurrency: string | null;
   notes: string | null;
   tags: string[];
+  // sub-resource arrays (present when fetched with includes)
+  workHistory?: WorkHistory[];
+  education?: Education[];
+  languages?: CandidateLanguage[];
+  documents?: CandidateDocument[];
+  recruiterNotes?: RecruiterNote[];
   createdAt: string;
   updatedAt: string;
+};
+
+export type BulkImportResult = {
+  created: number;
+  skipped: number;
+  errors: number;
+  errorDetails?: { row: number; email: string; reason: string }[];
 };
 
 export type ApplicationStage =
@@ -298,15 +432,29 @@ export async function deleteJob(id: string): Promise<void> {
 
 export async function fetchCandidates(filters?: {
   q?: string;
-  source?: string;
+  source?: CandidateSource | string;
+  status?: CandidateStatus | string;
+  availability?: CandidateAvailability | string;
+  employmentStatus?: EmploymentStatus | string;
+  country?: string;
+  city?: string;
   tags?: string[];
+  yearsExperienceMin?: number;
+  yearsExperienceMax?: number;
   page?: number;
   limit?: number;
 }): Promise<Candidate[]> {
   const params = new URLSearchParams();
   if (filters?.q) params.set('q', filters.q);
   if (filters?.source) params.set('source', filters.source);
+  if (filters?.status) params.set('status', filters.status);
+  if (filters?.availability) params.set('availability', filters.availability);
+  if (filters?.employmentStatus) params.set('employmentStatus', filters.employmentStatus);
+  if (filters?.country) params.set('country', filters.country);
+  if (filters?.city) params.set('city', filters.city);
   filters?.tags?.forEach((t) => params.append('tags', t));
+  if (filters?.yearsExperienceMin != null) params.set('yearsExperienceMin', String(filters.yearsExperienceMin));
+  if (filters?.yearsExperienceMax != null) params.set('yearsExperienceMax', String(filters.yearsExperienceMax));
   if (filters?.page) params.set('page', String(filters.page));
   if (filters?.limit) params.set('limit', String(filters.limit));
   const qs = params.toString() ? `?${params}` : '';
@@ -316,7 +464,18 @@ export async function fetchCandidates(filters?: {
   return parseJson(r);
 }
 
-export async function fetchCandidate(id: string): Promise<Candidate & { applications: (Application & { job: Job })[] }> {
+export async function fetchCandidate(
+  id: string,
+): Promise<
+  Candidate & {
+    applications: (Application & { job: Job })[];
+    workHistory: WorkHistory[];
+    education: Education[];
+    languages: CandidateLanguage[];
+    documents: CandidateDocument[];
+    recruiterNotes: RecruiterNote[];
+  }
+> {
   const r = await authFetch(`${recruitmentUrl()}/api/v1/candidates/${id}`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
@@ -331,7 +490,20 @@ export async function createCandidate(body: {
   cvUrl?: string;
   linkedinUrl?: string;
   currentTitle?: string;
+  currentEmployer?: string;
   source?: CandidateSource;
+  status?: CandidateStatus;
+  availability?: CandidateAvailability;
+  gender?: string;
+  nationality?: string;
+  city?: string;
+  country?: string;
+  yearsExperience?: number;
+  employmentStatus?: EmploymentStatus;
+  summary?: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  salaryCurrency?: string;
   notes?: string;
   tags?: string[];
 }): Promise<Candidate> {
@@ -344,6 +516,17 @@ export async function createCandidate(body: {
   return parseJson(r);
 }
 
+export async function bulkImportCandidates(
+  rows: BulkImportRow[],
+): Promise<{ created: number; skipped: number; errors: Array<{ row: number; error: string }> }> {
+  const r = await authFetch(`${recruitmentUrl()}/api/v1/candidates/bulk-import`, {
+    method: 'POST',
+    body: JSON.stringify({ candidates: rows }),
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
 export async function updateCandidate(
   id: string,
   body: Partial<Parameters<typeof createCandidate>[0]>,
@@ -351,6 +534,15 @@ export async function updateCandidate(
   const r = await authFetch(`${recruitmentUrl()}/api/v1/candidates/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
+export async function updateCandidateStatus(candidateId: string, status: string): Promise<Candidate> {
+  const r = await authFetch(`${recruitmentUrl()}/api/v1/candidates/${candidateId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
   return parseJson(r);
@@ -394,6 +586,153 @@ export async function createCandidateSafe(
       throw new CandidateConflictError('A candidate with this email already exists');
     }
   }
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
+// ── Candidate work history ─────────────────────────────────────────────────
+
+export async function addWorkHistory(candidateId: string, data: WorkHistoryInput): Promise<WorkHistory> {
+  const r = await authFetch(`${recruitmentUrl()}/api/v1/candidates/${candidateId}/work-history`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
+export async function updateWorkHistory(
+  candidateId: string,
+  histId: string,
+  data: Partial<WorkHistoryInput>,
+): Promise<WorkHistory> {
+  const r = await authFetch(
+    `${recruitmentUrl()}/api/v1/candidates/${candidateId}/work-history/${histId}`,
+    { method: 'PATCH', body: JSON.stringify(data) },
+  );
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
+export async function deleteWorkHistory(candidateId: string, histId: string): Promise<void> {
+  const r = await authFetch(
+    `${recruitmentUrl()}/api/v1/candidates/${candidateId}/work-history/${histId}`,
+    { method: 'DELETE' },
+  );
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+}
+
+// ── Candidate education ────────────────────────────────────────────────────
+
+export async function addEducation(candidateId: string, data: EducationInput): Promise<Education> {
+  const r = await authFetch(`${recruitmentUrl()}/api/v1/candidates/${candidateId}/education`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
+export async function updateEducation(
+  candidateId: string,
+  eduId: string,
+  data: Partial<EducationInput>,
+): Promise<Education> {
+  const r = await authFetch(
+    `${recruitmentUrl()}/api/v1/candidates/${candidateId}/education/${eduId}`,
+    { method: 'PATCH', body: JSON.stringify(data) },
+  );
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
+export async function deleteEducation(candidateId: string, eduId: string): Promise<void> {
+  const r = await authFetch(
+    `${recruitmentUrl()}/api/v1/candidates/${candidateId}/education/${eduId}`,
+    { method: 'DELETE' },
+  );
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+}
+
+// ── Candidate languages ────────────────────────────────────────────────────
+
+export async function addLanguage(
+  candidateId: string,
+  data: { language: string; proficiency: string },
+): Promise<CandidateLanguage> {
+  const r = await authFetch(`${recruitmentUrl()}/api/v1/candidates/${candidateId}/languages`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
+export async function deleteLanguage(candidateId: string, langId: string): Promise<void> {
+  const r = await authFetch(
+    `${recruitmentUrl()}/api/v1/candidates/${candidateId}/languages/${langId}`,
+    { method: 'DELETE' },
+  );
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+}
+
+// ── Candidate documents ────────────────────────────────────────────────────
+
+export async function addDocument(candidateId: string, data: DocumentInput): Promise<CandidateDocument> {
+  const r = await authFetch(`${recruitmentUrl()}/api/v1/candidates/${candidateId}/documents`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
+export async function fetchDocuments(candidateId: string): Promise<CandidateDocument[]> {
+  const r = await authFetch(`${recruitmentUrl()}/api/v1/candidates/${candidateId}/documents`);
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
+// ── Candidate notes ────────────────────────────────────────────────────────
+
+export async function addNote(candidateId: string, content: string): Promise<RecruiterNote> {
+  const r = await authFetch(`${recruitmentUrl()}/api/v1/candidates/${candidateId}/notes`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
+export async function deleteNote(candidateId: string, noteId: string): Promise<void> {
+  const r = await authFetch(
+    `${recruitmentUrl()}/api/v1/candidates/${candidateId}/notes/${noteId}`,
+    { method: 'DELETE' },
+  );
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+}
+
+// ── Candidate activity feed ────────────────────────────────────────────────
+
+export async function fetchActivities(candidateId: string): Promise<CandidateActivity[]> {
+  const r = await authFetch(`${recruitmentUrl()}/api/v1/candidates/${candidateId}/activities`);
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
+// ── CV presign (authenticated) ─────────────────────────────────────────────
+// Mirrors the public presign-cv but uses the authenticated document service
+// endpoint so the upload is tied to the recruiter's tenant/session.
+
+export async function presignCandidateCv(body: {
+  objectKey: string;
+  contentType: string;
+  fileSize: number;
+}): Promise<{ uploadUrl: string; objectUrl: string; method: 'PUT'; headers: Record<string, string> }> {
+  const r = await authFetch(`${serviceUrl('document')}/api/v1/document/presign`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
   return parseJson(r);
 }

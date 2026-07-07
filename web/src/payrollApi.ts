@@ -802,3 +802,152 @@ export async function fetchPeriodPayslips(periodId: string) {
   const r = await payrollFetch(`/api/v1/payroll/periods/${periodId}/payslips`);
   return parseJson(r);
 }
+
+export async function fetchLeaveBalances(employeeId: string, year?: number) {
+  const query = year ? `?employeeId=${employeeId}&year=${year}` : `?employeeId=${employeeId}`;
+  const r = await payrollFetch(`/api/v1/hr/leave-balances${query}`);
+  return parseJson(r);
+}
+
+// --- PERFORMANCE API ---
+
+export async function fetchAppraisalCycles() {
+  const r = await payrollFetch('/api/v1/performance/cycles');
+  return parseJson(r);
+}
+
+export async function createAppraisalCycle(body: any) {
+  const r = await payrollFetch('/api/v1/performance/cycles', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return parseJson(r);
+}
+
+export async function updateAppraisalCycleStatus(id: string, status: string) {
+  const r = await payrollFetch(`/api/v1/performance/cycles/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+  return parseJson(r);
+}
+
+export async function fetchGoals(employeeId?: string, appraisalCycleId?: string) {
+  let query = '';
+  const params: string[] = [];
+  if (employeeId) params.push(`employeeId=${employeeId}`);
+  if (appraisalCycleId) params.push(`appraisalCycleId=${appraisalCycleId}`);
+  if (params.length > 0) query = `?${params.join('&')}`;
+
+  const r = await payrollFetch(`/api/v1/performance/goals${query}`);
+  return parseJson(r);
+}
+
+export async function createGoal(body: any) {
+  const r = await payrollFetch('/api/v1/performance/goals', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return parseJson(r);
+}
+
+export async function updateGoal(id: string, body: any) {
+  const r = await payrollFetch(`/api/v1/performance/goals/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  return parseJson(r);
+}
+
+export async function deleteGoal(id: string) {
+  const r = await payrollFetch(`/api/v1/performance/goals/${id}`, {
+    method: 'DELETE',
+  });
+  return parseJson(r);
+}
+
+export async function fetchGoalTemplates() {
+  const r = await payrollFetch('/api/v1/performance/goals/templates');
+  return parseJson(r);
+}
+
+export async function createGoalTemplate(body: any) {
+  const r = await payrollFetch('/api/v1/performance/goals/templates', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return parseJson(r);
+}
+
+export async function fetchCompetencyFramework() {
+  const r = await payrollFetch('/api/v1/performance/competencies');
+  return parseJson(r);
+}
+
+export async function fetchAppraisals(employeeId?: string, managerId?: string) {
+  let query = '';
+  const params: string[] = [];
+  if (employeeId) params.push(`employeeId=${employeeId}`);
+  if (managerId) params.push(`managerId=${managerId}`);
+  if (params.length > 0) query = `?${params.join('&')}`;
+
+  const r = await payrollFetch(`/api/v1/performance/appraisals${query}`);
+  return parseJson(r);
+}
+
+export async function fetchAppraisal(id: string) {
+  const r = await payrollFetch(`/api/v1/performance/appraisals/${id}`);
+  return parseJson(r);
+}
+
+export async function submitSelfAssessment(id: string, body: any) {
+  const r = await payrollFetch(`/api/v1/performance/appraisals/${id}/self-assess`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return parseJson(r);
+}
+
+export async function submitManagerReview(id: string, body: any) {
+  const r = await payrollFetch(`/api/v1/performance/appraisals/${id}/manager-review`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return parseJson(r);
+}
+
+export async function submitHRValidation(id: string, body: any) {
+  const r = await payrollFetch(`/api/v1/performance/appraisals/${id}/hr-validate`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return parseJson(r);
+}
+
+export async function fetchFeedbackRequests(reviewerId?: string, employeeId?: string) {
+  let query = '';
+  const params: string[] = [];
+  if (reviewerId) params.push(`reviewerId=${reviewerId}`);
+  if (employeeId) params.push(`employeeId=${employeeId}`);
+  if (params.length > 0) query = `?${params.join('&')}`;
+
+  const r = await payrollFetch(`/api/v1/performance/360-feedback/requests${query}`);
+  return parseJson(r);
+}
+
+export async function createFeedbackRequest(body: any) {
+  const r = await payrollFetch('/api/v1/performance/360-feedback/requests', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return parseJson(r);
+}
+
+export async function submitFeedbackResponse(requestId: string, body: any) {
+  const r = await payrollFetch(`/api/v1/performance/360-feedback/requests/${requestId}/response`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return parseJson(r);
+}
+

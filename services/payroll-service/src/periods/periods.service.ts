@@ -5,12 +5,14 @@ import { PayslipService } from '../payslip/payslip.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ApprovePeriodDto } from './dto/approve-period.dto';
 import { CreatePeriodDto } from './dto/create-period.dto';
+import { AuditLogService } from '../common/audit-log.service';
 
 @Injectable()
 export class PeriodsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly payslipService: PayslipService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   async create(tenantId: string, userId: string, dto: CreatePeriodDto) {
@@ -18,9 +20,18 @@ export class PeriodsService {
       where: { tenantId, clientId: dto.clientId, periodMonth: dto.periodMonth, periodYear: dto.periodYear },
     });
     if (existing) throw new ConflictException('Payroll period already exists');
-    return this.prisma.payrollPeriod.create({
+    const created = await this.prisma.payrollPeriod.create({
       data: { ...dto, tenantId, preparedBy: userId, status: 'DRAFT' },
     });
+    await this.auditLogService.record({
+      tenantId,
+      userId,
+      action: 'CREATE',
+      resource: 'payroll_periods',
+      resourceId: created.id,
+      payload: { periodMonth: created.periodMonth, periodYear: created.periodYear, clientId: created.clientId },
+    });
+    return created;
   }
 
   findAll(tenantId: string, query: Record<string, string | undefined>) {
@@ -56,7 +67,7 @@ export class PeriodsService {
     return { ...period, totals };
   }
 
-  async runPayroll(tenantId: string, periodId: string) {
+  async runPayroll(tenantId: string, periodId: string, userId: string) {
     const period = await this.prisma.payrollPeriod.findFirst({ where: { id: periodId, tenantId } });
     if (!period) throw new NotFoundException('Payroll period not found');
     if (period.status !== 'DRAFT') throw new BadRequestException('Only draft periods can be run');
@@ -98,10 +109,20 @@ export class PeriodsService {
         update: recordFields,
       });
     }
+
+    await this.auditLogService.record({
+      tenantId,
+      userId,
+      action: 'RUN_PAYROLL',
+      resource: 'payroll_periods',
+      resourceId: periodId,
+      payload: { periodMonth: period.periodMonth, periodYear: period.periodYear },
+    });
+
     return this.findOne(tenantId, periodId);
   }
 
-  async submit(tenantId: string, periodId: string) {
+  async submit(tenantId: string, periodId: string, userId: string) {
     const period = await this.prisma.payrollPeriod.findFirst({
       where: { id: periodId, tenantId },
       include: { _count: { select: { records: true } } },
@@ -114,6 +135,16 @@ export class PeriodsService {
       where: { id: periodId },
       data: { status: 'SUBMITTED', submittedAt: new Date() },
     });
+
+    await this.auditLogService.record({
+      tenantId,
+      userId,
+      action: 'SUBMIT_PAYROLL',
+      resource: 'payroll_periods',
+      resourceId: periodId,
+      payload: { periodMonth: updated.periodMonth, periodYear: updated.periodYear },
+    });
+
     void dispatchNotification('payroll-submitted', {
       periodId: updated.id,
       clientId: updated.clientId,
@@ -158,6 +189,14 @@ export class PeriodsService {
         comments: dto.comments,
       },
     });
+    await this.auditLogService.record({
+      tenantId,
+      userId,
+      action: 'APPROVE_PAYROLL',
+      resource: 'payroll_periods',
+      resourceId: periodId,
+      payload: { periodMonth: updated.periodMonth, periodYear: updated.periodYear, action: 'APPROVED', approverRole },
+    });
     void dispatchNotification(notifyType, { tenantId, periodId, comments: dto.comments });
     return updated;
   }
@@ -185,6 +224,14 @@ export class PeriodsService {
         action: 'REJECTED',
         comments: dto.comments,
       },
+    });
+    await this.auditLogService.record({
+      tenantId,
+      userId,
+      action: 'REJECT_PAYROLL',
+      resource: 'payroll_periods',
+      resourceId: periodId,
+      payload: { periodMonth: updated.periodMonth, periodYear: updated.periodYear, action: 'REJECTED', rejecterRole: role },
     });
     void dispatchNotification('payroll-rejected', { tenantId, periodId, comments: dto.comments });
     return updated;
@@ -237,6 +284,14 @@ export class PeriodsService {
         totalAmount,
         recordCount: period.records.length,
       },
+    });
+    await this.auditLogService.record({
+      tenantId,
+      userId,
+      action: 'FINALIZE_PAYROLL',
+      resource: 'payroll_periods',
+      resourceId: periodId,
+      payload: { periodMonth: finalized.periodMonth, periodYear: finalized.periodYear, recordCount: period.records.length, totalAmount },
     });
     void dispatchNotification('payroll-finalized', {
       periodId,

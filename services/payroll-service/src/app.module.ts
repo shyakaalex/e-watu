@@ -12,6 +12,8 @@ import { PeriodsModule } from './periods/periods.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ReportsModule } from './reports/reports.module';
 import { OutsourcingModule } from './outsourcing/outsourcing.module';
+import { LeaveModule } from './leave/leave.module';
+import { PerformanceModule } from './performance/performance.module';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { OutsourcingModule } from './outsourcing/outsourcing.module';
     PayslipModule,
     JobsModule,
     OutsourcingModule,
+    LeaveModule,
+    PerformanceModule,
   ],
 })
 export class AppModule implements NestModule {

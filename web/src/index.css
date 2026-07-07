@@ -1732,6 +1732,18 @@ code {
   border: 1px solid rgba(15, 71, 117, 0.2);
 }
 
+.badge--orange {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.badge--purple {
+  background: rgba(139, 92, 246, 0.1);
+  color: #7c3aed;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
 /* —— Jobs list —— */
 .rec-jobs-list {
   display: flex;

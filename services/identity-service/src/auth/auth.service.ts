@@ -8,9 +8,9 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { EwatuRole } from '@ewatu/common-auth';
+import { EwatuRole, getPermissionsForRoles } from '@ewatu/common-auth';
 import { PrismaService } from '../prisma/prisma.service';
-import { generateRawToken, hashToken } from '../common/token-hash';
+import { hashToken } from '../common/token-hash';
 import { RefreshTokenService } from './refresh-token.service';
 import type { LoginDto } from './dtos/login.dto';
 import type { RegisterDto } from './dtos/register.dto';
@@ -72,11 +72,6 @@ export class AuthService {
     if (!user.active) {
       throw new UnauthorizedException('This account has been deactivated');
     }
-    if (!user.emailVerified && !user.roles.includes(EwatuRole.PLATFORM_SUPER_ADMIN)) {
-      throw new UnauthorizedException(
-        'Please verify your email first. Use the link we sent after company registration.',
-      );
-    }
 
     const refreshToken = await this.refreshTokens.generateRefreshToken(user.id, user.tenantId);
     return {
@@ -135,8 +130,6 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
-    const rawVerificationToken = generateRawToken(32);
-    const emailVerificationToken = hashToken(rawVerificationToken);
 
     const user = await this.prisma.user.create({
       data: {
@@ -145,12 +138,11 @@ export class AuthService {
         displayName: dto.displayName?.trim() || null,
         roles: [EwatuRole.TENANT_ADMIN],
         tenantId: dto.tenantId,
-        emailVerified: false,
-        emailVerificationToken,
+        emailVerified: true,
       },
     });
 
-    return { userId: user.id, emailVerificationToken: rawVerificationToken };
+    return { userId: user.id };
   }
 
   private async notifyPlatformEmailVerified(tenantId: string) {
@@ -182,6 +174,7 @@ export class AuthService {
         email: user.email,
         preferred_username: user.displayName ?? user.email.split('@')[0],
         roles: user.roles,
+        permissions: getPermissionsForRoles(user.roles),
         tenant_id: user.tenantId ?? undefined,
         email_verified: user.emailVerified,
       },
