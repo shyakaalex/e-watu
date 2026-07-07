@@ -28,7 +28,7 @@ export function PayrollEmployeesPage() {
         clientId: clientId || undefined,
         search: search || undefined,
       });
-      setEmployees(Array.isArray(result) ? result : result.data);
+      setEmployees(result);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {

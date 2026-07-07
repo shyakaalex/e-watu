@@ -205,7 +205,7 @@ export async function fetchEmployees(
   params?:
     | string
     | Record<string, string | number | boolean | undefined>,
-): Promise<Employee[] | { data: Employee[]; page: number; limit: number; total: number }> {
+): Promise<Employee[]> {
   const qs =
     typeof params === 'string'
       ? `?placementId=${encodeURIComponent(params)}`
@@ -218,7 +218,8 @@ export async function fetchEmployees(
           ).toString()}`
         : '';
   const r = await payrollFetch(`/api/v1/employees${qs}`);
-  return parseJson(r);
+  const result = await parseJson<Employee[] | { data: Employee[] }>(r);
+  return Array.isArray(result) ? result : result.data;
 }
 
 export async function fetchEmployee(id: string): Promise<Employee> {

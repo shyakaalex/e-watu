@@ -376,7 +376,7 @@ export async function fetchJobPipeline(id: string): Promise<Pipeline> {
 export async function fetchJobMetrics(id: string): Promise<JobMetrics> {
   const r = await authFetch(`${recruitmentUrl()}/api/v1/jobs/${id}/metrics`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  return parseJson(r);
 }
 
 export function jobExportUrl(id: string): string {
@@ -758,13 +758,13 @@ export async function fetchApplications(filters?: {
 export async function fetchApplication(id: string): Promise<Application> {
   const r = await authFetch(`${recruitmentUrl()}/api/v1/applications/${id}`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  return parseJson(r);
 }
 
 export async function fetchApplicationHistory(id: string): Promise<StageHistory[]> {
   const r = await authFetch(`${recruitmentUrl()}/api/v1/applications/${id}/history`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  return parseJson(r);
 }
 
 export async function createApplication(body: {
@@ -793,7 +793,7 @@ export async function moveApplicationStage(
     body: JSON.stringify({ stage, notes, rejectionReason }),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  return parseJson(r);
 }
 
 export async function bulkMoveStage(
@@ -866,7 +866,7 @@ export async function addScorecard(
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  return parseJson(r);
 }
 
 export async function fetchScorecards(interviewId: string): Promise<{
@@ -876,7 +876,7 @@ export async function fetchScorecards(interviewId: string): Promise<{
 }> {
   const r = await authFetch(`${recruitmentUrl()}/api/v1/interviews/${interviewId}/scorecards`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  return parseJson(r);
 }
 
 // ── Offers ────────────────────────────────────────────────────────────────
@@ -893,7 +893,7 @@ export async function fetchOffers(filters?: {
   const qs = params.toString() ? `?${params}` : '';
   const r = await authFetch(`${recruitmentUrl()}/api/v1/offers${qs}`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  return parseJson(r);
 }
 
 export async function createOffer(body: {
@@ -913,7 +913,7 @@ export async function createOffer(body: {
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  return parseJson(r);
 }
 
 export async function updateOffer(
@@ -933,7 +933,7 @@ export async function updateOffer(
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  return parseJson(r);
 }
 
 export const sendOffer = (id: string) =>
@@ -975,7 +975,7 @@ export async function fetchPlacements(filters?: {
   const qs = params.toString() ? `?${params}` : '';
   const r = await authFetch(`${recruitmentUrl()}/api/v1/placements${qs}`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  return parseJson(r);
 }
 
 export async function createPlacement(body: {
@@ -996,7 +996,7 @@ export async function createPlacement(body: {
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  return parseJson(r);
 }
 
 export async function updatePlacementInvoice(
@@ -1008,5 +1008,5 @@ export async function updatePlacementInvoice(
     body: JSON.stringify({ invoiceStatus }),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
-  return r.json();
+  return parseJson(r);
 }
