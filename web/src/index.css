@@ -962,6 +962,12 @@ code {
   color: #991b1b;
 }
 
+.alert--ok {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
 .alert pre {
   white-space: pre-wrap;
   word-break: break-word;
