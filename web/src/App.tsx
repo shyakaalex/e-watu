@@ -46,6 +46,7 @@ import { PayrollRunsPage } from './pages/payroll/PayrollRunsPage';
 import { PayrollRunDetailPage } from './pages/payroll/PayrollRunDetailPage';
 import { PayrollClientsPage } from './pages/payroll/PayrollClientsPage';
 import { PayrollPlaceholderPage } from './pages/payroll/PayrollPlaceholderPage';
+import { PayrollBulkUploadPage } from './pages/payroll/PayrollBulkUploadPage';
 import { ClientPortalPayrollPage } from './pages/client-portal/ClientPortalPayrollPage';
 import { PayrollLeavePage } from './pages/payroll/PayrollLeavePage';
 import { PerformanceCyclesPage } from './pages/payroll/PerformanceCyclesPage';
@@ -129,7 +130,7 @@ export default function App() {
         <Route path="employees/new" element={<PayrollEmployeeFormPage />} />
         <Route path="employees/:employeeId" element={<PayrollEmployeeDetailPage />} />
         <Route path="employees/:id/edit" element={<PayrollEmployeeFormPage />} />
-        <Route path="bulk-upload" element={<PayrollPlaceholderPage title="Bulk Upload" />} />
+        <Route path="bulk-upload" element={<PayrollBulkUploadPage />} />
         <Route path="consultants-upload" element={<PayrollPlaceholderPage title="Consultants Upload" />} />
         <Route path="runs" element={<PayrollRunsPage />} />
         <Route path="runs/:id" element={<PayrollRunDetailPage />} />

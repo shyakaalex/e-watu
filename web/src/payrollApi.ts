@@ -260,6 +260,34 @@ export async function createEmployeeFromPlacement(body: {
   return parseJson(r);
 }
 
+export type EmployeeBulkImportRow = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  jobTitle: string;
+  startDate: string;
+  phone?: string;
+  department?: string;
+  clientId?: string;
+  basicSalary?: number;
+};
+
+export type EmployeeBulkImportResult = {
+  created: number;
+  skipped: number;
+  errors: Array<{ row: number; error: string }>;
+};
+
+export async function bulkImportEmployees(
+  rows: EmployeeBulkImportRow[],
+): Promise<EmployeeBulkImportResult> {
+  const r = await payrollFetch('/api/v1/employees/import/csv', {
+    method: 'POST',
+    body: JSON.stringify({ rows }),
+  });
+  return parseJson(r);
+}
+
 export async function fetchPayrollConfigClients(): Promise<{ clientId: string }[]> {
   const r = await payrollFetch('/api/v1/payroll/config/clients');
   return parseJson(r);
