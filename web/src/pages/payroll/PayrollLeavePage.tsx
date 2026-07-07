@@ -124,15 +124,15 @@ export function PayrollLeavePage() {
 
   if (loading) {
     return (
-      <div className="rec-page text-center" style={{ padding: '3rem' }}>
-        <div className="spinner">Loading leave data...</div>
+      <div className="rec-page" style={{ textAlign: 'center', padding: '3rem' }}>
+        <p className="muted">Loading leave data…</p>
       </div>
     );
   }
 
   return (
     <div className="rec-page">
-      <div className="rec-page__header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="rec-page__header">
         <div>
           <h1 className="rec-page__title">Leave Management</h1>
           <p className="muted">Track leave balances, submit requests, and manage approvals.</p>
@@ -142,26 +142,28 @@ export function PayrollLeavePage() {
         </button>
       </div>
 
-      {error && <div className="alert alert--danger">{error}</div>}
+      {error && <div className="alert alert--err">{error}</div>}
 
       {/* Leave Balances Grid */}
-      <section className="mb-8">
-        <h2 className="section-title mb-4">Your Leave Balances ({new Date().getFullYear()})</h2>
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>
+          Your Leave Balances ({new Date().getFullYear()})
+        </h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem' }}>
           {leaveBalances.length === 0 ? (
-            <div className="card text-center text-muted" style={{ gridColumn: '1/-1', padding: '1.5rem' }}>
+            <div className="rec-empty" style={{ gridColumn: '1/-1' }}>
               No leave balances initialized. Try requesting a leave or ensure you are set up as an employee.
             </div>
           ) : (
             leaveBalances.map((b) => {
               const remaining = Number(b.allocatedDays) - Number(b.usedDays);
               return (
-                <div className="card" key={b.id} style={{ borderLeft: `4px solid var(--primary-color, #00466c)` }}>
-                  <div className="muted font-semibold" style={{ fontSize: '0.9rem' }}>{b.leaveType?.name}</div>
+                <div className="card" key={b.id} style={{ borderLeft: `4px solid var(--accent)` }}>
+                  <div className="muted" style={{ fontSize: '0.9rem', fontWeight: 600 }}>{b.leaveType?.name}</div>
                   <div style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '0.5rem 0' }}>
                     {remaining} <span style={{ fontSize: '0.9rem', fontWeight: 'normal' }}>days left</span>
                   </div>
-                  <div className="text-muted" style={{ fontSize: '0.8rem' }}>
+                  <div className="muted" style={{ fontSize: '0.8rem' }}>
                     Allocated: {b.allocatedDays} | Used: {b.usedDays}
                   </div>
                 </div>
@@ -173,9 +175,9 @@ export function PayrollLeavePage() {
 
       {/* Approvals Section for HR / Managers */}
       {isHR && (
-        <section className="card mb-8">
-          <h2 className="card-title mb-4">Pending Approvals (HR / Admin)</h2>
-          <div className="table-responsive">
+        <section className="card" style={{ marginBottom: '2rem' }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Pending Approvals (HR / Admin)</h2>
+          <div style={{ overflowX: 'auto' }}>
             <table className="table">
               <thead>
                 <tr>
@@ -191,7 +193,7 @@ export function PayrollLeavePage() {
               <tbody>
                 {leaveRequests.filter((r) => r.status === 'PENDING').length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center text-muted">No pending leave requests to review.</td>
+                    <td colSpan={7} className="muted" style={{ textAlign: 'center' }}>No pending leave requests to review.</td>
                   </tr>
                 ) : (
                   leaveRequests
@@ -200,14 +202,14 @@ export function PayrollLeavePage() {
                       <tr key={r.id}>
                         <td>
                           <strong>{r.employee?.firstName} {r.employee?.lastName}</strong>
-                          <div className="text-muted" style={{ fontSize: '0.75rem' }}>{r.employee?.email}</div>
+                          <div className="muted" style={{ fontSize: '0.75rem' }}>{r.employee?.email}</div>
                         </td>
-                        <td><span className="badge badge--neutral">{r.leaveType?.name}</span></td>
+                        <td><span className="badge badge--gray">{r.leaveType?.name}</span></td>
                         <td>
                           {new Date(r.startDate).toLocaleDateString()} to {new Date(r.endDate).toLocaleDateString()}
                         </td>
                         <td>{r.numberOfDays}</td>
-                        <td className="text-muted">{r.reason || 'N/A'}</td>
+                        <td className="muted">{r.reason || 'N/A'}</td>
                         <td>
                           <input
                             type="text"
@@ -220,10 +222,10 @@ export function PayrollLeavePage() {
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button className="btn btn--success btn--sm" onClick={() => handleApprove(r.id)}>
+                            <button className="btn btn--success small" onClick={() => handleApprove(r.id)}>
                               Approve
                             </button>
-                            <button className="btn btn--danger btn--sm" onClick={() => handleReject(r.id)}>
+                            <button className="btn btn--danger small" onClick={() => handleReject(r.id)}>
                               Reject
                             </button>
                           </div>
@@ -239,8 +241,8 @@ export function PayrollLeavePage() {
 
       {/* Requests History */}
       <section className="card">
-        <h2 className="card-title mb-4">Request History</h2>
-        <div className="table-responsive">
+        <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Request History</h2>
+        <div style={{ overflowX: 'auto' }}>
           <table className="table">
             <thead>
               <tr>
@@ -255,7 +257,7 @@ export function PayrollLeavePage() {
             <tbody>
               {leaveRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center text-muted">No leave requests found.</td>
+                  <td colSpan={6} className="muted" style={{ textAlign: 'center' }}>No leave requests found.</td>
                 </tr>
               ) : (
                 leaveRequests.map((r) => (
@@ -265,19 +267,19 @@ export function PayrollLeavePage() {
                       {new Date(r.startDate).toLocaleDateString()} to {new Date(r.endDate).toLocaleDateString()}
                     </td>
                     <td>{r.numberOfDays}</td>
-                    <td className="text-muted">{r.reason || 'N/A'}</td>
+                    <td className="muted">{r.reason || 'N/A'}</td>
                     <td>
                       <span className={`badge ${
                         r.status === 'APPROVED'
-                          ? 'badge--active'
+                          ? 'badge--green'
                           : r.status === 'REJECTED'
-                            ? 'badge--danger'
-                            : 'badge--warning'
+                            ? 'badge--red'
+                            : 'badge--orange'
                       }`}>
                         {r.status}
                       </span>
                     </td>
-                    <td className="text-muted" style={{ fontSize: '0.85rem' }}>
+                    <td className="muted" style={{ fontSize: '0.85rem' }}>
                       {r.status === 'REJECTED' ? r.rejectionReason : 'Approved'}
                     </td>
                   </tr>
@@ -292,9 +294,9 @@ export function PayrollLeavePage() {
       {showModal && (
         <div className="rec-modal-backdrop">
           <div className="rec-modal" style={{ maxWidth: '500px', padding: '2rem' }}>
-            <h3 className="rec-modal__title mb-4">Request Leave</h3>
+            <h3 className="rec-modal__title" style={{ marginBottom: '1rem' }}>Request Leave</h3>
             <form onSubmit={handleCreateRequest}>
-              <div className="mb-4">
+              <div style={{ marginBottom: '1rem' }}>
                 <label className="rec-form__label">Employee ID (Self)</label>
                 <select
                   className="auth-input"
@@ -311,7 +313,7 @@ export function PayrollLeavePage() {
                 </select>
               </div>
 
-              <div className="mb-4">
+              <div style={{ marginBottom: '1rem' }}>
                 <label className="rec-form__label">Leave Type</label>
                 <select
                   className="auth-input"
@@ -328,7 +330,7 @@ export function PayrollLeavePage() {
                 </select>
               </div>
 
-              <div className="mb-4" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ marginBottom: '1rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label className="rec-form__label">Start Date</label>
                   <input
@@ -351,7 +353,7 @@ export function PayrollLeavePage() {
                 </div>
               </div>
 
-              <div className="mb-6">
+              <div style={{ marginBottom: '1.5rem' }}>
                 <label className="rec-form__label">Reason</label>
                 <textarea
                   className="auth-input"
@@ -363,7 +365,7 @@ export function PayrollLeavePage() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                <button type="button" className="btn btn--neutral" onClick={() => setShowModal(false)}>
+                <button type="button" className="btn btn--ghost" onClick={() => setShowModal(false)}>
                   Cancel
                 </button>
                 <button type="submit" className="btn btn--primary" disabled={submitting}>
