@@ -3,6 +3,9 @@ import { AuthSessionRefresh } from './components/AuthSessionRefresh';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { TenantBlockedPage } from './pages/TenantBlockedPage';
 import { AdminLayout } from './layouts/AdminLayout';
 import { AdminOverviewPage } from './pages/admin/AdminOverviewPage';
 import { TenantsPage } from './pages/admin/TenantsPage';
@@ -48,11 +51,22 @@ import { PayrollClientsPage } from './pages/payroll/PayrollClientsPage';
 import { PayrollPlaceholderPage } from './pages/payroll/PayrollPlaceholderPage';
 import { PayrollBulkUploadPage } from './pages/payroll/PayrollBulkUploadPage';
 import { ClientPortalPayrollPage } from './pages/client-portal/ClientPortalPayrollPage';
-import { PayrollLeavePage } from './pages/payroll/PayrollLeavePage';
 import { PerformanceCyclesPage } from './pages/payroll/PerformanceCyclesPage';
 import { PerformanceGoalsPage } from './pages/payroll/PerformanceGoalsPage';
 import { PerformanceAppraisalsPage } from './pages/payroll/PerformanceAppraisalsPage';
 import { Feedback360Page } from './pages/payroll/Feedback360Page';
+import { LeaveLayout } from './pages/leave/LeaveLayout';
+import { LeaveDashboardPage } from './pages/leave/LeaveDashboardPage';
+import { LeaveApplyPage } from './pages/leave/LeaveApplyPage';
+import { LeaveRequestsPage } from './pages/leave/LeaveRequestsPage';
+import { MyLeaveBalancePage } from './pages/leave/MyLeaveBalancePage';
+import { LeaveCalendarPage } from './pages/leave/LeaveCalendarPage';
+import { LeavePolicyPage } from './pages/leave/LeavePolicyPage';
+import { LeaveHolidaysPage } from './pages/leave/LeaveHolidaysPage';
+import { LeaveApprovalsPage } from './pages/leave/LeaveApprovalsPage';
+import { LeaveBalancesPage } from './pages/leave/LeaveBalancesPage';
+import { LeaveTypesPage } from './pages/leave/LeaveTypesPage';
+import { PerformanceLayout } from './pages/performance/PerformanceLayout';
 
 
 export default function App() {
@@ -62,6 +76,9 @@ export default function App() {
       <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/company-blocked" element={<TenantBlockedPage />} />
       <Route path="/signup" element={<SignUpPage />} />
       <Route path="/register-company" element={<RegisterCompanyPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -133,7 +150,7 @@ export default function App() {
         <Route path="bulk-upload" element={<PayrollBulkUploadPage />} />
         <Route path="consultants-upload" element={<PayrollPlaceholderPage title="Consultants Upload" />} />
         <Route path="runs" element={<PayrollRunsPage />} />
-        <Route path="runs/:id" element={<PayrollRunDetailPage />} />
+        <Route path="runs/:runId" element={<PayrollRunDetailPage />} />
         <Route path="periods" element={<PayrollPeriodsPage />} />
         <Route path="periods/:id" element={<PayrollPeriodDetailPage />} />
         <Route path="contracts" element={<OutsourcingContractsPage />} />
@@ -149,11 +166,45 @@ export default function App() {
         <Route path="config" element={<Navigate to="/payroll/settings" replace />} />
         <Route path="config/new" element={<Navigate to="/payroll/settings" replace />} />
         <Route path="billing" element={<PayrollBillingPage />} />
-        <Route path="leave" element={<PayrollLeavePage />} />
-        <Route path="performance/cycles" element={<PerformanceCyclesPage />} />
-        <Route path="performance/goals" element={<PerformanceGoalsPage />} />
-        <Route path="performance/appraisals" element={<PerformanceAppraisalsPage />} />
-        <Route path="performance/360-feedback" element={<Feedback360Page />} />
+        <Route path="leave" element={<Navigate to="/leave" replace />} />
+        <Route path="performance/*" element={<Navigate to="/performance/goals" replace />} />
+      </Route>
+      <Route
+        path="/leave"
+        element={
+          <ProtectedRoute>
+            <LeaveLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<LeaveDashboardPage />} />
+        <Route path="apply" element={<LeaveApplyPage />} />
+        <Route path="requests" element={<LeaveRequestsPage />} />
+        <Route path="balance" element={<MyLeaveBalancePage />} />
+        <Route path="calendar" element={<LeaveCalendarPage />} />
+        <Route path="policy" element={<LeavePolicyPage />} />
+        <Route path="holidays" element={<LeaveHolidaysPage />} />
+        <Route path="documents" element={<PayrollPlaceholderPage title="Documents" />} />
+        <Route path="notifications" element={<PayrollPlaceholderPage title="Notifications" />} />
+        <Route path="settings" element={<PayrollPlaceholderPage title="Settings" />} />
+        <Route path="help" element={<PayrollPlaceholderPage title="Help & Support" />} />
+        <Route path="approvals" element={<LeaveApprovalsPage />} />
+        <Route path="balances" element={<LeaveBalancesPage />} />
+        <Route path="types" element={<LeaveTypesPage />} />
+      </Route>
+      <Route
+        path="/performance"
+        element={
+          <ProtectedRoute>
+            <PerformanceLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Navigate to="goals" replace />} />
+        <Route path="cycles" element={<PerformanceCyclesPage />} />
+        <Route path="goals" element={<PerformanceGoalsPage />} />
+        <Route path="appraisals" element={<PerformanceAppraisalsPage />} />
+        <Route path="360-feedback" element={<Feedback360Page />} />
       </Route>
       <Route path="/client-portal/payroll" element={<ProtectedRoute><ClientPortalPayrollPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
