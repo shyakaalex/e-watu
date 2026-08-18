@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchOutsourcingBilling, type OutsourcingBillingSummary } from '../../payrollApi';
 
-function _defaultPeriod() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-}
-
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 export function PayrollBillingPage() {

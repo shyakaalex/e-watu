@@ -19,14 +19,14 @@ export type EwatuRoleName = (typeof EwatuRole)[keyof typeof EwatuRole];
 export const EwatuRolePermissions: Record<EwatuRoleName, string[]> = {
   [EwatuRole.PLATFORM_SUPER_ADMIN]: ['*:*'],
   [EwatuRole.TENANT_ADMIN]: ['*:*'],
-  [EwatuRole.HR_MANAGER]: ['employee:*', 'leave:approve', 'ats:write'],
+  [EwatuRole.HR_MANAGER]: ['employee:*', 'leave:approve', 'ats:write', 'lending:apply'],
   [EwatuRole.PAYROLL_SPECIALIST]: ['payroll:run', 'payroll:read', 'tax:write'],
-  [EwatuRole.CFO]: ['finance:*', 'procurement:approve'],
+  [EwatuRole.CFO]: ['finance:*', 'procurement:approve', 'lending:approve'],
   [EwatuRole.PROCUREMENT_MANAGER]: ['procurement:*', 'inventory:*'],
-  [EwatuRole.TENANT_STAFF]: ['self:*'],
+  [EwatuRole.TENANT_STAFF]: ['self:*', 'lending:apply'],
   [EwatuRole.CLIENT_ADMIN]: ['self:*'],
   [EwatuRole.CLIENT_EMPLOYEE]: ['self:*'],
-  [EwatuRole.FINANCE_OFFICER]: ['payroll:read', 'payroll:run', 'finance:*'],
+  [EwatuRole.FINANCE_OFFICER]: ['payroll:read', 'payroll:run', 'finance:*', 'lending:*'],
   [EwatuRole.RECRUITER]: ['ats:write', 'employee:read'],
   [EwatuRole.PERMITS_OFFICER]: ['employee:read'],
 } as const;

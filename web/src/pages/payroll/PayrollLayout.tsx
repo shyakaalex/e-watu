@@ -133,7 +133,7 @@ const IcoMenu = () => (
   </svg>
 );
 
-const IcoCalendar = () => (
+export const IcoCalendar = () => (
   <svg {...iconProps}>
     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
     <line x1="16" y1="2" x2="16" y2="6" />
@@ -142,14 +142,14 @@ const IcoCalendar = () => (
   </svg>
 );
 
-const IcoCheckSquare = () => (
+export const IcoCheckSquare = () => (
   <svg {...iconProps}>
     <polyline points="9 11 12 14 22 4" />
     <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
   </svg>
 );
 
-const IcoUserCheck = () => (
+export const IcoUserCheck = () => (
   <svg {...iconProps}>
     <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
     <circle cx="8.5" cy="7" r="4" />
@@ -157,7 +157,7 @@ const IcoUserCheck = () => (
   </svg>
 );
 
-const IcoUsers = () => (
+export const IcoUsers = () => (
   <svg {...iconProps}>
     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
     <circle cx="9" cy="7" r="4" />
@@ -183,11 +183,6 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/payroll/periods', label: 'Payroll Periods', icon: <IcoLayers /> },
   { to: '/payroll/contracts', label: 'Contracts', icon: <IcoContract /> },
   { to: '/payroll/contract-templates', label: 'Contract Templates', icon: <IcoPencil /> },
-  { to: '/payroll/leave', label: 'Leave Management', icon: <IcoCalendar /> },
-  { to: '/payroll/performance/cycles', label: 'Performance Cycles', icon: <IcoLayers /> },
-  { to: '/payroll/performance/goals', label: 'Goal Setting & KPIs', icon: <IcoCheckSquare /> },
-  { to: '/payroll/performance/appraisals', label: 'Appraisals & Reviews', icon: <IcoUserCheck /> },
-  { to: '/payroll/performance/360-feedback', label: '360 Feedback', icon: <IcoUsers /> },
   { to: '/payroll/reports', label: 'Reports', icon: <IcoReport /> },
   { to: '/payroll/email-settings', label: 'Email Settings', icon: <IcoMail /> },
   { to: '/payroll/email-templates', label: 'Email Templates', icon: <IcoMailCheck /> },

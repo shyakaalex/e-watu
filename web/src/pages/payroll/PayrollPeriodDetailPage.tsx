@@ -149,7 +149,7 @@ export function PayrollPeriodDetailPage() {
           <button className="btn btn--ghost" onClick={() => downloadRSSBReport(period.id)}>Download RSSB Report</button>
           <button className="btn btn--ghost" onClick={() => downloadBankFile(period.id)}>Download Bank File</button>
           <button className="btn btn--ghost" onClick={async () => {
-            const slips = await fetchPeriodPayslips(period.id);
+            const slips = (await fetchPeriodPayslips(period.id)) as any[];
             slips.forEach((s: any) => { if (s.downloadUrl) window.open(s.downloadUrl, '_blank'); });
           }}>Download Payslips</button>
         </div>

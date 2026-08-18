@@ -2,7 +2,10 @@ const SUBJECTS: Record<string, string> = {
   'payroll-approval-needed': 'Payroll approval required',
   'payroll-locked': 'Payroll run locked',
   'payslip-emailed': 'Your payslip is ready',
+  'leave-submitted': 'A leave request requires your approval',
   'leave-approved': 'Leave request approved',
+  'leave-rejected': 'Leave request rejected',
+  'leave-info-requested': 'More information requested on your leave request',
 };
 
 /** Fire-and-forget notification dispatch to notification-service. */

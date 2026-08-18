@@ -1,10 +1,209 @@
 :root {
+  /* Sleek Executive Dark Theme Base Tokens */
+  --surface: #070c18;
+  --surface-alt: #0b1220;
+  --card: #0e172a;
+  --card-sub: #131f38;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  
+  --ink: #f8fafc;
+  --ink-muted: #94a3b8;
+  --ink-subtle: #64748b;
+  
+  /* Primary Brand Colors preserved (#00466c & #f5911e) */
   --brand: #00466c;
-  --brand-dark: #003352;
-  --brand-mid: #005580;
-  --brand-light: #d9ecf4;
+  --brand-dark: #001c2e;
+  --brand-mid: #005a8a;
+  --brand-light: #162a3f;
+  --brand-soft: rgba(0, 70, 108, 0.25);
+  --brand-glow: rgba(0, 70, 108, 0.4);
+  
   --accent: #f5911e;
-  --accent-hover: #d97d0f;
-  --accent-soft: rgba(245, 145, 30, 0.12);
-  --hero-mid: #003d5c;
+  --accent-hover: #ff9f33;
+  --accent-soft: rgba(245, 145, 30, 0.16);
+  --accent-glow: rgba(245, 145, 30, 0.3);
+  
+  --hero-deep: #030712;
+  --hero-mid: #070d1a;
+  
+  --glass-bg: rgba(14, 23, 42, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  --glass-shadow-hover: 0 20px 48px -10px rgba(0, 70, 108, 0.35), 0 8px 16px -3px rgba(0, 0, 0, 0.3);
 }
+
+/* ============================================================
+   MODULE FEATURE BANNER (Matching Reference Design)
+   ============================================================ */
+
+.module-banner {
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.module-banner__header {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem 1.75rem;
+  background: linear-gradient(135deg, #00466c 0%, #002840 100%);
+  color: #ffffff;
+}
+
+.module-banner__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.module-banner__icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.module-banner__title-group {
+  flex: 1;
+}
+
+.module-banner__title {
+  margin: 0 0 0.25rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+}
+
+.module-banner__sub {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.module-banner__body {
+  padding: 1.5rem 1.75rem;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.module-banner__section-label {
+  display: block;
+  margin-bottom: 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+}
+
+.module-banner__features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .module-banner__features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .module-banner__features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.module-banner__feature-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.02);
+  transition: all 0.15s ease;
+}
+
+.module-banner__feature-pill:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.module-banner__check-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #d1fae5;
+  color: #059669;
+  flex-shrink: 0;
+}
+
+.module-banner__check-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Expiration KPI Summary Cards */
+.expiry-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 800px) {
+  .expiry-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.expiry-kpi-card {
+  padding: 1.1rem;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+}
+
+.expiry-kpi-card__label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin-bottom: 0.35rem;
+}
+
+.expiry-kpi-card__val {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.expiry-kpi-card--danger .expiry-kpi-card__val { color: #dc2626; }
+.expiry-kpi-card--warning .expiry-kpi-card__val { color: #d97706; }
+.expiry-kpi-card--info .expiry-kpi-card__val { color: #0284c7; }
+.expiry-kpi-card--success .expiry-kpi-card__val { color: #059669; }
+

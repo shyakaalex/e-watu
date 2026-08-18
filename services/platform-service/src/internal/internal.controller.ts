@@ -14,6 +14,13 @@ export class InternalController {
     return { id: t.id, name: t.name, slug: t.slug, status: t.status };
   }
 
+  @Get('tenants/:id')
+  async byId(@Param('id') id: string) {
+    const t = await this.tenant.findById(id);
+    if (!t) throw new NotFoundException();
+    return { id: t.id, name: t.name, slug: t.slug, status: t.status };
+  }
+
   @Patch('tenants/:tenantId/email-verified')
   markEmailVerified(@Param('tenantId') tenantId: string) {
     return this.tenant.markOwnerEmailVerified(tenantId);

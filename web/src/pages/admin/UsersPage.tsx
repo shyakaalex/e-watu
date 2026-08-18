@@ -3,24 +3,77 @@ import { Navigate } from 'react-router-dom';
 import {
   createTenantUser,
   fetchTenantUsers,
+  triggerPasswordReset,
   updateTenantUser,
   type UserRow,
 } from '../../api';
 import { parseError } from './parseError';
 import { useAdminContext } from './useAdminContext';
 
-const ROLE_OPTIONS = ['TENANT_ADMIN', 'TENANT_STAFF', 'HR_MANAGER', 'RECRUITER', 'FINANCE_OFFICER'];
+const ROLE_DESCRIPTIONS: Record<string, { label: string; desc: string }> = {
+  TENANT_STAFF: {
+    label: 'Employee Staff',
+    desc: 'Employee self-service (payslips, leave requests, KPI self-assessments)',
+  },
+  HR_MANAGER: {
+    label: 'HR / Department Head',
+    desc: 'Department leadership (approve team leave, rate team KPIs, manage placements)',
+  },
+  FINANCE_OFFICER: {
+    label: 'Finance Officer',
+    desc: 'Payroll calculations, tax reports, and client billing',
+  },
+  RECRUITER: {
+    label: 'Recruiter',
+    desc: 'Candidate sourcing, job postings, talent pool management',
+  },
+  TENANT_ADMIN: {
+    label: 'Company Admin',
+    desc: 'Full workspace administrative control and user creation',
+  },
+};
+
+const ROLE_OPTIONS = Object.keys(ROLE_DESCRIPTIONS);
+
+function generateStrongPassword(length = 14): string {
+  const uppers = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lowers = 'abcdefghijkmnopqrstuvwxyz';
+  const numbers = '23456789';
+  const symbols = '!@#$%^&*';
+  const all = uppers + lowers + numbers + symbols;
+  let pass = '';
+  pass += uppers[Math.floor(Math.random() * uppers.length)];
+  pass += lowers[Math.floor(Math.random() * lowers.length)];
+  pass += numbers[Math.floor(Math.random() * numbers.length)];
+  pass += symbols[Math.floor(Math.random() * symbols.length)];
+  for (let i = 4; i < length; i++) {
+    pass += all[Math.floor(Math.random() * all.length)];
+  }
+  return pass
+    .split('')
+    .sort(() => 0.5 - Math.random())
+    .join('');
+}
 
 export function UsersPage() {
   const { me, isSuper } = useAdminContext();
   const [users, setUsers] = useState<UserRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [roles, setRoles] = useState<string[]>(['TENANT_STAFF']);
+  const [copied, setCopied] = useState(false);
+
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    email: string;
+    password: string;
+    displayName?: string;
+    roles: string[];
+  } | null>(null);
 
   const load = useCallback(async () => {
     setErr(null);
@@ -42,9 +95,22 @@ export function UsersPage() {
     return <Navigate to="/platform" replace />;
   }
 
+  const handleAutoGenerate = () => {
+    const newPass = generateStrongPassword(14);
+    setPassword(newPass);
+  };
+
+  const handleCopyCredentials = (empEmail: string, empPass: string) => {
+    const text = `EWatu ERP Employee Account Credentials:\nEmail: ${empEmail}\nTemporary Password: ${empPass}\nPortal Login: ${window.location.origin}/login`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  };
+
   const onCreate = async (ev: FormEvent) => {
     ev.preventDefault();
     setErr(null);
+    setActionMsg(null);
     try {
       await createTenantUser({
         email,
@@ -52,6 +118,14 @@ export function UsersPage() {
         displayName: displayName || undefined,
         roles,
       });
+
+      setCreatedCredentials({
+        email,
+        password,
+        displayName: displayName || undefined,
+        roles,
+      });
+
       setShowForm(false);
       setEmail('');
       setPassword('');
@@ -66,6 +140,7 @@ export function UsersPage() {
   const toggleActive = async (u: UserRow) => {
     if (u.id === me.sub) return;
     setErr(null);
+    setActionMsg(null);
     try {
       await updateTenantUser(u.id, { active: !u.active });
       await load();
@@ -74,18 +149,90 @@ export function UsersPage() {
     }
   };
 
+  const handleSendPasswordReset = async (userEmail: string) => {
+    setErr(null);
+    setActionMsg(null);
+    try {
+      await triggerPasswordReset(userEmail);
+      setActionMsg(`Password setup / reset link sent to ${userEmail}`);
+    } catch (e) {
+      setErr(parseError(e));
+    }
+  };
+
   return (
     <div className="adm-page">
       <header className="adm-page__head">
-        <h1 className="adm-page__title">Team members</h1>
-        <p className="adm-page__lead">Invite and manage users in your company workspace.</p>
+        <h1 className="adm-page__title">Team Members & Employee Accounts</h1>
+        <p className="adm-page__lead">
+          Provision work email credentials for employees, assign department management roles, and issue password setup invites.
+        </p>
       </header>
 
       {err && <div className="alert alert--err">{err}</div>}
+      {actionMsg && <div className="alert alert--ok" style={{ background: '#10b98120', border: '1px solid #10b981', color: '#10b981', padding: '0.75rem 1rem', borderRadius: '6px', marginBottom: '1rem' }}>{actionMsg}</div>}
+
+      {createdCredentials && (
+        <div
+          className="adm-card"
+          style={{
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(59, 130, 246, 0.1))',
+            borderColor: '#10b981',
+            padding: '1.25rem',
+            marginBottom: '1.5rem',
+            borderRadius: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ color: '#10b981', margin: 0, fontSize: '1.1rem' }}>
+              ✅ Employee Account Created Successfully!
+            </h3>
+            <button
+              type="button"
+              className="btn small"
+              onClick={() => setCreatedCredentials(null)}
+            >
+              ✕ Close
+            </button>
+          </div>
+          <p style={{ marginTop: '0.5rem', marginBottom: '0.75rem', fontSize: '0.9rem' }}>
+            Share the credentials below with <strong>{createdCredentials.displayName || createdCredentials.email}</strong> so they can log in to the ERP:
+          </p>
+          <div
+            style={{
+              background: '#0f172a',
+              color: '#f8fafc',
+              padding: '0.85rem 1rem',
+              borderRadius: '6px',
+              fontFamily: 'monospace',
+              fontSize: '0.9rem',
+              marginBottom: '1rem',
+            }}
+          >
+            <div><strong>Work Email:</strong> {createdCredentials.email}</div>
+            <div><strong>Temporary Password:</strong> {createdCredentials.password}</div>
+            <div><strong>Assigned Roles:</strong> {createdCredentials.roles.join(', ')}</div>
+          </div>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() => handleCopyCredentials(createdCredentials.email, createdCredentials.password)}
+          >
+            {copied ? '✓ Credentials Copied to Clipboard!' : '📋 Copy Account Credentials'}
+          </button>
+        </div>
+      )}
 
       <div className="adm-toolbar">
-        <button type="button" className="btn btn--primary" onClick={() => setShowForm((v) => !v)}>
-          {showForm ? 'Cancel' : 'Add user'}
+        <button
+          type="button"
+          className="btn btn--primary"
+          onClick={() => {
+            setShowForm((v) => !v);
+            if (!showForm && !password) handleAutoGenerate();
+          }}
+        >
+          {showForm ? 'Cancel' : '+ Provision Employee User'}
         </button>
         <button type="button" className="btn" onClick={() => load()}>
           Refresh
@@ -93,79 +240,155 @@ export function UsersPage() {
       </div>
 
       {showForm && (
-        <form className="adm-card form" onSubmit={onCreate}>
-          <h2 className="adm-card__title">New team member</h2>
+        <form className="adm-card form" onSubmit={onCreate} style={{ marginTop: '1rem' }}>
+          <h2 className="adm-card__title">Provision Employee Account</h2>
           <label>
-            Email
-            <input className="auth-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          </label>
-          <label>
-            Temporary password
+            Work Email Address
             <input
               className="auth-input"
-              type="password"
-              minLength={10}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              type="email"
+              placeholder="e.g. keza@company.rw"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
           </label>
+
           <label>
-            Display name
-            <input className="auth-input" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+            Display Name
+            <input
+              className="auth-input"
+              placeholder="e.g. Keza Alice (Head of Department)"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
           </label>
-          <fieldset>
-            <legend>Roles</legend>
-            {ROLE_OPTIONS.map((r) => (
-              <label key={r} style={{ display: 'block', marginBottom: '0.35rem' }}>
-                <input
-                  type="checkbox"
-                  checked={roles.includes(r)}
-                  onChange={(e) => {
-                    setRoles((prev) =>
-                      e.target.checked ? [...prev, r] : prev.filter((x) => x !== r),
-                    );
-                  }}
-                />{' '}
-                {r.replace(/_/g, ' ')}
-              </label>
-            ))}
+
+          <label>
+            Temporary Password
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+              <input
+                className="auth-input"
+                type="text"
+                style={{ flex: 1, fontFamily: 'monospace' }}
+                minLength={10}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className="btn"
+                onClick={handleAutoGenerate}
+                title="Generate a secure random password"
+              >
+                ⚡ Auto-Generate
+              </button>
+            </div>
+            <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+              The employee will use this temporary password to log in for the first time.
+            </span>
+          </label>
+
+          <fieldset style={{ marginTop: '1rem', border: '1px solid #334155', borderRadius: '6px', padding: '1rem' }}>
+            <legend style={{ padding: '0 0.5rem', fontWeight: 600, color: '#e2e8f0' }}>Assign Role Privileges</legend>
+            <p style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: 0, marginBottom: '0.75rem' }}>
+              Select roles based on responsibilities. (e.g. Select both <strong>Employee Staff</strong> & <strong>HR / Department Head</strong> for dual privileges).
+            </p>
+            {ROLE_OPTIONS.map((r) => {
+              const info = ROLE_DESCRIPTIONS[r];
+              return (
+                <label key={r} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', marginBottom: '0.75rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    style={{ marginTop: '0.25rem' }}
+                    checked={roles.includes(r)}
+                    onChange={(e) => {
+                      setRoles((prev) =>
+                        e.target.checked ? [...prev, r] : prev.filter((x) => x !== r),
+                      );
+                    }}
+                  />
+                  <div>
+                    <strong style={{ color: '#f1f5f9' }}>{info.label}</strong> <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>({r})</span>
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.1rem' }}>{info.desc}</div>
+                  </div>
+                </label>
+              );
+            })}
           </fieldset>
-          <button type="submit" className="btn btn--primary">
-            Create user
+
+          <button type="submit" className="btn btn--primary" style={{ marginTop: '1rem' }}>
+            Create Account & Generate Credentials
           </button>
         </form>
       )}
 
-      {loading && <p className="muted">Loading…</p>}
+      {loading && <p className="muted" style={{ marginTop: '1rem' }}>Loading workspace team members…</p>}
 
       {!loading && users && (
-        <section className="adm-card">
+        <section className="adm-card" style={{ marginTop: '1rem' }}>
           <table className="table">
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Email</th>
-                <th>Roles</th>
-                <th>Verified</th>
+                <th>Work Email</th>
+                <th>Assigned Roles</th>
                 <th>Status</th>
-                <th />
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {users.map((u) => (
                 <tr key={u.id}>
-                  <td>{u.displayName ?? '—'}</td>
+                  <td><strong>{u.displayName ?? '—'}</strong></td>
                   <td>{u.email}</td>
-                  <td className="small">{u.roles.join(', ')}</td>
-                  <td>{u.emailVerified ? 'Yes' : 'No'}</td>
-                  <td>{u.active ? 'Active' : 'Inactive'}</td>
                   <td>
-                    {u.id !== me.sub && (
-                      <button type="button" className="btn small" onClick={() => toggleActive(u)}>
-                        {u.active ? 'Deactivate' : 'Activate'}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                      {u.roles.map((r) => (
+                        <span
+                          key={r}
+                          style={{
+                            background: '#1e293b',
+                            color: '#38bdf8',
+                            fontSize: '0.72rem',
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: '4px',
+                            fontWeight: 500,
+                          }}
+                        >
+                          {ROLE_DESCRIPTIONS[r]?.label || r}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td>
+                    <span
+                      style={{
+                        color: u.active ? '#10b981' : '#ef4444',
+                        fontWeight: 600,
+                        fontSize: '0.85rem',
+                      }}
+                    >
+                      {u.active ? '● Active' : '○ Inactive'}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <button
+                        type="button"
+                        className="btn small"
+                        onClick={() => handleSendPasswordReset(u.email)}
+                        title="Send password reset link to employee's work email"
+                      >
+                        ✉ Send Invite / Reset
                       </button>
-                    )}
+                      {u.id !== me.sub && (
+                        <button type="button" className="btn small" onClick={() => toggleActive(u)}>
+                          {u.active ? 'Deactivate' : 'Activate'}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -176,3 +399,4 @@ export function UsersPage() {
     </div>
   );
 }
+

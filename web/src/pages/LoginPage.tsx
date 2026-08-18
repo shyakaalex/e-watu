@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { loginRequest } from '../api';
+import { setRememberMe } from '../auth/token';
 import { AuthErrorAlert } from '../components/AuthErrorAlert';
 import { AuthLayout } from '../components/AuthLayout';
 import { parseApiError, type ParsedApiError } from '../lib/parseApiError';
@@ -16,6 +17,8 @@ export function LoginPage() {
   const returnPath = resolveReturnPath(sp, fromState, '/platform');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(true);
   const [err, setErr] = useState<ParsedApiError | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -28,6 +31,7 @@ export function LoginPage() {
     setErr(null);
     setBusy(true);
     try {
+      setRememberMe(remember);
       await loginRequest(email.trim(), password);
       navigate(returnPath, { replace: true });
     } catch (e) {
@@ -71,18 +75,57 @@ export function LoginPage() {
         </label>
         <label className="auth-label">
           Password
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="auth-input"
-            placeholder="••••••••"
-          />
+          <span className="auth-input-group">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="auth-input"
+              placeholder="••••••••"
+            />
+            <button
+              type="button"
+              className="auth-input-toggle"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.5 5.6A9.8 9.8 0 0112 5c5 0 9 4 10 7-.4 1.2-1.2 2.5-2.3 3.6M6.6 6.6C4.6 8 3.2 9.9 2 12c1 3 5 7 10 7 1.3 0 2.6-.3 3.7-.8" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.75" />
+                </svg>
+              )}
+            </button>
+          </span>
         </label>
+        <div className="auth-row-between">
+          <label className="auth-checkbox-label">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+            Remember me
+          </label>
+          <Link to="/forgot-password" className="auth-link-inline">
+            Forgot password?
+          </Link>
+        </div>
         <button type="submit" className="btn btn--block btn--primary btn--lg" disabled={busy}>
-          {busy ? 'Signing in…' : 'Sign in'}
+          {busy ? (
+            <>
+              <span className="auth-btn-spinner" aria-hidden />
+              Signing in…
+            </>
+          ) : (
+            'Sign in'
+          )}
         </button>
       </form>
       <p className="auth-alt">

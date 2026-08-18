@@ -45,8 +45,8 @@ export function PayrollEmployeeDetailPage() {
         fetchEmployeePayslips(employeeId),
       ]);
       setEmployee(emp);
-      setContracts(contractData);
-      setPayslips(payslipData);
+      setContracts(Array.isArray(contractData) ? contractData : (contractData as any)?.items ?? []);
+      setPayslips(Array.isArray(payslipData) ? payslipData : (payslipData as any)?.items ?? []);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {

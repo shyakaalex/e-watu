@@ -8,11 +8,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TenantStatus {
+  PENDING_ACTIVATION
+  ACTIVE
+  TRIAL
+  SUSPENDED
+  EXPIRED
+  REJECTED
+}
+
 model Tenant {
-  id                 String    @id @default(uuid())
+  id                 String       @id @default(uuid())
   name               String
-  slug               String    @unique
-  status             String    @default("PENDING_APPROVAL")
+  slug               String       @unique
+  status             TenantStatus @default(PENDING_ACTIVATION)
   plan               String?
   country            String?   @default("RW")
   businessEmail      String?   @map("business_email")

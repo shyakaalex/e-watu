@@ -10,7 +10,7 @@ services:
       - '15432:5432'
     volumes:
       - ewatu_pg:/var/lib/postgresql/data
-      - ./infra/docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ewatu']
       interval: 5s
@@ -48,6 +48,7 @@ services:
     environment:
       SERVICE_NAME: identity-service
       DATABASE_URL: postgresql://ewatu:ewatu_dev@postgres:5432/identity_db
+      NOTIFICATION_SERVICE_URL: http://notification-service:3015
     depends_on:
       postgres:
         condition: service_healthy
@@ -122,6 +123,8 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3016
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      NOTIFICATION_SERVICE_URL: http://notification-service:3015
+      DOCUMENT_SERVICE_URL: http://document-service:3018
     depends_on:
       postgres:
         condition: service_healthy
@@ -171,6 +174,25 @@ services:
       SERVICE_NAME: procurement-service
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3020
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  lending-service:
+    build:
+      context: .
+      dockerfile: services/lending-service/Dockerfile
+    ports:
+      - '3021:3021'
+    environment:
+      DATABASE_URL: postgresql://ewatu:ewatu_dev@postgres:5432/lending_db
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      JWT_ISSUER: ${JWT_ISSUER:-http://localhost:3011/auth}
+      SERVICE_NAME: lending-service
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3021
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
     depends_on:
       postgres:

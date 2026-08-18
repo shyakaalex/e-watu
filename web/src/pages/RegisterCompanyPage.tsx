@@ -68,7 +68,7 @@ export function RegisterCompanyPage() {
               <span className="auth-step__label">Register</span> company details &amp; owner
             </li>
             <li>
-              <span className="auth-step__label">Sign in</span> straight away with your credentials
+              <span className="auth-step__label">Sign in</span> any time to check your application status
             </li>
             <li>
               <span className="auth-step__label">Review</span> by platform operators

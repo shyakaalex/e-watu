@@ -67,7 +67,7 @@ export function SystemPage() {
             PostgreSQL — <code>localhost:15432</code> (Docker)
           </li>
           <li>
-            MinIO — <code>localhost:9000</code> console <code>:9001</code>
+            MinIO — <code>localhost:19000</code> console <code>:19001</code>
           </li>
           <li>
             Web SPA — <code>localhost:5173</code>

@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchPayrollRuns, type PayrollRun } from '../../payrollApi';
+import { parseApiError } from '../../lib/parseApiError';
+
+const NEXT_APPROVER_BY_STATUS: Record<string, string> = {
+  SUBMITTED: 'HR_MANAGER',
+  HR_APPROVED: 'MD',
+  MD_APPROVED: 'CLIENT_ADMIN',
+};
 
 export function PayrollApprovalsPage() {
   const [runs, setRuns] = useState<PayrollRun[]>([]);
@@ -12,9 +19,9 @@ export function PayrollApprovalsPage() {
     setErr(null);
     try {
       const all = await fetchPayrollRuns();
-      setRuns(all.filter((r) => r.status === 'IN_REVIEW'));
+      setRuns(all.filter((r) => r.status in NEXT_APPROVER_BY_STATUS));
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(parseApiError(e).message);
     } finally {
       setLoading(false);
     }
@@ -45,7 +52,7 @@ export function PayrollApprovalsPage() {
             </thead>
             <tbody>
               {runs.map((run) => {
-                const pending = run.approvals?.find((a) => a.status === 'PENDING')?.stage ?? '—';
+                const pending = NEXT_APPROVER_BY_STATUS[run.status] ?? '—';
                 return (
                   <tr key={run.id}>
                     <td>{run.periodYear}-{String(run.periodMonth).padStart(2, '0')}</td>

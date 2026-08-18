@@ -85,7 +85,10 @@ type ActivityEvent = {
   createdAt: string;
 };
 
-type DetailedCandidate = Candidate & {
+type DetailedCandidate = Omit<
+  Candidate,
+  'workHistory' | 'education' | 'languages' | 'documents' | 'recruiterNotes' | 'employmentStatus' | 'yearsExperience'
+> & {
   applications: (Application & { job: Job })[];
   // Extended profile fields (stored in the notes field as JSON blob or managed locally)
   status?: CandidateStatus;
@@ -222,26 +225,26 @@ function parseExtended(candidate: Candidate & { applications: (Application & { j
   }
   return {
     ...candidate,
-    status: extended.status ?? 'ACTIVE',
-    gender: extended.gender ?? '',
+    status: (extended.status ?? candidate.status ?? 'ACTIVE') as CandidateStatus,
+    gender: extended.gender ?? candidate.gender ?? '',
     dateOfBirth: extended.dateOfBirth ?? '',
-    nationality: extended.nationality ?? '',
-    city: extended.city ?? '',
-    country: extended.country ?? '',
+    nationality: extended.nationality ?? candidate.nationality ?? '',
+    city: extended.city ?? candidate.city ?? '',
+    country: extended.country ?? candidate.country ?? '',
     contactPreference: extended.contactPreference ?? '',
     communicationLanguage: extended.communicationLanguage ?? '',
-    employmentStatus: extended.employmentStatus ?? '',
-    currentEmployer: extended.currentEmployer ?? '',
-    yearsExperience: extended.yearsExperience ?? undefined,
-    professionalSummary: extended.professionalSummary ?? '',
+    employmentStatus: extended.employmentStatus ?? candidate.employmentStatus ?? '',
+    currentEmployer: extended.currentEmployer ?? candidate.currentEmployer ?? '',
+    yearsExperience: extended.yearsExperience ?? candidate.yearsExperience ?? undefined,
+    professionalSummary: extended.professionalSummary ?? candidate.summary ?? '',
     workHistory: extended.workHistory ?? [],
     education: extended.education ?? [],
     languages: extended.languages ?? [],
     salary: extended.salary ?? {
-      min: null,
-      max: null,
-      currency: 'RWF',
-      availability: 'ACTIVE' as unknown as AvailabilityType,
+      min: candidate.salaryMin ?? null,
+      max: candidate.salaryMax ?? null,
+      currency: candidate.salaryCurrency ?? 'RWF',
+      availability: (candidate.availability ?? 'IMMEDIATE') as AvailabilityType,
       availableFrom: null,
     },
     documents: extended.documents ?? [],
@@ -1194,7 +1197,7 @@ function SkillsLanguagesTab({
               >
                 <span style={{ fontSize: '0.92rem', fontWeight: 500 }}>{lang.language}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span className={`badge ${LANG_BADGE[lang.proficiency]}`}>{lang.proficiency}</span>
+                  <span className={`badge ${LANG_BADGE[lang.proficiency as LanguageProficiency] ?? 'badge--gray'}`}>{lang.proficiency}</span>
                   <button
                     type="button"
                     className="btn btn--ghost small"

@@ -17,14 +17,11 @@ import { uploadViaPresign } from '../../documentApi';
 // ── Label maps ────────────────────────────────────────────────────────────────
 
 const SOURCE_LABELS: Record<CandidateSource, string> = {
-  E_WATU_PORTAL: 'E-Watu portal',
-  WEBSITE: 'Website',
-  MANUAL: 'Manual',
   REFERRAL: 'Referral',
-  LINKEDIN: 'LinkedIn',
-  WALK_IN: 'Walk-in',
-  IMPORT: 'Import',
-  PORTAL: 'Portal',
+  JOB_BOARD: 'Job board',
+  DIRECT: 'Direct application',
+  AGENCY: 'Agency',
+  OTHER: 'Other',
 };
 
 const STATUS_LABELS: Record<CandidateStatus, string> = {
@@ -123,7 +120,7 @@ export function CandidatesPage() {
   const [showImport, setShowImport] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importBusy, setImportBusy] = useState(false);
-  const [importResult, setImportResult] = useState<{ created: number; skipped: number; errors: number } | null>(null);
+  const [importResult, setImportResult] = useState<{ created: number; skipped: number; errors: Array<{ row: number; error: string }> | number } | null>(null);
   const [importErr, setImportErr] = useState<string | null>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
@@ -133,7 +130,7 @@ export function CandidatesPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [currentTitle, setCurrentTitle] = useState('');
-  const [source, setSource] = useState<CandidateSource>('MANUAL');
+  const [source, setSource] = useState<CandidateSource>('DIRECT');
   const [cvUrl, setCvUrl] = useState('');
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [notes, setNotes] = useState('');
@@ -188,7 +185,7 @@ export function CandidatesPage() {
 
   function resetForm() {
     setFirstName(''); setLastName(''); setEmail(''); setPhone('');
-    setCurrentTitle(''); setSource('MANUAL'); setCvUrl(''); setLinkedinUrl('');
+    setCurrentTitle(''); setSource('DIRECT'); setCvUrl(''); setLinkedinUrl('');
     setNotes(''); setTagsInput(''); setGender(''); setNationality('');
     setCity(''); setCountry(''); setCurrentEmployer(''); setYearsExperience('');
     setEmploymentStatus(''); setAvailability(''); setSummary('');
@@ -756,7 +753,7 @@ export function CandidatesPage() {
                 <div className="alert alert--ok" style={{ marginBottom: 8 }}>
                   Import complete: <strong>{importResult.created}</strong> created,{' '}
                   <strong>{importResult.skipped}</strong> skipped,{' '}
-                  <strong>{importResult.errors}</strong> errors.
+                  <strong>{Array.isArray(importResult.errors) ? importResult.errors.length : importResult.errors}</strong> errors.
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button type="button" className="btn btn--primary" onClick={closeImport}>Done</button>

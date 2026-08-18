@@ -13,6 +13,7 @@ type MePayload = {
   username?: string;
   roles: string[];
   tenant_id?: string;
+  tenant_status?: string;
 };
 
 let meCache: MePayload | null = null;
@@ -164,6 +165,26 @@ export async function verifyEmailRequest(token: string) {
   return parseJson<{ verified: boolean }>(r);
 }
 
+export async function forgotPasswordRequest(email: string) {
+  const r = await fetch(`${identityUrl()}/api/v1/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return parseJson<{ message: string }>(r);
+}
+
+export async function resetPasswordRequest(token: string, newPassword: string) {
+  const r = await fetch(`${identityUrl()}/api/v1/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, newPassword }),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return parseJson<{ reset: boolean }>(r);
+}
+
 export async function fetchMyTenant() {
   const r = await authFetch(`${platformUrl()}/api/v1/my/tenant`);
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
@@ -258,6 +279,17 @@ export async function updateTenantUser(
   return parseJson<UserRow>(r);
 }
 
+export async function triggerPasswordReset(email: string) {
+  const r = await fetch(`${identityUrl()}/api/v1/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson<{ message: string }>(r);
+}
+
+
 export type InAppNotification = {
   id: string;
   title: string;
@@ -345,6 +377,16 @@ export async function fetchAllServiceHealth(): Promise<ServiceHealth[]> {
     pingHealth('Payroll', import.meta.env.VITE_PAYROLL_API ?? 'http://localhost:3016', '/api/v1/payroll/health'),
     pingHealth('Document', serviceUrl('document'), '/api/v1/document/health'),
     pingHealth('Notification', serviceUrl('notification'), '/api/v1/notifications/health'),
+    pingHealth(
+      'Talent Pool',
+      import.meta.env.VITE_TALENT_POOL_API ?? 'http://localhost:3014',
+      '/api/v1/talent-pool/health',
+    ),
+    pingHealth(
+      'Procurement',
+      import.meta.env.VITE_PROCUREMENT_API ?? 'http://localhost:3020',
+      '/api/v1/procurement/health',
+    ),
   ]);
 }
 

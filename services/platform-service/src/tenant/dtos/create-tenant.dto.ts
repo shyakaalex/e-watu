@@ -40,13 +40,6 @@ export class CreateTenantDto {
 
   @IsOptional()
   @IsString()
-  @IsIn([
-    'PENDING_APPROVAL',
-    'ACTIVE',
-    'REJECTED',
-    'provisioning',
-    'active',
-    'suspended',
-  ])
+  @IsIn(['PENDING_ACTIVATION', 'ACTIVE', 'TRIAL', 'SUSPENDED', 'EXPIRED', 'REJECTED'])
   status?: string;
 }

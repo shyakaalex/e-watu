@@ -54,11 +54,8 @@ export function PerformanceAppraisalsPage() {
 
       const empList = await fetchEmployees();
       setEmployees(empList);
-
-      const matchedEmp = empList.find((e) => e.email.toLowerCase() === user.email.toLowerCase());
-
-      const list = await fetchAppraisals();
-      setAppraisals(list);
+      const list: any = await fetchAppraisals();
+      setAppraisals(list || []);
     } catch (err: any) {
       setError(err.message || 'Failed to load appraisals');
     } finally {
@@ -69,7 +66,7 @@ export function PerformanceAppraisalsPage() {
   const handleSelectAppraisal = async (id: string) => {
     try {
       setLoading(true);
-      const app = await fetchAppraisal(id);
+      const app: any = await fetchAppraisal(id);
       setSelectedAppraisal(app);
       setViewDetail(true);
 
@@ -119,8 +116,8 @@ export function PerformanceAppraisalsPage() {
       setHRScore(Number(app.finalScore || app.managerScore || 3.0));
 
       // Fetch 360-degree feedback requests for employee
-      const fbRequests = await fetchFeedbackRequests(undefined, app.employeeId);
-      setFeedbackRequests(fbRequests.filter((r: any) => r.appraisalId === id));
+      const fbRequests: any = await fetchFeedbackRequests(undefined, app.employeeId);
+      setFeedbackRequests((fbRequests || []).filter((r: any) => r.appraisalId === id));
     } catch (err: any) {
       alert(err.message || 'Failed to load appraisal detail');
     } finally {

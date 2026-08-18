@@ -44,6 +44,8 @@ export function authUserFromJwtPayload(
         : undefined,
     email: typeof payload.email === 'string' ? payload.email : undefined,
     tenant_id: tenantFromPayload(payload),
+    tenant_status:
+      typeof payload.tenant_status === 'string' ? payload.tenant_status : undefined,
     roles: collectRoles(payload),
     permissions: Array.isArray(payload.permissions)
       ? payload.permissions.filter((p): p is string => typeof p === 'string')

@@ -49,22 +49,22 @@ export function Feedback360Page() {
       const empList = await fetchEmployees();
       setEmployees(empList);
 
-      const matchedEmp = empList.find((e) => e.email.toLowerCase() === user.email.toLowerCase());
+      const matchedEmp = empList.find((e: any) => Boolean(e.email && user?.email && e.email.toLowerCase() === user.email.toLowerCase()));
       const empId = matchedEmp?.id;
 
       if (empId) {
         // Load requests sent by current employee
-        const sent = await fetchFeedbackRequests(undefined, empId);
-        setRequestsSent(sent);
+        const sent: any = await fetchFeedbackRequests(undefined, empId);
+        setRequestsSent(sent || []);
 
         // Load requests received by current employee to fill out
-        const received = await fetchFeedbackRequests(empId, undefined);
-        setRequestsReceived(received);
+        const received: any = await fetchFeedbackRequests(empId, undefined);
+        setRequestsReceived(received || []);
 
         // Load appraisals to nominate under
-        const appList = await fetchAppraisals(empId);
-        setAppraisals(appList);
-        if (appList[0]) {
+        const appList: any = await fetchAppraisals(empId);
+        setAppraisals(appList || []);
+        if (Array.isArray(appList) && appList[0]) {
           setNominateForm((prev) => ({ ...prev, appraisalId: appList[0].id }));
         }
       }

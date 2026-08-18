@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   approveTenant,
@@ -255,7 +255,7 @@ function KpiCard({ label, value, secondary, icon, color }: {
   label: string;
   value: string;
   secondary: string;
-  icon: JSX.Element;
+  icon: ReactNode;
   color: string;
 }) {
   return (
@@ -784,7 +784,7 @@ function ClientDashboard() {
 
 // ── Employee Self-Service Sub-Dashboard ───────────────────────────────────────
 
-function EmployeeDashboard({ me }: { me: any }) {
+function EmployeeDashboard({ me: _me }: { me?: any }) {
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -890,7 +890,7 @@ function EmployeeDashboard({ me }: { me: any }) {
               {leaveRequests.slice(0, 3).map((r) => (
                 <li key={r.id} className="stat-item">
                   <div>
-                    <span className="stat-item__name">Leave ({parseFloat(r.days)} days)</span>
+                    <span className="stat-item__name">Leave ({parseFloat(r.numberOfDays)} days)</span>
                     <div className="stat-item__meta">{r.startDate} to {r.endDate}</div>
                   </div>
                   <span className={`status-badge status-badge--${r.status.toLowerCase()}`}>{r.status}</span>
@@ -923,7 +923,7 @@ function EmployeeDashboard({ me }: { me: any }) {
             </ul>
           )}
           <div style={{ marginTop: '1rem' }}>
-            <Link to="/payroll/leave" className="btn btn--primary small">Request New Leave</Link>
+            <Link to="/leave" className="btn btn--primary small">Request New Leave</Link>
           </div>
         </div>
       </div>
@@ -1156,14 +1156,24 @@ function PendingBanner({ myTenant }: { myTenant: TenantRow }) {
         Workspace slug: <code>{myTenant.slug}</code>
         {myTenant.plan ? ` · Plan: ${myTenant.plan}` : null}
       </p>
-      {myTenant.status === 'PENDING_APPROVAL' && (
+      {myTenant.status === 'PENDING_ACTIVATION' && (
         <p className="muted" style={{ marginTop: '0.75rem' }}>
-          Your registration is under review. You can use recruitment features once the platform team approves your company.
+          Your registration is under review. Full access unlocks once the platform team approves your company.
         </p>
       )}
       {myTenant.status === 'REJECTED' && (
         <p className="alert alert--err" style={{ marginTop: '0.75rem' }}>
           Registration was not approved.{myTenant.rejectionReason ? ` ${myTenant.rejectionReason}` : null}
+        </p>
+      )}
+      {myTenant.status === 'SUSPENDED' && (
+        <p className="alert alert--err" style={{ marginTop: '0.75rem' }}>
+          This company account has been suspended. Please contact your administrator or support for details.
+        </p>
+      )}
+      {myTenant.status === 'EXPIRED' && (
+        <p className="alert alert--warn" style={{ marginTop: '0.75rem' }}>
+          This company's subscription has expired. Please renew to continue using E-Watu.
         </p>
       )}
     </section>

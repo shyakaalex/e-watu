@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LoanStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  ACTIVE
+  CLOSED
+  WRITTEN_OFF
+}
+
+enum InterestType {
+  FLAT
+  REDUCING_BALANCE
+}
+
+enum RepaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+}
+
+model Loan {
+  id               String     @id @default(uuid())
+  tenantId         String     @map("tenant_id")
+  borrowerId       String     @map("borrower_id")
+  principalAmount  Decimal    @db.Decimal(12, 2) @map("principal_amount")
+  interestRate     Decimal    @db.Decimal(5, 2) @map("interest_rate")
+  interestType     InterestType @map("interest_type")
+  termMonths       Int        @map("term_months")
+  purpose          String?
+  status           LoanStatus @default(DRAFT)
+  requestedBy      String     @map("requested_by")
+  approvedBy       String?    @map("approved_by")
+  approvedAt       DateTime?  @map("approved_at")
+  rejectedReason   String?    @map("rejected_reason")
+  disbursedAt      DateTime?  @map("disbursed_at")
+  disbursedAmount  Decimal?   @db.Decimal(12, 2) @map("disbursed_amount")
+  closedAt         DateTime?  @map("closed_at")
+  writeOffAmount   Decimal?   @db.Decimal(12, 2) @map("write_off_amount")
+  writeOffReason   String?    @map("write_off_reason")
+  writtenOffAt     DateTime?  @map("written_off_at")
+  recoveredAmount  Decimal    @default(0) @db.Decimal(12, 2) @map("recovered_amount")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  collaterals LoanCollateral[]
+  schedule    RepaymentSchedule[]
+  repayments  LoanRepayment[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("loans")
+}
+
+model LoanCollateral {
+  id             String   @id @default(uuid())
+  tenantId       String   @map("tenant_id")
+  loanId         String   @map("loan_id")
+  loan           Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  description    String
+  estimatedValue Decimal  @db.Decimal(12, 2) @map("estimated_value")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([loanId])
+  @@map("loan_collaterals")
+}
+
+model RepaymentSchedule {
+  id                String          @id @default(uuid())
+  tenantId          String          @map("tenant_id")
+  loanId            String          @map("loan_id")
+  loan              Loan            @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  installmentNumber Int             @map("installment_number")
+  dueDate           DateTime        @map("due_date")
+  principalDue      Decimal         @db.Decimal(12, 2) @map("principal_due")
+  interestDue       Decimal         @db.Decimal(12, 2) @map("interest_due")
+  totalDue          Decimal         @db.Decimal(12, 2) @map("total_due")
+  amountPaid        Decimal         @default(0) @db.Decimal(12, 2) @map("amount_paid")
+  status            RepaymentStatus @default(PENDING)
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  repayments LoanRepayment[]
+
+  @@unique([loanId, installmentNumber])
+  @@index([loanId])
+  @@map("repayment_schedules")
+}
+
+model LoanRepayment {
+  id          String             @id @default(uuid())
+  tenantId    String             @map("tenant_id")
+  loanId      String             @map("loan_id")
+  loan        Loan               @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  scheduleId  String?            @map("schedule_id")
+  schedule    RepaymentSchedule? @relation(fields: [scheduleId], references: [id])
+  amount      Decimal            @db.Decimal(12, 2)
+  paidAt      DateTime           @map("paid_at")
+  method      String?
+  recordedBy  String             @map("recorded_by")
+  createdAt   DateTime           @default(now()) @map("created_at")
+
+  @@index([loanId])
+  @@map("loan_repayments")
+}
+
+model SecurityAuditLog {
+  id         String   @id @default(uuid())
+  tenantId   String   @map("tenant_id")
+  userId     String   @map("user_id")
+  action     String
+  resource   String
+  resourceId String   @map("resource_id")
+  payload    String
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId])
+  @@map("security_audit_logs")
+}

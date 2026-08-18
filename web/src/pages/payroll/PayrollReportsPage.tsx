@@ -26,7 +26,7 @@ export function PayrollReportsPage() {
     setErr(null);
     try {
       const [all, emps] = await Promise.all([fetchPayrollRuns(), fetchEmployees()]);
-      const locked = all.filter((r) => r.status === 'LOCKED');
+      const locked = all.filter((r) => (r.status as string) === 'LOCKED' || (r.status as string) === 'APPROVED' || (r.status as string) === 'COMPLETED');
       setRuns(locked);
       setEmployees(emps);
       if (locked[0]) setSelectedId(locked[0].id);

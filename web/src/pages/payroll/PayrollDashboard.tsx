@@ -25,7 +25,7 @@ export function PayrollDashboard() {
     ]).then(([employees, periods, contracts, clientList]) => {
       const list = Array.isArray(periods) ? periods : [];
       setStats({
-        activeEmployees: Array.isArray(employees) ? employees.length : (employees?.data?.length ?? 0),
+        activeEmployees: Array.isArray(employees) ? employees.length : ((employees as any)?.data?.length ?? 0),
         periodsNeedingAction: list.filter((period: any) => period.status !== 'FINALIZED').length,
         expiringContracts: Array.isArray(contracts) ? contracts.length : 0,
       });

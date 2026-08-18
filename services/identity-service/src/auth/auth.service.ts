@@ -10,13 +10,18 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { EwatuRole, getPermissionsForRoles } from '@ewatu/common-auth';
 import { PrismaService } from '../prisma/prisma.service';
-import { hashToken } from '../common/token-hash';
+import { hashToken, generateRawToken } from '../common/token-hash';
+import { dispatchNotification } from '../common/notification.dispatch';
 import { RefreshTokenService } from './refresh-token.service';
 import type { LoginDto } from './dtos/login.dto';
 import type { RegisterDto } from './dtos/register.dto';
 import type { ProvisionTenantOwnerDto } from '../internal/dtos/provision-tenant-owner.dto';
 
 const BCRYPT_ROUNDS = 12;
+const MAX_FAILED_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
+export const ACCOUNT_LOCKED_MESSAGE = 'ACCOUNT_LOCKED';
 
 @Injectable()
 export class AuthService {
@@ -54,7 +59,7 @@ export class AuthService {
 
     const refreshToken = await this.refreshTokens.generateRefreshToken(user.id, user.tenantId);
     return {
-      access_token: this.signAccessToken(user),
+      access_token: await this.signAccessToken(user),
       refresh_token: refreshToken,
       token_type: 'Bearer' as const,
     };
@@ -65,20 +70,95 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Invalid email or password');
     }
+    if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
+      throw new UnauthorizedException(ACCOUNT_LOCKED_MESSAGE);
+    }
+
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
     if (!ok) {
+      const attempts = user.failedLoginAttempts + 1;
+      const locking = attempts >= MAX_FAILED_LOGIN_ATTEMPTS;
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: locking ? 0 : attempts,
+          lockedUntil: locking ? new Date(Date.now() + LOCKOUT_DURATION_MS) : null,
+        },
+      });
+      if (locking) {
+        throw new UnauthorizedException(ACCOUNT_LOCKED_MESSAGE);
+      }
       throw new UnauthorizedException('Invalid email or password');
     }
     if (!user.active) {
       throw new UnauthorizedException('This account has been deactivated');
     }
 
+    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: 0, lockedUntil: null },
+      });
+    }
+
     const refreshToken = await this.refreshTokens.generateRefreshToken(user.id, user.tenantId);
     return {
-      access_token: this.signAccessToken(user),
+      access_token: await this.signAccessToken(user),
       refresh_token: refreshToken,
       token_type: 'Bearer' as const,
     };
+  }
+
+  /** Always resolves without revealing whether the email exists. */
+  async forgotPassword(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    if (user) {
+      const rawToken = generateRawToken();
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          resetPasswordTokenHash: hashToken(rawToken),
+          resetPasswordExpiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+        },
+      });
+
+      const webOrigin = (
+        (this.config.get<string>('CORS_ORIGIN') ?? 'http://localhost:5173').split(',')[0] ??
+        'http://localhost:5173'
+      ).trim();
+      const resetLink = `${webOrigin}/reset-password?token=${rawToken}`;
+
+      void dispatchNotification('password-reset-requested', {
+        email: user.email,
+        tenantId: user.tenantId ?? undefined,
+        resetLink,
+      });
+    }
+
+    return { message: 'Password reset link sent successfully.' };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { resetPasswordTokenHash: hashToken(token) },
+    });
+    if (!user || !user.resetPasswordExpiresAt || user.resetPasswordExpiresAt.getTime() < Date.now()) {
+      throw new BadRequestException('Invalid or expired reset link');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        resetPasswordTokenHash: null,
+        resetPasswordExpiresAt: null,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+      },
+    });
+
+    return { reset: true };
   }
 
   async refresh(rawRefreshToken: string) {
@@ -90,7 +170,7 @@ export class AuthService {
 
     const refreshToken = await this.refreshTokens.generateRefreshToken(user.id, user.tenantId);
     return {
-      access_token: this.signAccessToken(user),
+      access_token: await this.signAccessToken(user),
       refresh_token: refreshToken,
       token_type: 'Bearer' as const,
     };
@@ -159,7 +239,25 @@ export class AuthService {
     }
   }
 
-  private signAccessToken(user: {
+  /** Fetches the tenant's current lifecycle status from platform-service. Fails open (ACTIVE) on
+   *  any error — an outage in platform-service shouldn't lock every tenant out of logging in. */
+  private async resolveTenantStatus(tenantId: string): Promise<string> {
+    const base = this.config.get<string>('PLATFORM_SERVICE_URL')?.replace(/\/$/, '');
+    const key = this.config.get<string>('INTERNAL_API_KEY');
+    if (!base || !key) return 'ACTIVE';
+    try {
+      const res = await fetch(`${base}/api/v1/internal/tenants/${tenantId}`, {
+        headers: { 'x-internal-key': key },
+      });
+      if (!res.ok) return 'ACTIVE';
+      const body = (await res.json()) as { data?: { status?: string } };
+      return body.data?.status ?? 'ACTIVE';
+    } catch {
+      return 'ACTIVE';
+    }
+  }
+
+  private async signAccessToken(user: {
     id: string;
     email: string;
     displayName: string | null;
@@ -168,6 +266,7 @@ export class AuthService {
     emailVerified: boolean;
   }) {
     const expiresIn = this.config.get<string>('JWT_EXPIRES_IN', '15m');
+    const tenantStatus = user.tenantId ? await this.resolveTenantStatus(user.tenantId) : undefined;
     return this.jwt.sign(
       {
         sub: user.id,
@@ -176,6 +275,7 @@ export class AuthService {
         roles: user.roles,
         permissions: getPermissionsForRoles(user.roles),
         tenant_id: user.tenantId ?? undefined,
+        tenant_status: tenantStatus,
         email_verified: user.emailVerified,
       },
       { expiresIn },

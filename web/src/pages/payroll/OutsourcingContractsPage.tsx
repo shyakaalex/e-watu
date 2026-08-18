@@ -16,7 +16,7 @@ function daysUntil(d: string | null | undefined) {
   return Math.ceil((new Date(d).getTime() - Date.now()) / 86400000);
 }
 
-function ExpiryCell({ endDate }: { endDate: string | null }) {
+function ExpiryCell({ endDate }: { endDate: string | null; alert30?: boolean; alert60?: boolean; alert90?: boolean }) {
   const days = daysUntil(endDate);
   if (!endDate) return <span className="muted">Open-ended</span>;
   const dateStr = new Date(endDate).toLocaleDateString();
@@ -134,16 +134,107 @@ export function OutsourcingContractsPage() {
 
   const closeModal = () => { setModal(null); setSelected(null); };
 
+  // Calculate Expiration Metrics
+  const activeCount = contracts.filter(c => c.status === 'ACTIVE').length;
+  const exp30Count = contracts.filter(c => {
+    const d = daysUntil(c.endDate);
+    return c.status === 'ACTIVE' && d !== null && d >= 0 && d <= 30;
+  }).length;
+  const exp60Count = contracts.filter(c => {
+    const d = daysUntil(c.endDate);
+    return c.status === 'ACTIVE' && d !== null && d > 30 && d <= 60;
+  }).length;
+  const exp90Count = contracts.filter(c => {
+    const d = daysUntil(c.endDate);
+    return c.status === 'ACTIVE' && d !== null && d > 60 && d <= 90;
+  }).length;
+
   return (
     <div className="rec-page">
-      <div className="rec-page__header">
-        <div>
-          <h1 className="rec-page__title">Secondment Contracts</h1>
-          <p className="rec-page__sub">{contracts.filter(c => c.status === 'ACTIVE').length} active contracts</p>
+      {/* Module Feature Banner matching Reference Design */}
+      <div className="module-banner">
+        <div className="module-banner__header">
+          <div className="module-banner__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+          </div>
+          <div className="module-banner__title-group">
+            <h2 className="module-banner__title">Employee & Company Contract Management</h2>
+            <p className="module-banner__sub">
+              Manage employment contracts, client company SLAs, secondment agreements, and automated expiration tracking across your organisation.
+            </p>
+          </div>
+          <button className="btn btn--primary" onClick={() => setShowForm(v => !v)}>
+            {showForm ? 'Cancel' : '+ New contract'}
+          </button>
         </div>
-        <button className="btn btn--primary" onClick={() => setShowForm(v => !v)}>
-          {showForm ? 'Cancel' : '+ New contract'}
-        </button>
+
+        <div className="module-banner__body">
+          <span className="module-banner__section-label">Key Features</span>
+          <div className="module-banner__features-grid">
+            <div className="module-banner__feature-pill">
+              <span className="module-banner__check-icon">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M13.5 3.5L6 11 2.5 7.5l-1 1L6 13l8.5-8.5z" /></svg>
+              </span>
+              Employee Contract Tracking
+            </div>
+            <div className="module-banner__feature-pill">
+              <span className="module-banner__check-icon">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M13.5 3.5L6 11 2.5 7.5l-1 1L6 13l8.5-8.5z" /></svg>
+              </span>
+              Company B2B SLAs & Secondments
+            </div>
+            <div className="module-banner__feature-pill">
+              <span className="module-banner__check-icon">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M13.5 3.5L6 11 2.5 7.5l-1 1L6 13l8.5-8.5z" /></svg>
+              </span>
+              Automated Expiry Alerts (30/60/90 Days)
+            </div>
+            <div className="module-banner__feature-pill">
+              <span className="module-banner__check-icon">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M13.5 3.5L6 11 2.5 7.5l-1 1L6 13l8.5-8.5z" /></svg>
+              </span>
+              Contract Amendments & Audit Log
+            </div>
+            <div className="module-banner__feature-pill">
+              <span className="module-banner__check-icon">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M13.5 3.5L6 11 2.5 7.5l-1 1L6 13l8.5-8.5z" /></svg>
+              </span>
+              Termination & Renewal Workflows
+            </div>
+            <div className="module-banner__feature-pill">
+              <span className="module-banner__check-icon">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M13.5 3.5L6 11 2.5 7.5l-1 1L6 13l8.5-8.5z" /></svg>
+              </span>
+              Digital Document Storage & Presign
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Contract Expiration Tracking Bar */}
+      <div className="expiry-kpis">
+        <div className="expiry-kpi-card expiry-kpi-card--success">
+          <span className="expiry-kpi-card__label">Active Contracts</span>
+          <strong className="expiry-kpi-card__val">{activeCount}</strong>
+        </div>
+        <div className="expiry-kpi-card expiry-kpi-card--danger">
+          <span className="expiry-kpi-card__label">Expiring ≤ 30 Days</span>
+          <strong className="expiry-kpi-card__val">{exp30Count}</strong>
+        </div>
+        <div className="expiry-kpi-card expiry-kpi-card--warning">
+          <span className="expiry-kpi-card__label">Expiring 31–60 Days</span>
+          <strong className="expiry-kpi-card__val">{exp60Count}</strong>
+        </div>
+        <div className="expiry-kpi-card expiry-kpi-card--info">
+          <span className="expiry-kpi-card__label">Expiring 61–90 Days</span>
+          <strong className="expiry-kpi-card__val">{exp90Count}</strong>
+        </div>
       </div>
 
       {err && <div className="alert alert--err">{err}</div>}
@@ -151,7 +242,7 @@ export function OutsourcingContractsPage() {
       <div className="rec-page__actions" style={{ marginBottom: '1rem' }}>
         {(['ALL', 'ACTIVE', 'EXPIRED', 'TERMINATED', 'RENEWED'] as const).map(s => (
           <button key={s} type="button" className={`btn btn--sm${statusFilter === s ? ' btn--primary' : ''}`} onClick={() => setStatusFilter(s)}>
-            {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
+            {s === 'ALL' ? 'All Contracts' : s.charAt(0) + s.slice(1).toLowerCase()}
           </button>
         ))}
       </div>

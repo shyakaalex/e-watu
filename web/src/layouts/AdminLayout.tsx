@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { fetchMe } from '../api';
 import { hasAnyRole, PAYROLL_ROLES, RECRUITMENT_ROLES, TALENT_POOL_ROLES } from '../lib/roles';
@@ -12,6 +12,7 @@ export type AdminMe = {
   username?: string;
   roles: string[];
   tenant_id?: string;
+  tenant_status?: string;
 };
 
 export type AdminOutletContext = {
@@ -123,7 +124,7 @@ function NavSection({ label }: { label: string }) {
 
 function NavItem({ to, icon, label, end }: {
   to: string;
-  icon: JSX.Element;
+  icon: ReactNode;
   label: string;
   end?: boolean;
 }) {
@@ -173,6 +174,9 @@ export function AdminLayout() {
   useEffect(() => { load(); }, [load]);
 
   const isSuper = me?.roles.includes('PLATFORM_SUPER_ADMIN') ?? false;
+  // A tenant that isn't ACTIVE/TRIAL only gets the dashboard's status banner — everything else
+  // 403s server-side (TenantStatusGuard) anyway, so don't offer nav links that would just fail.
+  const tenantActive = !me?.tenant_id || ['ACTIVE', 'TRIAL'].includes(me.tenant_status ?? 'ACTIVE');
   const showRecruitment = me ? hasAnyRole(me.roles, RECRUITMENT_ROLES) : false;
   const showTalentPool = me ? hasAnyRole(me.roles, TALENT_POOL_ROLES) : false;
   const showPayroll = me ? hasAnyRole(me.roles, PAYROLL_ROLES) : false;
@@ -241,7 +245,7 @@ export function AdminLayout() {
             </>
           )}
 
-          {me.tenant_id && !isSuper && (
+          {me.tenant_id && !isSuper && tenantActive && (
             <>
               {showRecruitment && (
                 <NavItem to="/recruitment" icon={<IcoRecruitment />} label="Recruitment" />
@@ -249,8 +253,8 @@ export function AdminLayout() {
               {showPayroll && (
                 <>
                   <NavItem to="/payroll" icon={<IcoPayroll />} label="Payroll" />
-                  <NavItem to="/payroll/leave" icon={<IcoCalendar />} label="Leave Management" />
-                  <NavItem to="/payroll/performance/goals" icon={<IcoCheckSquare />} label="Performance" />
+                  <NavItem to="/leave" icon={<IcoCalendar />} label="Leave Management" />
+                  <NavItem to="/performance/goals" icon={<IcoCheckSquare />} label="Performance" />
                 </>
               )}
               {me.roles.includes('CLIENT_ADMIN') && (
@@ -294,6 +298,17 @@ export function AdminLayout() {
       </aside>
 
       <main className="adm-main">
+        <header className="adm-topbar">
+          <div className="adm-topbar__title">
+            <span>E-Watu Enterprise Suite</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div className="adm-topbar__status-pill">
+              <span className="adm-topbar__pulse"></span>
+              <span>{me.tenant_status ? `Tenant ${me.tenant_status}` : 'System Operational'}</span>
+            </div>
+          </div>
+        </header>
         <Outlet context={outletContext} />
       </main>
     </div>

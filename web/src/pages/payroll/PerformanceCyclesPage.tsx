@@ -53,14 +53,14 @@ export function PerformanceCyclesPage() {
       const user = await fetchMe();
       setMe(user);
 
-      const cycleList = await fetchAppraisalCycles();
-      setCycles(cycleList);
+      const cycleList: any = await fetchAppraisalCycles();
+      setCycles(cycleList || []);
 
       const fw = await fetchCompetencyFramework();
       setFramework(fw);
 
-      const tmplList = await fetchGoalTemplates();
-      setTemplates(tmplList);
+      const tmplList: any = await fetchGoalTemplates();
+      setTemplates(tmplList || []);
 
       try {
         const clientList = await fetchPayrollConfigClients();

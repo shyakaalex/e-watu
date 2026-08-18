@@ -1452,6 +1452,75 @@ code {
   animation: spin 0.75s linear infinite;
 }
 
+.auth-btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 0.5rem;
+  vertical-align: -2px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+}
+
+.auth-input-group {
+  position: relative;
+  display: flex;
+}
+
+.auth-input-group .auth-input {
+  flex: 1;
+  padding-right: 2.75rem;
+}
+
+.auth-input-toggle {
+  position: absolute;
+  right: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.35rem;
+  color: var(--ink-muted);
+  display: flex;
+  align-items: center;
+}
+
+.auth-input-toggle:hover {
+  color: var(--ink);
+}
+
+.auth-row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: -0.35rem;
+}
+
+.auth-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.auth-checkbox-label input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
+}
+
+.auth-link-inline {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 /* ═══════════════════════════════════════════════════════
    RECRUITMENT MODULE
    ═══════════════════════════════════════════════════════ */
@@ -2395,3 +2464,303 @@ code {
   height: 32px !important;
   font-size: 0.78rem !important;
 }
+
+/* ============================================================
+   EXECUTIVE DARK THEME OVERRIDES (PRESERVING BRAND COLORS)
+   ============================================================ */
+
+/* Global Font & Dark Base */
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', var(--font);
+  background: #070c18;
+  color: #f8fafc;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Headings & Text Color Fixes */
+h1, h2, h3, h4, h5, h6,
+.adm-page__title,
+.rec-page__title,
+.auth-heading,
+.card-title,
+.rec-form-card__title,
+.adm-card__title,
+.candidate-card__name,
+.rec-job-card__title {
+  color: #f8fafc !important;
+}
+
+.muted,
+.text-muted,
+.rec-page__sub,
+.adm-page__lead,
+.auth-lead,
+.rec-form__hint,
+.pnav__brand-sub {
+  color: #94a3b8 !important;
+}
+
+/* Dark Glassmorphism Cards */
+.card,
+.rec-form-card,
+.candidate-card,
+.tp-pool-card,
+.rec-job-card,
+.auth-panel--action,
+.app-card,
+.modal-card,
+.drawer-card {
+  background: #0e172a;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.35);
+  color: #f8fafc;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card:hover,
+.candidate-card:hover,
+.tp-pool-card:hover,
+.rec-job-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px -8px rgba(0, 70, 108, 0.35);
+  border-color: rgba(0, 70, 108, 0.45);
+}
+
+/* Buttons Polish (Dark Mode) */
+.btn {
+  font-family: 'Plus Jakarta Sans', var(--font);
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 0.55rem 1.15rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btn--primary {
+  background: linear-gradient(135deg, #00466c 0%, #002d47 100%);
+  color: #ffffff !important;
+  border: 1px solid #005a8a;
+  box-shadow: 0 4px 14px rgba(0, 70, 108, 0.4);
+}
+.btn--primary:hover {
+  background: linear-gradient(135deg, #005d8f 0%, #00466c 100%);
+  box-shadow: 0 6px 18px rgba(0, 70, 108, 0.55);
+  transform: translateY(-1px);
+}
+.btn--primary:active {
+  transform: translateY(0);
+}
+
+.btn--accent,
+.btn--nav-primary,
+.pnav__btn--primary {
+  background: linear-gradient(135deg, #f5911e 0%, #d97d0f 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #e07f0f !important;
+  box-shadow: 0 4px 14px rgba(245, 145, 30, 0.35) !important;
+}
+.btn--accent:hover,
+.btn--nav-primary:hover,
+.pnav__btn--primary:hover {
+  background: linear-gradient(135deg, #ff9f33 0%, #f5911e 100%) !important;
+  box-shadow: 0 6px 20px rgba(245, 145, 30, 0.45) !important;
+  transform: translateY(-1px);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: #ffb74d;
+  border: 1px solid rgba(245, 145, 30, 0.25);
+}
+.btn--ghost:hover {
+  background: rgba(245, 145, 30, 0.12);
+  border-color: #f5911e;
+  color: #ffa726;
+}
+
+.btn--danger {
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  color: #ffffff;
+  border: 1px solid #b91c1c;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.3);
+}
+.btn--danger:hover {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.45);
+  transform: translateY(-1px);
+}
+
+/* Dark Input & Select Controls */
+.auth-input,
+.rec-search__input,
+.form input,
+.rec-form input,
+select.auth-input,
+textarea.auth-input,
+textarea.rec-textarea {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0.65rem 0.9rem;
+  font-family: 'Plus Jakarta Sans', var(--font);
+  font-size: 0.92rem;
+  color: #f8fafc;
+  background: #131f38;
+  transition: all 0.15s ease-in-out;
+}
+
+.auth-input::placeholder,
+.rec-search__input::placeholder,
+.form input::placeholder,
+.rec-form input::placeholder,
+textarea.auth-input::placeholder {
+  color: #64748b;
+}
+
+.auth-input:focus,
+.rec-search__input:focus,
+.form input:focus,
+.rec-form input:focus,
+select.auth-input:focus,
+textarea.auth-input:focus,
+textarea.rec-textarea:focus {
+  outline: none;
+  border-color: #f5911e;
+  box-shadow: 0 0 0 3.5px rgba(245, 145, 30, 0.2);
+  background: #172645;
+}
+
+/* High-Density Dark Table */
+table,
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.88rem;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+table th,
+.table th {
+  background: #0b1220;
+  color: #60a5fa;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+table td,
+.table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+  background: #0e172a;
+  vertical-align: middle;
+}
+
+table tr:last-child td,
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+table tr:hover td,
+.table tr:hover td {
+  background: #15223c;
+}
+
+/* Status Badges (Dark Mode Vibrant) */
+.badge {
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.badge--green {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge--blue {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.badge--teal {
+  background: rgba(0, 70, 108, 0.35);
+  color: #93c5fd;
+  border: 1px solid rgba(0, 70, 108, 0.5);
+}
+
+.badge--orange {
+  background: rgba(245, 145, 30, 0.15);
+  color: #ffb74d;
+  border: 1px solid rgba(245, 145, 30, 0.3);
+}
+
+.badge--purple {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.badge--red {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.badge--gray {
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Glassmorphic Dark Modals */
+.modal-overlay,
+.drawer-overlay {
+  background: rgba(3, 7, 18, 0.75);
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-card,
+.drawer-card {
+  background: #0e172a;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  color: #f8fafc;
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+

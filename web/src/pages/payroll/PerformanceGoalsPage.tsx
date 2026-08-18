@@ -45,19 +45,19 @@ export function PerformanceGoalsPage() {
       const user = await fetchMe();
       setMe(user);
 
-      const cycleList = await fetchAppraisalCycles();
-      setCycles(cycleList);
-      const activeCycle = cycleList.find((c) => c.status === 'ACTIVE') || cycleList[0];
+      const cycleList: any = await fetchAppraisalCycles();
+      setCycles(cycleList || []);
+      const activeCycle = (cycleList || []).find((c: any) => c.status === 'ACTIVE') || cycleList?.[0];
       if (activeCycle) setSelectedCycleId(activeCycle.id);
 
       const empList = await fetchEmployees();
       setEmployees(empList);
 
-      const matchedEmp = empList.find((e) => e.email.toLowerCase() === user.email.toLowerCase());
+      const matchedEmp = empList.find((e: any) => Boolean(e.email && user?.email && e.email.toLowerCase() === user.email.toLowerCase()));
       if (matchedEmp) setSelectedEmployeeId(matchedEmp.id);
 
-      const tmplList = await fetchGoalTemplates();
-      setTemplates(tmplList);
+      const tmplList: any = await fetchGoalTemplates();
+      setTemplates(tmplList || []);
     } catch (err: any) {
       setError(err.message || 'Failed to initialize Goal Setting page');
     } finally {
@@ -73,8 +73,8 @@ export function PerformanceGoalsPage() {
 
   const loadGoals = async () => {
     try {
-      const list = await fetchGoals(selectedEmployeeId, selectedCycleId);
-      setGoals(list);
+      const list: any = await fetchGoals(selectedEmployeeId, selectedCycleId);
+      setGoals(list || []);
     } catch (err: any) {
       console.error(err);
     }
@@ -478,7 +478,7 @@ export function PerformanceGoalsPage() {
                   <div
                     className="card"
                     key={t.id}
-                    style={{ padding: '0.8rem', cursor: 'pointer', hover: { background: '#f9f9f9' } }}
+                    style={{ padding: '0.8rem', cursor: 'pointer' }}
                     onClick={() => handleImportTemplate(t)}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>

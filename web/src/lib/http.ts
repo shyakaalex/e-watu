@@ -58,6 +58,25 @@ function redirectToLogin(): void {
   }
 }
 
+function redirectToTenantBlocked(code: string): void {
+  if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/company-blocked')) {
+    window.location.href = `/company-blocked?code=${encodeURIComponent(code)}`;
+  }
+}
+
+async function checkTenantBlocked(r: Response): Promise<void> {
+  if (r.status !== 403) return;
+  try {
+    const body = (await r.clone().json()) as { code?: string; error?: { code?: string } };
+    const code = body.code ?? body.error?.code;
+    if (typeof code === 'string' && code.startsWith('TENANT_')) {
+      redirectToTenantBlocked(code);
+    }
+  } catch {
+    // Not JSON, or body already consumed elsewhere — not our concern here.
+  }
+}
+
 function clearSessionAndRedirect(): void {
   clearAuthTokens();
   stopProactiveTokenRefresh();
@@ -164,6 +183,8 @@ export async function authFetch(url: string, init: RequestInit = {}): Promise<Re
       return new Response(null, { status: 401 });
     }
   }
+
+  await checkTenantBlocked(r);
 
   return r;
 }

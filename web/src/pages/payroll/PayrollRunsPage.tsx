@@ -1,12 +1,15 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { createPayrollRun, fetchPayrollRuns, type PayrollRun } from '../../payrollApi';
+import { createPayrollRun, fetchPayrollConfigClients, fetchPayrollRuns, type PayrollRun } from '../../payrollApi';
+import { parseApiError } from '../../lib/parseApiError';
 
 export function PayrollRunsPage() {
   const [runs, setRuns] = useState<PayrollRun[]>([]);
+  const [clients, setClients] = useState<{ clientId: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [clientId, setClientId] = useState('');
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
 
@@ -14,9 +17,11 @@ export function PayrollRunsPage() {
     setLoading(true);
     setErr(null);
     try {
-      setRuns(await fetchPayrollRuns());
+      const [runsList, clientList] = await Promise.all([fetchPayrollRuns(), fetchPayrollConfigClients()]);
+      setRuns(runsList);
+      setClients(clientList);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(parseApiError(e).message);
     } finally {
       setLoading(false);
     }
@@ -31,10 +36,10 @@ export function PayrollRunsPage() {
     setBusy(true);
     setErr(null);
     try {
-      await createPayrollRun({ periodYear: year, periodMonth: month });
+      await createPayrollRun({ clientId, periodYear: year, periodMonth: month });
       await load();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(parseApiError(e).message);
     } finally {
       setBusy(false);
     }
@@ -56,6 +61,15 @@ export function PayrollRunsPage() {
         <form className="rec-form" onSubmit={onCreate}>
           <div className="rec-form__grid">
             <label className="rec-form__label">
+              Client
+              <select className="auth-input" value={clientId} onChange={(e) => setClientId(e.target.value)} required>
+                <option value="">Select client…</option>
+                {clients.map((c) => (
+                  <option key={c.clientId} value={c.clientId}>{c.clientId}</option>
+                ))}
+              </select>
+            </label>
+            <label className="rec-form__label">
               Year
               <input className="auth-input" type="number" value={year} onChange={(e) => setYear(Number(e.target.value))} required />
             </label>
@@ -64,8 +78,13 @@ export function PayrollRunsPage() {
               <input className="auth-input" type="number" min={1} max={12} value={month} onChange={(e) => setMonth(Number(e.target.value))} required />
             </label>
           </div>
+          {clients.length === 0 && (
+            <p className="muted small">
+              No clients configured yet. <Link to="/payroll/clients">Add a client</Link> before creating a run.
+            </p>
+          )}
           <div className="rec-form__actions">
-            <button className="btn btn--primary" type="submit" disabled={busy}>{busy ? 'Creating…' : 'Create run'}</button>
+            <button className="btn btn--primary" type="submit" disabled={busy || !clientId}>{busy ? 'Creating…' : 'Create run'}</button>
           </div>
         </form>
       </div>

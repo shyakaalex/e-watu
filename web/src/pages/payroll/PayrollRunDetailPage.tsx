@@ -12,6 +12,13 @@ import {
   type PayrollLine,
   type PayrollRun,
 } from '../../payrollApi';
+import { parseApiError } from '../../lib/parseApiError';
+
+const NEXT_APPROVER_BY_STATUS: Record<string, string> = {
+  SUBMITTED: 'HR_MANAGER',
+  HR_APPROVED: 'MD',
+  MD_APPROVED: 'CLIENT_ADMIN',
+};
 
 export function PayrollRunDetailPage() {
   const { runId } = useParams<{ runId: string }>();
@@ -30,7 +37,7 @@ export function PayrollRunDetailPage() {
     try {
       setRun(await fetchPayrollRun(runId));
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(parseApiError(e).message);
     } finally {
       setLoading(false);
     }
@@ -46,7 +53,7 @@ export function PayrollRunDetailPage() {
     try {
       setRun(await fn());
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      setErr(parseApiError(e).message);
     } finally {
       setBusy(false);
     }
@@ -55,7 +62,7 @@ export function PayrollRunDetailPage() {
   const startEdit = (line: PayrollLine) => {
     setEditingLineId(line.id);
     setEditGross(line.grossPay);
-    setEditDeductions(line.deductions);
+    setEditDeductions(line.totalDeductions);
   };
 
   const saveLine = async () => {
@@ -63,7 +70,7 @@ export function PayrollRunDetailPage() {
     await act(() =>
       updatePayrollLine(run.id, editingLineId, {
         grossPay: Number(editGross),
-        deductions: Number(editDeductions),
+        totalDeductions: Number(editDeductions),
       }),
     );
     setEditingLineId(null);
@@ -72,7 +79,7 @@ export function PayrollRunDetailPage() {
   if (loading) return <div className="rec-page"><p className="muted">Loading run…</p></div>;
   if (!run) return <div className="rec-page"><p className="alert alert--err">{err ?? 'Run not found'}</p></div>;
 
-  const pendingStage = run.approvals?.find((a) => a.status === 'PENDING')?.stage;
+  const nextApproverRole = NEXT_APPROVER_BY_STATUS[run.status];
   const editable = run.status === 'DRAFT';
 
   return (
@@ -92,16 +99,16 @@ export function PayrollRunDetailPage() {
           {run.status === 'DRAFT' && (
             <button className="btn btn--primary" disabled={busy} onClick={() => act(() => submitPayrollRun(run.id))}>Submit for approval</button>
           )}
-          {run.status === 'IN_REVIEW' && pendingStage && (
+          {nextApproverRole && (
             <>
-              <button className="btn btn--primary" disabled={busy} onClick={() => act(() => approvePayrollStage(run.id, pendingStage))}>Approve {pendingStage}</button>
-              <button className="btn btn--ghost" disabled={busy} onClick={() => act(() => rejectPayrollStage(run.id, pendingStage))}>Reject</button>
+              <button className="btn btn--primary" disabled={busy} onClick={() => act(() => approvePayrollStage(run.id, nextApproverRole))}>Approve ({nextApproverRole})</button>
+              <button className="btn btn--ghost" disabled={busy} onClick={() => act(() => rejectPayrollStage(run.id, nextApproverRole))}>Reject</button>
             </>
           )}
-          {run.status === 'APPROVED' && (
-            <button className="btn btn--primary" disabled={busy} onClick={() => act(() => lockPayrollRun(run.id))}>Lock run</button>
+          {run.status === 'CLIENT_APPROVED' && (
+            <button className="btn btn--primary" disabled={busy} onClick={() => act(() => lockPayrollRun(run.id))}>Finalize run</button>
           )}
-          {run.status === 'LOCKED' && (
+          {run.status === 'FINALIZED' && (
             <button
               className="btn btn--ghost"
               disabled={busy}
@@ -113,7 +120,7 @@ export function PayrollRunDetailPage() {
                   setErr(null);
                   alert(`Emailed ${result.emailedCount} payslip(s)`);
                 } catch (e) {
-                  setErr(e instanceof Error ? e.message : String(e));
+                  setErr(parseApiError(e).message);
                 } finally {
                   setBusy(false);
                 }
@@ -139,7 +146,7 @@ export function PayrollRunDetailPage() {
             </tr>
           </thead>
           <tbody>
-            {(run.payrollLines ?? []).map((line) => (
+            {(run.records ?? []).map((line) => (
               <tr key={line.id}>
                 <td>
                   {line.employee
@@ -159,7 +166,7 @@ export function PayrollRunDetailPage() {
                 ) : (
                   <>
                     <td>{line.grossPay}</td>
-                    <td>{line.deductions}</td>
+                    <td>{line.totalDeductions}</td>
                     <td>{line.netPay}</td>
                     {editable && (
                       <td>
@@ -179,7 +186,10 @@ export function PayrollRunDetailPage() {
           <h2 className="rec-form-card__title">Approval chain</h2>
           <ul>
             {run.approvals.map((a) => (
-              <li key={a.id}>{a.stage}: {a.status}</li>
+              <li key={a.id}>
+                {a.approverRole}: {a.action}
+                {a.comments ? ` — ${a.comments}` : ''}
+              </li>
             ))}
           </ul>
         </div>

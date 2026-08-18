@@ -17,6 +17,8 @@ export type Employee = {
   startDate: string | null;
   placementId: string | null;
   candidateId: string | null;
+  department?: string | null;
+  managerId?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -36,41 +38,51 @@ export type PayrollLine = {
   id: string;
   employeeId: string;
   grossPay: string;
-  deductions: string;
+  totalDeductions: string;
   netPay: string;
   employee?: Employee;
 };
 
 export type PayrollRunApproval = {
   id: string;
-  stage: 'FO' | 'HR' | 'MD' | 'CLIENT';
-  status: 'INACTIVE' | 'PENDING' | 'APPROVED' | 'REJECTED';
-  actedBy: string | null;
-  actedAt: string | null;
-  note: string | null;
+  approverRole: 'HR_MANAGER' | 'MD' | 'CLIENT_ADMIN';
+  action: 'APPROVED' | 'REJECTED';
+  approverId: string;
+  comments: string | null;
+  createdAt: string;
 };
+
+export type PayrollRunStatus =
+  | 'DRAFT'
+  | 'SUBMITTED'
+  | 'HR_APPROVED'
+  | 'MD_APPROVED'
+  | 'CLIENT_APPROVED'
+  | 'FINALIZED';
 
 export type PayrollRun = {
   id: string;
   tenantId: string;
+  clientId: string;
   periodYear: number;
   periodMonth: number;
-  status: 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'LOCKED';
+  status: PayrollRunStatus;
   currency: string;
   submittedAt: string | null;
-  approvedAt: string | null;
-  lockedAt: string | null;
-  payrollLines?: PayrollLine[];
+  finalizedAt: string | null;
+  records?: PayrollLine[];
   approvals?: PayrollRunApproval[];
 };
 
 export type LeaveType = {
   id: string;
+  tenantId: string;
   code: string;
   name: string;
-  paid: boolean;
-  annualAllowanceDays: string | null;
-  active: boolean;
+  description: string | null;
+  defaultDays: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type LeaveRequest = {
@@ -79,11 +91,20 @@ export type LeaveRequest = {
   leaveTypeId: string;
   startDate: string;
   endDate: string;
-  days: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  numberOfDays: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
   reason: string | null;
+  approvedById: string | null;
+  approvedAt: string | null;
+  rejectionReason: string | null;
+  attachmentS3Key: string | null;
+  attachmentUrl?: string | null;
+  delegateToEmployeeId: string | null;
+  emergencyContactPhone: string | null;
+  createdAt: string;
   employee?: Employee;
   leaveType?: LeaveType;
+  delegateTo?: { id: string; firstName: string; lastName: string } | null;
 };
 
 export type DeploymentStatus = 'ACTIVE' | 'ON_LEAVE' | 'RECALLED' | 'TRANSFERRED' | 'ON_BENCH';
@@ -331,6 +352,7 @@ export async function fetchPayrollRun(id: string): Promise<PayrollRun> {
 }
 
 export async function createPayrollRun(body: {
+  clientId: string;
   periodYear: number;
   periodMonth: number;
 }): Promise<PayrollRun> {
@@ -350,7 +372,7 @@ export async function submitPayrollRun(id: string): Promise<PayrollRun> {
 }
 
 export async function lockPayrollRun(id: string): Promise<PayrollRun> {
-  const r = await payrollFetch(`/api/v1/payroll/runs/${id}/lock`, {
+  const r = await payrollFetch(`/api/v1/payroll/runs/${id}/finalize`, {
     method: 'POST',
     body: JSON.stringify({}),
   });
@@ -358,7 +380,7 @@ export async function lockPayrollRun(id: string): Promise<PayrollRun> {
 }
 
 export async function recalculatePayrollRun(id: string): Promise<PayrollRun> {
-  const r = await payrollFetch(`/api/v1/payroll/runs/${id}/recalculate`, {
+  const r = await payrollFetch(`/api/v1/payroll/runs/${id}/run`, {
     method: 'POST',
     body: JSON.stringify({}),
   });
@@ -368,7 +390,7 @@ export async function recalculatePayrollRun(id: string): Promise<PayrollRun> {
 export async function updatePayrollLine(
   runId: string,
   lineId: string,
-  body: { grossPay?: number; deductions?: number },
+  body: { grossPay?: number; totalDeductions?: number },
 ): Promise<PayrollRun> {
   const r = await payrollFetch(`/api/v1/payroll/runs/${runId}/lines/${lineId}`, {
     method: 'PATCH',
@@ -379,24 +401,24 @@ export async function updatePayrollLine(
 
 export async function approvePayrollStage(
   runId: string,
-  stage: string,
+  _stage: string,
   note?: string,
 ): Promise<PayrollRun> {
-  const r = await payrollFetch(`/api/v1/payroll/runs/${runId}/approvals/${stage}/approve`, {
+  const r = await payrollFetch(`/api/v1/payroll/runs/${runId}/approve`, {
     method: 'POST',
-    body: JSON.stringify({ note }),
+    body: JSON.stringify({ comments: note }),
   });
   return parseJson(r);
 }
 
 export async function rejectPayrollStage(
   runId: string,
-  stage: string,
+  _stage: string,
   note?: string,
 ): Promise<PayrollRun> {
-  const r = await payrollFetch(`/api/v1/payroll/runs/${runId}/approvals/${stage}/reject`, {
+  const r = await payrollFetch(`/api/v1/payroll/runs/${runId}/reject`, {
     method: 'POST',
-    body: JSON.stringify({ note }),
+    body: JSON.stringify({ comments: note }),
   });
   return parseJson(r);
 }
@@ -623,8 +645,32 @@ export async function fetchLeaveTypes(): Promise<LeaveType[]> {
   return parseJson(r);
 }
 
-export async function fetchLeaveRequests(status?: string): Promise<LeaveRequest[]> {
-  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+export type LeaveRequestFilters = {
+  status?: string;
+  employeeId?: string;
+  department?: string;
+  leaveTypeId?: string;
+  managerId?: string;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+};
+
+export async function fetchLeaveRequests(
+  status?: string,
+  employeeId?: string,
+  filters?: Omit<LeaveRequestFilters, 'status' | 'employeeId'>,
+): Promise<LeaveRequest[]> {
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  if (employeeId) params.set('employeeId', employeeId);
+  if (filters?.department) params.set('department', filters.department);
+  if (filters?.leaveTypeId) params.set('leaveTypeId', filters.leaveTypeId);
+  if (filters?.managerId) params.set('managerId', filters.managerId);
+  if (filters?.startDate) params.set('startDate', filters.startDate);
+  if (filters?.endDate) params.set('endDate', filters.endDate);
+  if (filters?.search) params.set('search', filters.search);
+  const qs = params.toString() ? `?${params.toString()}` : '';
   const r = await payrollFetch(`/api/v1/hr/leave-requests${qs}`);
   return parseJson(r);
 }
@@ -636,12 +682,33 @@ export async function createLeaveRequest(body: {
   endDate: string;
   days?: number;
   reason?: string;
+  attachmentS3Key?: string;
+  delegateToEmployeeId?: string;
+  emergencyContactPhone?: string;
 }): Promise<LeaveRequest> {
   const r = await payrollFetch('/api/v1/hr/leave-requests', {
     method: 'POST',
     body: JSON.stringify(body),
   });
   return parseJson(r);
+}
+
+export async function uploadLeaveAttachment(
+  leaveRequestId: string,
+  file: File,
+): Promise<{ uploadUrl: string; objectKey: string }> {
+  const r = await payrollFetch(`/api/v1/hr/leave-requests/${leaveRequestId}/attachment`, {
+    method: 'POST',
+    body: JSON.stringify({ contentType: file.type || 'application/octet-stream', fileSize: file.size }),
+  });
+  const presign = await parseJson<{ uploadUrl: string; objectKey: string }>(r);
+  const put = await fetch(presign.uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type || 'application/octet-stream' },
+    body: file,
+  });
+  if (!put.ok) throw new Error('Failed to upload attachment');
+  return presign;
 }
 
 export async function approveLeaveRequest(id: string, note?: string): Promise<LeaveRequest> {
@@ -654,6 +721,14 @@ export async function approveLeaveRequest(id: string, note?: string): Promise<Le
 
 export async function rejectLeaveRequest(id: string, note?: string): Promise<LeaveRequest> {
   const r = await payrollFetch(`/api/v1/hr/leave-requests/${id}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ note }),
+  });
+  return parseJson(r);
+}
+
+export async function requestMoreInfoOnLeave(id: string, note: string): Promise<{ requested: boolean }> {
+  const r = await payrollFetch(`/api/v1/hr/leave-requests/${id}/request-info`, {
     method: 'POST',
     body: JSON.stringify({ note }),
   });
@@ -832,7 +907,17 @@ export async function fetchPeriodPayslips(periodId: string) {
   return parseJson(r);
 }
 
-export async function fetchLeaveBalances(employeeId: string, year?: number) {
+export type LeaveBalance = {
+  id: string;
+  employeeId: string;
+  leaveTypeId: string;
+  year: number;
+  allocatedDays: string;
+  usedDays: string;
+  leaveType?: LeaveType;
+};
+
+export async function fetchLeaveBalances(employeeId: string, year?: number): Promise<LeaveBalance[]> {
   const query = year ? `?employeeId=${employeeId}&year=${year}` : `?employeeId=${employeeId}`;
   const r = await payrollFetch(`/api/v1/hr/leave-balances${query}`);
   return parseJson(r);

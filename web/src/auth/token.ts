@@ -1,10 +1,33 @@
 const ACCESS_KEY = 'ewatu_access_token';
 const REFRESH_KEY = 'ewatu_refresh_token';
+const REMEMBER_KEY = 'ewatu_remember_me';
 const EVT = 'ewatu-auth-change';
+
+/** "Remember me" unchecked → tokens live in sessionStorage and disappear when the browser closes. */
+function activeStorage(): Storage {
+  try {
+    return localStorage.getItem(REMEMBER_KEY) === '0' ? sessionStorage : localStorage;
+  } catch {
+    return localStorage;
+  }
+}
+
+function inactiveStorage(): Storage {
+  return activeStorage() === localStorage ? sessionStorage : localStorage;
+}
+
+/** Call before login so the tokens land in the right storage. Defaults to remembered (localStorage). */
+export function setRememberMe(remember: boolean): void {
+  try {
+    localStorage.setItem(REMEMBER_KEY, remember ? '1' : '0');
+  } catch {
+    // ignore
+  }
+}
 
 export function getAccessToken(): string | null {
   try {
-    return localStorage.getItem(ACCESS_KEY);
+    return activeStorage().getItem(ACCESS_KEY);
   } catch {
     return null;
   }
@@ -12,8 +35,10 @@ export function getAccessToken(): string | null {
 
 export function setAccessToken(token: string | null): void {
   try {
-    if (token) localStorage.setItem(ACCESS_KEY, token);
-    else localStorage.removeItem(ACCESS_KEY);
+    const store = activeStorage();
+    if (token) store.setItem(ACCESS_KEY, token);
+    else store.removeItem(ACCESS_KEY);
+    inactiveStorage().removeItem(ACCESS_KEY);
   } finally {
     window.dispatchEvent(new Event(EVT));
   }
@@ -21,7 +46,7 @@ export function setAccessToken(token: string | null): void {
 
 export function getRefreshToken(): string | null {
   try {
-    return localStorage.getItem(REFRESH_KEY);
+    return activeStorage().getItem(REFRESH_KEY);
   } catch {
     return null;
   }
@@ -29,8 +54,10 @@ export function getRefreshToken(): string | null {
 
 export function setRefreshToken(token: string | null): void {
   try {
-    if (token) localStorage.setItem(REFRESH_KEY, token);
-    else localStorage.removeItem(REFRESH_KEY);
+    const store = activeStorage();
+    if (token) store.setItem(REFRESH_KEY, token);
+    else store.removeItem(REFRESH_KEY);
+    inactiveStorage().removeItem(REFRESH_KEY);
   } finally {
     window.dispatchEvent(new Event(EVT));
   }

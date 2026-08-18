@@ -1233,3 +1233,429 @@
   font-size: 0.8rem;
   color: #64748b;
 }
+
+/* ============================================================
+   HR ERP SHOWCASE SECTION (HR Firm Specific)
+   ============================================================ */
+
+.hr-showcase {
+  padding: 5rem 1.5rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-top: 1px solid #e8edf2;
+  border-bottom: 1px solid #e8edf2;
+}
+
+.hr-showcase__container {
+  max-width: 1160px;
+  margin: 0 auto;
+}
+
+.hr-showcase__header {
+  max-width: 780px;
+  margin-bottom: 3.5rem;
+}
+
+.hr-showcase__title {
+  margin: 0 0 1rem;
+  font-size: clamp(2rem, 3.8vw, 3rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+}
+
+.hr-showcase__subtitle {
+  margin: 0 0 1.5rem;
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: #64748b;
+}
+
+.hr-showcase__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.hr-showcase__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  transition: all 0.2s ease;
+}
+
+.hr-showcase__badge svg {
+  width: 14px;
+  height: 14px;
+  color: #059669;
+}
+
+.hr-showcase__badge:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* 2-Column Layout */
+.hr-showcase__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: flex-start;
+}
+
+@media (max-width: 960px) {
+  .hr-showcase__grid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+}
+
+/* Feature Cards List */
+.hr-showcase__features {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 600px) {
+  .hr-showcase__features {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hr-feature-card {
+  display: flex;
+  flex-direction: column;
+  padding: 1.35rem 1.25rem;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.hr-feature-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  border-color: #cbd5e1;
+}
+
+.hr-feature-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #e0f2fe;
+  color: #0284c7;
+  margin-bottom: 0.85rem;
+  flex-shrink: 0;
+}
+
+.hr-feature-card__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.hr-feature-card__title {
+  margin: 0 0 0.35rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #0f172a;
+}
+
+.hr-feature-card__desc {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+/* Mockup Wrapper */
+.hr-showcase__mockup-wrapper {
+  position: relative;
+  padding: 2rem;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.06);
+}
+
+.hr-mockup-floating-icon {
+  position: absolute;
+  top: -16px;
+  right: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #0f766e;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(15, 118, 110, 0.35);
+  transform: rotate(6deg);
+}
+
+.hr-mockup-floating-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.hr-mockup-selector {
+  margin-bottom: 1.25rem;
+}
+
+.hr-mockup-selector__label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.hr-mockup-selector__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.hr-emp-pill {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.hr-emp-pill:hover {
+  background: #f8fafc;
+  border-color: #0f766e;
+  color: #0f766e;
+}
+
+.hr-emp-pill--active {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #ffffff;
+}
+
+.hr-emp-pill--active:hover {
+  background: #0d9488;
+  color: #ffffff;
+}
+
+/* Card Mockup Body */
+.hr-mockup-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Top Card */
+.hr-emp-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.hr-emp-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.hr-emp-info {
+  flex: 1;
+}
+
+.hr-emp-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.hr-emp-name {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.hr-emp-status {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: #d1fae5;
+  color: #065f46;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.hr-emp-role {
+  margin: 0.15rem 0 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+/* Quick Info Grid */
+.hr-emp-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.hr-emp-metric {
+  padding: 0.85rem;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.hr-emp-metric__label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 0.25rem;
+}
+
+.hr-emp-metric__val {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Payroll Summary Box */
+.hr-payroll-box {
+  padding: 1.5rem;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+.hr-payroll-box__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.hr-payroll-box__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.hr-payroll-box__period {
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.hr-payroll-box__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.hr-payroll-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hr-payroll-row__label {
+  font-size: 0.875rem;
+  color: #475569;
+}
+
+.hr-payroll-row__val {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.hr-payroll-row__val--pos {
+  color: #059669;
+}
+
+.hr-payroll-row__val--neg {
+  color: #dc2626;
+}
+
+.hr-payroll-box__divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 1.25rem 0;
+}
+
+.hr-payroll-box__total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hr-payroll-total__label {
+  display: block;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.hr-payroll-total__trend {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #059669;
+}
+
+.hr-payroll-total__trend svg {
+  width: 12px;
+  height: 12px;
+}
+
+.hr-payroll-total__val {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f766e;
+}
+

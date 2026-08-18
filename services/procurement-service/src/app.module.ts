@@ -6,6 +6,7 @@ import { VendorsModule } from './vendors/vendors.module';
 import { RequisitionsModule } from './requisitions/requisitions.module';
 import { OrdersModule } from './orders/orders.module';
 import { ReceiptsModule } from './receipts/receipts.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ReceiptsModule } from './receipts/receipts.module';
     RequisitionsModule,
     OrdersModule,
     ReceiptsModule,
+    HealthModule,
   ],
 })
 export class AppModule implements NestModule {

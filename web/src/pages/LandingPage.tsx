@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { PublicNav } from '../components/PublicNav';
 import { LandingHeroVisual } from './LandingHeroVisual';
+import { HrShowcaseSection } from './HrShowcaseSection';
 import './landing-hero.css';
 
 const features = [
@@ -214,6 +215,8 @@ export function LandingPage() {
           </div>
         </div>
       </section>
+
+      <HrShowcaseSection />
 
       <section id="features" className="ls-section ls-section--alt">
         <div className="ls-container">

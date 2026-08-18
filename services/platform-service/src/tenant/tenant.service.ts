@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, TenantStatus } from '@prisma/client';
 import { NotifyService } from '../notify/notify.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTenantDto } from './dtos/create-tenant.dto';
@@ -67,7 +67,7 @@ export class TenantService {
 
   findPending() {
     return this.prisma.tenant.findMany({
-      where: { status: 'PENDING_APPROVAL' },
+      where: { status: 'PENDING_ACTIVATION' },
       orderBy: { createdAt: 'asc' },
     });
   }
@@ -75,8 +75,8 @@ export class TenantService {
   async approve(id: string) {
     const t = await this.prisma.tenant.findUnique({ where: { id } });
     if (!t) throw new NotFoundException('Tenant not found');
-    if (t.status !== 'PENDING_APPROVAL') {
-      throw new BadRequestException('Only PENDING_APPROVAL tenants can be approved');
+    if (t.status !== 'PENDING_ACTIVATION') {
+      throw new BadRequestException('Only PENDING_ACTIVATION tenants can be approved');
     }
     const updated = await this.prisma.tenant.update({
       where: { id },
@@ -99,8 +99,8 @@ export class TenantService {
   async reject(id: string, reason?: string) {
     const t = await this.prisma.tenant.findUnique({ where: { id } });
     if (!t) throw new NotFoundException('Tenant not found');
-    if (t.status !== 'PENDING_APPROVAL') {
-      throw new BadRequestException('Only PENDING_APPROVAL tenants can be rejected');
+    if (t.status !== 'PENDING_ACTIVATION') {
+      throw new BadRequestException('Only PENDING_ACTIVATION tenants can be rejected');
     }
     const updated = await this.prisma.tenant.update({
       where: { id },
@@ -144,7 +144,7 @@ export class TenantService {
           slug: dto.slug,
           plan: dto.plan ?? null,
           country: dto.country?.toUpperCase() ?? 'RW',
-          status: dto.status ?? 'ACTIVE',
+          status: (dto.status as TenantStatus | undefined) ?? TenantStatus.ACTIVE,
         },
       });
     } catch (e) {

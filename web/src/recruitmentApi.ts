@@ -47,15 +47,7 @@ export type JobMetrics = {
   conversionRates: Record<string, number>;
 };
 
-export type CandidateSource =
-  | 'E_WATU_PORTAL'
-  | 'WEBSITE'
-  | 'MANUAL'
-  | 'REFERRAL'
-  | 'LINKEDIN'
-  | 'WALK_IN'
-  | 'IMPORT'
-  | 'PORTAL';
+export type CandidateSource = 'REFERRAL' | 'JOB_BOARD' | 'DIRECT' | 'AGENCY' | 'OTHER';
 
 export type CandidateStatus =
   | 'ACTIVE'
@@ -216,7 +208,14 @@ export type ApplicationStage =
   | 'PLACED'
   | 'REJECTED';
 
-export type ApplicationSource = CandidateSource;
+export type ApplicationSource =
+  | 'E_WATU_PORTAL'
+  | 'WEBSITE'
+  | 'MANUAL'
+  | 'REFERRAL'
+  | 'LINKEDIN'
+  | 'WALK_IN'
+  | 'IMPORT';
 
 export type StageHistory = {
   id: string;

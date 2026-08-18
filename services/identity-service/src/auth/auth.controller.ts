@@ -1,11 +1,13 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
-import { JwtAuthGuard } from '@ewatu/common-auth';
+import { AllowTenantStatus, JwtAuthGuard } from '@ewatu/common-auth';
 import { AuthService } from './auth.service';
+import { ForgotPasswordDto } from './dtos/forgot-password.dto';
 import { LoginDto } from './dtos/login.dto';
 import { LogoutDto } from './dtos/logout.dto';
 import { RefreshDto } from './dtos/refresh.dto';
 import { RegisterDto } from './dtos/register.dto';
+import { ResetPasswordDto } from './dtos/reset-password.dto';
 import { VerifyEmailDto } from './dtos/verify-email.dto';
 
 @Controller('auth')
@@ -18,8 +20,8 @@ export class AuthController {
     return this.auth.register(body);
   }
 
+  @SkipThrottle()
   @Post('login')
-  @Throttle({ login: { limit: 5, ttl: 15 * 60 * 1000 } })
   login(@Body() body: LoginDto) {
     return this.auth.login(body);
   }
@@ -32,6 +34,7 @@ export class AuthController {
 
   @SkipThrottle()
   @UseGuards(JwtAuthGuard)
+  @AllowTenantStatus('SUSPENDED', 'EXPIRED', 'PENDING_ACTIVATION', 'REJECTED')
   @Post('logout')
   logout(@Body() body: LogoutDto) {
     return this.auth.logout(body.refreshToken);
@@ -41,5 +44,16 @@ export class AuthController {
   @Post('verify-email')
   verifyEmail(@Body() body: VerifyEmailDto) {
     return this.auth.verifyEmail(body.token);
+  }
+
+  @Post('forgot-password')
+  forgotPassword(@Body() body: ForgotPasswordDto) {
+    return this.auth.forgotPassword(body.email);
+  }
+
+  @SkipThrottle()
+  @Post('reset-password')
+  resetPassword(@Body() body: ResetPasswordDto) {
+    return this.auth.resetPassword(body.token, body.newPassword);
   }
 }

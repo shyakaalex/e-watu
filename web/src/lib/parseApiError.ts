@@ -17,8 +17,27 @@ const FRIENDLY_BY_CODE: Record<
   },
 };
 
+const TENANT_STATUS_MESSAGES: Record<string, string> = {
+  TENANT_SUSPENDED: 'This company account has been suspended. Please contact your administrator.',
+  TENANT_EXPIRED: "This company's subscription has expired. Please renew to continue.",
+  TENANT_PENDING_ACTIVATION: 'This company is awaiting approval from the platform team.',
+  TENANT_REJECTED: "This company's registration was not approved.",
+};
+
 function fromNestMessage(message: string): ParsedApiError | null {
   const lower = message.toLowerCase();
+  for (const [code, friendly] of Object.entries(TENANT_STATUS_MESSAGES)) {
+    if (lower.includes(code.toLowerCase())) {
+      return { title: 'Company access restricted', message: friendly, code, variant: 'warning' };
+    }
+  }
+  if (lower.includes('account_locked')) {
+    return {
+      title: 'Account locked',
+      message: 'Your account has been temporarily locked. Please contact your administrator.',
+      variant: 'error',
+    };
+  }
   if (lower.includes('invalid email or password')) {
     return {
       title: 'Sign-in failed',

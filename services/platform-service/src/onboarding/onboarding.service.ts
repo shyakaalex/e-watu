@@ -30,7 +30,7 @@ export class OnboardingService {
       data: {
         name: dto.companyName,
         slug,
-        status: 'PENDING_APPROVAL',
+        status: 'PENDING_ACTIVATION',
         country: dto.country,
         businessEmail: dto.businessEmail,
         phone: dto.phone ?? null,
@@ -81,12 +81,12 @@ export class OnboardingService {
       template: 'welcome',
       payload: { companyName: dto.companyName },
       title: 'Application received',
-      body: `Your application for ${dto.companyName} is under review. You can sign in while you wait for approval.`,
+      body: `Your application for ${dto.companyName} is under review. You'll be notified once it's approved.`,
     });
 
     return {
       message:
-        'Application received. Your company is under review by the platform team. You can sign in straight away while you wait.',
+        'Application received. Your company is under review by the platform team. You can sign in any time to check your status.',
       tenantId: tenant.id,
       slug: tenant.slug,
       access: {
