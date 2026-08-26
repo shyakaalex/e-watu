@@ -52,7 +52,7 @@ export function TeamKpisPage() {
   const loadPeriodData = async () => {
     try {
       const [preview, subs] = await Promise.all([
-        previewTeamKpi(selectedPeriodId).catch(() => null),
+        isSeniorOfficer ? Promise.resolve(null) : previewTeamKpi(selectedPeriodId).catch(() => null),
         fetchTeamKpis({ kpiPeriodId: selectedPeriodId }),
       ]);
       setRollup(preview);
