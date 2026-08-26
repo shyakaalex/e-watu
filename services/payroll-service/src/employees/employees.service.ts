@@ -150,6 +150,15 @@ export class EmployeesService {
     };
   }
 
+  /** Self-service lookup: find the employee record linked to the caller's own account email. */
+  async findMyRecord(tenantId: string, email: string) {
+    const employee = await this.prisma.employee.findFirst({
+      where: { tenantId, email: { equals: email, mode: 'insensitive' } },
+    });
+    if (!employee) throw new NotFoundException('No employee record is linked to this account');
+    return this.sanitizeEmployee(employee);
+  }
+
   async findOne(tenantId: string, id: string) {
     const employee = await this.prisma.employee.findFirst({
       where: { id, tenantId },

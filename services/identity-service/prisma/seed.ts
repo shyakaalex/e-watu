@@ -65,13 +65,33 @@ async function main() {
     },
   });
 
+  await prisma.user.upsert({
+    where: { email: 'grace.mukamana@ewatu.dev' },
+    update: {
+      passwordHash,
+      emailVerified: true,
+      roles: ['TENANT_STAFF'],
+      emailVerificationToken: null,
+      ...(tenantId ? { tenantId } : {}),
+    },
+    create: {
+      email: 'grace.mukamana@ewatu.dev',
+      passwordHash,
+      displayName: 'Grace Mukamana',
+      roles: ['TENANT_STAFF'],
+      emailVerified: true,
+      tenantId: tenantId ?? undefined,
+    },
+  });
+
   console.log('\nDev login accounts (local only):\n');
   console.log('  Platform admin → admin@ewatu.dev / DevPassword12!');
   console.log('  Company admin  → tenant@ewatu.dev / DevPassword12!');
+  console.log('  Employee       → grace.mukamana@ewatu.dev / DevPassword12! (no Employee record seeded yet — create one with this email in the tenant to use the Employee Portal dashboard)');
   if (!tenantId) {
-    console.log('\n  (Run platform seed for demo-tenant to link tenant@ewatu.dev to a company.)\n');
+    console.log('\n  (Run platform seed for demo-tenant to link these accounts to a company.)\n');
   } else {
-    console.log(`\n  tenant@ewatu.dev linked to demo-tenant (${tenantId})\n`);
+    console.log(`\n  Linked to demo-tenant (${tenantId})\n`);
   }
 }
 

@@ -37,11 +37,17 @@ export class EmployeesController {
     return this.employees.findAll(user.tenant_id as string, query);
   }
 
-  // Static segment before `:id` routes to avoid path conflicts.
+  // Static segments before `:id` routes to avoid path conflicts.
   @Post('import/csv')
   @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
   bulkImport(@CurrentUser() user: AuthUser, @Body() body: BulkImportEmployeesDto) {
     return this.employees.bulkImport(user.tenant_id as string, body.rows);
+  }
+
+  /** No @Roles guard — any authenticated tenant user may look up their own linked employee record. */
+  @Get('me')
+  getMyRecord(@CurrentUser() user: AuthUser) {
+    return this.employees.findMyRecord(user.tenant_id as string, user.email as string);
   }
 
   @Get(':id')

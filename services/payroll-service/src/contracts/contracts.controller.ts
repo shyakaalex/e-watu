@@ -10,11 +10,22 @@ import {
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
 import { ContractsService } from './contracts.service';
+import { EmployeesService } from '../employees/employees.service';
 
 @Controller()
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ContractsController {
-  constructor(private readonly service: ContractsService) {}
+  constructor(
+    private readonly service: ContractsService,
+    private readonly employees: EmployeesService,
+  ) {}
+
+  /** No @Roles guard — self-service: an employee may see their own contracts. */
+  @Get('employees/me/contracts')
+  async findMine(@CurrentUser() user: AuthUser) {
+    const me = await this.employees.findMyRecord(user.tenant_id as string, user.email as string);
+    return this.service.findByEmployee(user.tenant_id as string, me.id);
+  }
 
   @Post('employees/:employeeId/contracts')
   @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
