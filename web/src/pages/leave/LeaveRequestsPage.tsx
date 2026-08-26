@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { fetchMe } from '../../api';
 import { parseApiError } from '../../lib/parseApiError';
-import { fetchEmployees, fetchLeaveRequests, type LeaveRequest } from '../../payrollApi';
+import { fetchMyEmployee, fetchLeaveRequests, type LeaveRequest } from '../../payrollApi';
 
 export function LeaveRequestsPage() {
   const location = useLocation();
@@ -16,10 +15,7 @@ export function LeaveRequestsPage() {
       try {
         setLoading(true);
         setError(null);
-        const me = await fetchMe();
-        const empList = await fetchEmployees();
-        const userEmail = me.email?.toLowerCase();
-        const matchedEmp = empList.find((e) => e.email?.toLowerCase() === userEmail) || empList[0];
+        const matchedEmp = await fetchMyEmployee();
         const reqs = await fetchLeaveRequests(undefined, matchedEmp?.id);
         setRequests(reqs);
       } catch (err) {

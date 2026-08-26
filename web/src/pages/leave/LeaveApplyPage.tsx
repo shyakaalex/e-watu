@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchMe } from '../../api';
 import { parseApiError } from '../../lib/parseApiError';
 import {
   fetchLeaveTypes,
   fetchEmployees,
+  fetchMyEmployee,
   createLeaveRequest,
   uploadLeaveAttachment,
   type LeaveType,
@@ -50,14 +50,18 @@ export function LeaveApplyPage() {
     (async () => {
       try {
         setLoading(true);
-        const me = await fetchMe();
-        const [types, empList] = await Promise.all([fetchLeaveTypes(), fetchEmployees()]);
+        const [types, matchedEmp] = await Promise.all([fetchLeaveTypes(), fetchMyEmployee()]);
         setLeaveTypes(types);
-        setEmployees(empList);
-        const userEmail = me.email?.toLowerCase();
-        const matchedEmp = empList.find((e) => e.email?.toLowerCase() === userEmail) || empList[0];
         if (matchedEmp) {
           setFormData((prev) => ({ ...prev, employeeId: matchedEmp.id }));
+        }
+        try {
+          // Listing all employees requires HR/admin privileges — used here only to populate
+          // the "delegate to" picker. A plain employee without that access can still submit
+          // their own request; the delegate picker just falls back to themselves alone.
+          setEmployees(await fetchEmployees());
+        } catch {
+          setEmployees(matchedEmp ? [matchedEmp] : []);
         }
       } catch (err) {
         setLoadError(parseApiError(err).message);

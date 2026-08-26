@@ -1,24 +1,24 @@
 import { useEffect, useState } from 'react';
-import { fetchMe } from '../../api';
 import { parseApiError } from '../../lib/parseApiError';
-import { fetchEmployees, fetchLeaveBalances, type LeaveBalance } from '../../payrollApi';
+import { fetchMyEmployee, fetchLeaveBalances, type LeaveBalance } from '../../payrollApi';
 
 export function MyLeaveBalancePage() {
   const [balances, setBalances] = useState<LeaveBalance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [noRecord, setNoRecord] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
         setError(null);
-        const me = await fetchMe();
-        const empList = await fetchEmployees();
-        const userEmail = me.email?.toLowerCase();
-        const matchedEmp = empList.find((e) => e.email?.toLowerCase() === userEmail) || empList[0];
-        if (matchedEmp) {
-          setBalances(await fetchLeaveBalances(matchedEmp.id));
+        setNoRecord(false);
+        const me = await fetchMyEmployee();
+        if (me) {
+          setBalances(await fetchLeaveBalances(me.id));
+        } else {
+          setNoRecord(true);
         }
       } catch (err) {
         setError(parseApiError(err).message);
@@ -46,6 +46,9 @@ export function MyLeaveBalancePage() {
       </div>
 
       {error && <div className="alert alert--err">{error}</div>}
+      {noRecord && !error && (
+        <div className="alert alert--warn">No employee record is linked to your account yet — ask HR to link your profile.</div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
         {balances.length === 0 ? (

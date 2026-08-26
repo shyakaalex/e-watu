@@ -3,10 +3,9 @@ import { Link } from 'react-router-dom';
 import { fetchMe } from '../../api';
 import { parseApiError } from '../../lib/parseApiError';
 import {
-  fetchEmployees,
+  fetchMyEmployee,
   fetchLeaveBalances,
   fetchLeaveRequests,
-  type Employee,
   type LeaveBalance,
   type LeaveRequest,
 } from '../../payrollApi';
@@ -122,9 +121,7 @@ export function LeaveDashboardPage() {
         setLoading(true);
         setError(null);
         const me = await fetchMe();
-        const empList: Employee[] = await fetchEmployees();
-        const userEmail = me.email?.toLowerCase();
-        const matchedEmp = empList.find((e) => e.email?.toLowerCase() === userEmail) || empList[0];
+        const matchedEmp = await fetchMyEmployee();
         setFirstName(matchedEmp?.firstName ?? me.username ?? me.email?.split('@')[0] ?? 'there');
 
         const empId = matchedEmp?.id;

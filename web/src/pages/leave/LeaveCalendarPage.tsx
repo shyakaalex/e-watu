@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchMe } from '../../api';
 import { parseApiError } from '../../lib/parseApiError';
-import { fetchEmployees, fetchLeaveRequests, type LeaveRequest } from '../../payrollApi';
+import { fetchMyEmployee, fetchLeaveRequests, type LeaveRequest } from '../../payrollApi';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -33,10 +32,7 @@ export function LeaveCalendarPage() {
       try {
         setLoading(true);
         setError(null);
-        const me = await fetchMe();
-        const empList = await fetchEmployees();
-        const userEmail = me.email?.toLowerCase();
-        const matchedEmp = empList.find((e) => e.email?.toLowerCase() === userEmail) || empList[0];
+        const matchedEmp = await fetchMyEmployee();
         setRequests(await fetchLeaveRequests(undefined, matchedEmp?.id));
       } catch (err) {
         setError(parseApiError(err).message);
