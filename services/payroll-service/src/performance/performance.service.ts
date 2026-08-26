@@ -602,4 +602,100 @@ export class PerformanceService {
 
     return response;
   }
+
+  // --- PERFORMANCE IMPROVEMENT PLANS (PIPs) ---
+
+  async listPips(tenantId: string, employeeId?: string, status?: string) {
+    return this.prisma.performanceImprovementPlan.findMany({
+      where: {
+        tenantId,
+        ...(employeeId ? { employeeId } : {}),
+        ...(status ? { status: status as any } : {}),
+      },
+      include: {
+        employee: true,
+        checkIns: { orderBy: { createdAt: 'desc' } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getPip(tenantId: string, id: string) {
+    const pip = await this.prisma.performanceImprovementPlan.findUnique({
+      where: { id },
+      include: {
+        employee: true,
+        appraisal: true,
+        checkIns: { orderBy: { createdAt: 'desc' } },
+      },
+    });
+    if (!pip || pip.tenantId !== tenantId) {
+      throw new NotFoundException('Performance improvement plan not found');
+    }
+    return pip;
+  }
+
+  async createPip(
+    tenantId: string,
+    createdBy: string,
+    body: {
+      employeeId: string;
+      appraisalId?: string;
+      managerId?: string;
+      reason: string;
+      objectives: string;
+      supportProvided?: string;
+      startDate: string;
+      reviewDate: string;
+    },
+  ) {
+    return this.prisma.performanceImprovementPlan.create({
+      data: {
+        tenantId,
+        employeeId: body.employeeId,
+        appraisalId: body.appraisalId,
+        managerId: body.managerId,
+        reason: body.reason,
+        objectives: body.objectives,
+        supportProvided: body.supportProvided,
+        startDate: new Date(body.startDate),
+        reviewDate: new Date(body.reviewDate),
+        status: 'ACTIVE',
+        createdBy,
+      },
+    });
+  }
+
+  async updatePip(
+    tenantId: string,
+    id: string,
+    body: Partial<{
+      status: 'ACTIVE' | 'EXTENDED' | 'SUCCEEDED' | 'ESCALATED' | 'CLOSED';
+      reviewDate: string;
+      endDate: string;
+      outcome: string;
+    }>,
+  ) {
+    const pip = await this.prisma.performanceImprovementPlan.findUnique({ where: { id } });
+    if (!pip || pip.tenantId !== tenantId) {
+      throw new NotFoundException('Performance improvement plan not found');
+    }
+
+    const data: any = { ...body };
+    if (body.reviewDate) data.reviewDate = new Date(body.reviewDate);
+    if (body.endDate) data.endDate = new Date(body.endDate);
+
+    return this.prisma.performanceImprovementPlan.update({ where: { id }, data });
+  }
+
+  async addPipCheckIn(tenantId: string, pipId: string, body: { note: string; status?: string }) {
+    const pip = await this.prisma.performanceImprovementPlan.findUnique({ where: { id: pipId } });
+    if (!pip || pip.tenantId !== tenantId) {
+      throw new NotFoundException('Performance improvement plan not found');
+    }
+
+    return this.prisma.pipCheckIn.create({
+      data: { pipId, note: body.note, status: body.status },
+    });
+  }
 }

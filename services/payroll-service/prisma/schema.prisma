@@ -134,6 +134,8 @@ model Employee {
   appraisals            Appraisal[]
   feedbackNominees      FeedbackRequest[] @relation("FeedbackNominee")
   feedbackReviewers     FeedbackRequest[] @relation("FeedbackReviewer")
+  performanceImprovementPlans PerformanceImprovementPlan[]
+  permits               Permit[]
 
   @@index([tenantId])
   @@index([tenantId, clientId])
@@ -574,6 +576,7 @@ model Appraisal {
   goalRatings       AppraisalGoalRating[]
   competencyRatings AppraisalCompetencyRating[]
   feedbackRequests  FeedbackRequest[]
+  improvementPlans  PerformanceImprovementPlan[]
 
   @@unique([employeeId, cycleId])
   @@index([tenantId])
@@ -649,6 +652,114 @@ model FeedbackResponse {
   request           FeedbackRequest @relation(fields: [feedbackRequestId], references: [id], onDelete: Cascade)
 
   @@map("feedback_responses")
+}
+
+enum PipStatus {
+  ACTIVE
+  EXTENDED
+  SUCCEEDED
+  ESCALATED
+  CLOSED
+}
+
+model PerformanceImprovementPlan {
+  id              String    @id @default(uuid())
+  tenantId        String    @map("tenant_id")
+  employeeId      String    @map("employee_id")
+  appraisalId     String?   @map("appraisal_id")
+  managerId       String?   @map("manager_id")
+  reason          String
+  objectives      String
+  supportProvided String?   @map("support_provided")
+  startDate       DateTime  @map("start_date")
+  reviewDate      DateTime  @map("review_date")
+  endDate         DateTime? @map("end_date")
+  status          PipStatus @default(ACTIVE)
+  outcome         String?
+  createdBy       String?   @map("created_by")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  employee        Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  appraisal       Appraisal? @relation(fields: [appraisalId], references: [id], onDelete: SetNull)
+  checkIns        PipCheckIn[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([employeeId])
+  @@map("performance_improvement_plans")
+}
+
+model PipCheckIn {
+  id        String   @id @default(uuid())
+  pipId     String   @map("pip_id")
+  note      String
+  status    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  pip       PerformanceImprovementPlan @relation(fields: [pipId], references: [id], onDelete: Cascade)
+
+  @@index([pipId])
+  @@map("pip_check_ins")
+}
+
+enum PermitType {
+  WORK_PERMIT
+  VISA
+  RESIDENCE_PERMIT
+}
+
+enum PermitStatus {
+  APPROVED
+  EXPIRED
+  REVOKED
+}
+
+enum ChecklistItemStatus {
+  PENDING
+  UPLOADED
+  VERIFIED
+}
+
+model Permit {
+  id           String       @id @default(uuid())
+  tenantId     String       @map("tenant_id")
+  employeeId   String       @map("employee_id")
+  permitNumber String       @map("permit_number")
+  permitType   PermitType   @map("permit_type")
+  country      String       @default("RW")
+  expiryDate   DateTime     @map("expiry_date")
+  status       PermitStatus @default(APPROVED)
+  alert90Sent  Boolean      @default(false) @map("alert_90_sent")
+  alert60Sent  Boolean      @default(false) @map("alert_60_sent")
+  alert30Sent  Boolean      @default(false) @map("alert_30_sent")
+  alert7Sent   Boolean      @default(false) @map("alert_7_sent")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  employee       Employee              @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  checklistItems PermitChecklistItem[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([employeeId])
+  @@map("permits")
+}
+
+model PermitChecklistItem {
+  id           String              @id @default(uuid())
+  tenantId     String              @map("tenant_id")
+  permitId     String              @map("permit_id")
+  documentName String              @map("document_name")
+  status       ChecklistItemStatus @default(PENDING)
+  fileKey      String?             @map("file_key")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  permit Permit @relation(fields: [permitId], references: [id], onDelete: Cascade)
+
+  @@index([permitId])
+  @@map("permit_checklist_items")
 }
 
 model SecurityAuditLog {

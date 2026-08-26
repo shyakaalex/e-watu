@@ -6,6 +6,7 @@ const SUBJECTS: Record<string, string> = {
   'leave-approved': 'Leave request approved',
   'leave-rejected': 'Leave request rejected',
   'leave-info-requested': 'More information requested on your leave request',
+  'permit-expiring': 'Work permit / visa expiring soon',
 };
 
 /** Fire-and-forget notification dispatch to notification-service. */

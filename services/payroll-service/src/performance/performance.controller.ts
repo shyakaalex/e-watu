@@ -227,4 +227,67 @@ export class PerformanceController {
   ) {
     return this.service.submitFeedbackResponse(user.tenant_id as string, id, body);
   }
+
+  // --- PERFORMANCE IMPROVEMENT PLANS (PIPs) ---
+
+  @Get('pips')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  listPips(
+    @CurrentUser() user: AuthUser,
+    @Query('employeeId') employeeId?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.service.listPips(user.tenant_id as string, employeeId, status);
+  }
+
+  @Get('pips/:id')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  getPip(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.service.getPip(user.tenant_id as string, id);
+  }
+
+  @Post('pips')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  createPip(
+    @CurrentUser() user: AuthUser,
+    @Body()
+    body: {
+      employeeId: string;
+      appraisalId?: string;
+      managerId?: string;
+      reason: string;
+      objectives: string;
+      supportProvided?: string;
+      startDate: string;
+      reviewDate: string;
+    },
+  ) {
+    return this.service.createPip(user.tenant_id as string, user.sub, body);
+  }
+
+  @Patch('pips/:id')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  updatePip(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body()
+    body: Partial<{
+      status: 'ACTIVE' | 'EXTENDED' | 'SUCCEEDED' | 'ESCALATED' | 'CLOSED';
+      reviewDate: string;
+      endDate: string;
+      outcome: string;
+    }>,
+  ) {
+    return this.service.updatePip(user.tenant_id as string, id, body);
+  }
+
+  @Post('pips/:id/check-ins')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  addPipCheckIn(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() body: { note: string; status?: string },
+  ) {
+    return this.service.addPipCheckIn(user.tenant_id as string, id, body);
+  }
 }
