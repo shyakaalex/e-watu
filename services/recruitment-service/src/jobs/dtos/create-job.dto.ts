@@ -1,11 +1,13 @@
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNumber,
   IsOptional,
   IsPositive,
   IsString,
+  IsUrl,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -36,6 +38,12 @@ export enum FeeType {
   PERCENTAGE = 'PERCENTAGE',
   FLAT_FEE = 'FLAT_FEE',
   MONTHLY_RETAINER = 'MONTHLY_RETAINER',
+}
+
+export enum WorkplaceType {
+  ON_SITE = 'ON_SITE',
+  REMOTE = 'REMOTE',
+  HYBRID = 'HYBRID',
 }
 
 export class CreateJobDto {
@@ -101,6 +109,39 @@ export class CreateJobDto {
   @IsOptional()
   @IsString()
   qualifications?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  responsibilities?: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2)
+  country?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  category?: string;
+
+  @IsOptional()
+  @IsEnum(WorkplaceType)
+  workplaceType?: WorkplaceType;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  salaryText?: string;
+
+  @IsOptional()
+  @IsUrl()
+  @MaxLength(500)
+  externalApplyUrl?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  externalApplyEnabled?: boolean;
 
   @IsOptional()
   @IsString()

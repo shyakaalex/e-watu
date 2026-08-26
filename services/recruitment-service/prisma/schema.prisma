@@ -26,6 +26,13 @@ model Job {
   deadline       DateTime?
   requiredSkills String[]  @default([]) @map("required_skills")
   qualifications String?
+  responsibilities String[] @default([]) @map("responsibilities")
+  country        String?   @default("RW")
+  category       String?
+  workplaceType  String    @default("ON_SITE") @map("workplace_type")
+  salaryText     String?   @map("salary_text")
+  externalApplyEnabled Boolean @default(false) @map("external_apply_enabled")
+  externalApplyUrl     String? @map("external_apply_url")
   clientId       String?   @map("client_id")
   clientName     String?   @map("client_name")
   consultantId   String?   @map("consultant_id")

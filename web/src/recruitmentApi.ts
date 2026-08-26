@@ -28,6 +28,13 @@ export type Job = {
   deadline: string | null;
   requiredSkills: string[];
   qualifications: string | null;
+  responsibilities: string[];
+  country: string | null;
+  category: string | null;
+  workplaceType: WorkplaceType;
+  salaryText: string | null;
+  externalApplyEnabled: boolean;
+  externalApplyUrl: string | null;
   clientId: string | null;
   clientName: string | null;
   consultantId: string | null;
@@ -38,6 +45,8 @@ export type Job = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type WorkplaceType = 'ON_SITE' | 'REMOTE' | 'HYBRID';
 
 export type JobMetrics = {
   jobId: string;
@@ -397,6 +406,13 @@ export async function createJob(body: {
   deadline?: string;
   requiredSkills?: string[];
   qualifications?: string;
+  responsibilities?: string[];
+  country?: string;
+  category?: string;
+  workplaceType?: WorkplaceType;
+  salaryText?: string;
+  externalApplyEnabled?: boolean;
+  externalApplyUrl?: string;
   clientId?: string;
   clientName?: string;
   consultantId?: string;
