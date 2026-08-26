@@ -278,6 +278,7 @@ export function AdminLayout() {
               <NavSection label="Others" />
               <NavItem to="/platform/settings" icon={<IcoSettings />} label="Settings" />
               <NavItem to="/platform/users" icon={<IcoUsers />} label="Team" />
+              <NavItem to="/platform/departments" icon={<IcoTenants />} label="Departments" />
             </>
           )}
         </nav>

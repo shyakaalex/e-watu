@@ -1261,6 +1261,7 @@ export type TeamKpiRollup = {
 export type TeamKpiSubmission = TeamKpiRollup & {
   id: string;
   tenantId: string;
+  teamId: string;
   teamLeaderId: string;
   kpiPeriodId: string;
   status: TeamKpiStatus;
@@ -1269,6 +1270,7 @@ export type TeamKpiSubmission = TeamKpiRollup & {
   reviewerId: string | null;
   reviewedAt: string | null;
   reviewComment: string | null;
+  team?: Team;
   period?: KpiPeriod;
 };
 
@@ -1339,8 +1341,8 @@ export async function decideKpi(
   return parseJson(r);
 }
 
-export async function previewTeamKpi(kpiPeriodId: string): Promise<TeamKpiRollup> {
-  const r = await payrollFetch(`/api/v1/performance/team-kpis/preview?kpiPeriodId=${kpiPeriodId}`);
+export async function previewTeamKpi(teamId: string, kpiPeriodId: string): Promise<TeamKpiRollup> {
+  const r = await payrollFetch(`/api/v1/performance/team-kpis/preview?teamId=${teamId}&kpiPeriodId=${kpiPeriodId}`);
   return parseJson(r);
 }
 
@@ -1357,6 +1359,7 @@ export async function fetchTeamKpis(params?: {
 }
 
 export async function submitTeamKpi(body: {
+  teamId: string;
   kpiPeriodId: string;
   summary?: string;
 }): Promise<TeamKpiSubmission> {
@@ -1373,5 +1376,82 @@ export async function decideTeamKpi(
     body: JSON.stringify(body),
   });
   return parseJson(r);
+}
+
+// --- Teams (Departments / Org Structure) ---
+
+export type TeamMemberRole = 'LEAD' | 'CORE' | 'MEMBER';
+
+export type TeamMember = {
+  id: string;
+  tenantId: string;
+  teamId: string;
+  employeeId: string;
+  role: TeamMemberRole;
+  createdAt: string;
+  employee?: { id: string; firstName: string; lastName: string; jobTitle?: string; email?: string };
+};
+
+export type Team = {
+  id: string;
+  tenantId: string;
+  name: string;
+  parentTeamId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  members?: TeamMember[];
+};
+
+export type MyTeam = Team & { myRole: TeamMemberRole };
+
+export async function fetchTeams(): Promise<Team[]> {
+  const r = await payrollFetch('/api/v1/teams');
+  return parseJson(r);
+}
+
+export async function fetchMyTeams(): Promise<MyTeam[]> {
+  const r = await payrollFetch('/api/v1/teams/mine');
+  return parseJson(r);
+}
+
+export async function createTeam(body: { name: string; parentTeamId?: string }): Promise<Team> {
+  const r = await payrollFetch('/api/v1/teams', { method: 'POST', body: JSON.stringify(body) });
+  return parseJson(r);
+}
+
+export async function updateTeam(
+  id: string,
+  body: { name?: string; parentTeamId?: string | null },
+): Promise<Team> {
+  const r = await payrollFetch(`/api/v1/teams/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+  return parseJson(r);
+}
+
+export async function deleteTeam(id: string): Promise<void> {
+  await payrollFetch(`/api/v1/teams/${id}`, { method: 'DELETE' });
+}
+
+export async function addTeamMember(
+  teamId: string,
+  body: { employeeId: string; role?: TeamMemberRole },
+): Promise<TeamMember> {
+  const r = await payrollFetch(`/api/v1/teams/${teamId}/members`, { method: 'POST', body: JSON.stringify(body) });
+  return parseJson(r);
+}
+
+export async function updateTeamMember(
+  teamId: string,
+  employeeId: string,
+  body: { role: TeamMemberRole },
+): Promise<TeamMember> {
+  const r = await payrollFetch(`/api/v1/teams/${teamId}/members/${employeeId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  return parseJson(r);
+}
+
+export async function removeTeamMember(teamId: string, employeeId: string): Promise<void> {
+  await payrollFetch(`/api/v1/teams/${teamId}/members/${employeeId}`, { method: 'DELETE' });
 }
 

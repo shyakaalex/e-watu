@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { fetchMe } from '../../api';
 import {
   fetchKpiPeriods,
+  fetchMyTeams,
   previewTeamKpi,
   submitTeamKpi,
   fetchTeamKpis,
   decideTeamKpi,
   type KpiPeriod,
+  type MyTeam,
   type TeamKpiRollup,
   type TeamKpiSubmission,
 } from '../../payrollApi';
@@ -15,6 +17,8 @@ export function TeamKpisPage() {
   const [me, setMe] = useState<any>(null);
   const [periods, setPeriods] = useState<KpiPeriod[]>([]);
   const [selectedPeriodId, setSelectedPeriodId] = useState('');
+  const [myLedTeams, setMyLedTeams] = useState<MyTeam[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState('');
   const [rollup, setRollup] = useState<TeamKpiRollup | null>(null);
   const [summary, setSummary] = useState('');
   const [submissions, setSubmissions] = useState<TeamKpiSubmission[]>([]);
@@ -23,7 +27,8 @@ export function TeamKpisPage() {
   const [error, setError] = useState<string | null>(null);
   const [reviewComments, setReviewComments] = useState<Record<string, string>>({});
 
-  const isSeniorOfficer = me?.roles?.includes('TENANT_ADMIN') || me?.roles?.includes('HR_MANAGER');
+  const isSeniorOfficer =
+    me?.roles?.includes('TENANT_ADMIN') || me?.roles?.includes('HR_MANAGER') || me?.roles?.includes('MANAGING_DIRECTOR');
 
   useEffect(() => {
     load();
@@ -33,9 +38,12 @@ export function TeamKpisPage() {
     try {
       setLoading(true);
       setError(null);
-      const [user, periodList] = await Promise.all([fetchMe(), fetchKpiPeriods()]);
+      const [user, periodList, myTeams] = await Promise.all([fetchMe(), fetchKpiPeriods(), fetchMyTeams()]);
       setMe(user);
       setPeriods(periodList || []);
+      const led = (myTeams || []).filter((t) => t.myRole === 'LEAD');
+      setMyLedTeams(led);
+      if (led.length === 1) setSelectedTeamId(led[0].id);
       const activePeriod = (periodList || []).find((p) => p.status === 'ACTIVE') || periodList?.[0];
       if (activePeriod) setSelectedPeriodId(activePeriod.id);
     } catch (err: any) {
@@ -47,12 +55,14 @@ export function TeamKpisPage() {
 
   useEffect(() => {
     if (selectedPeriodId) loadPeriodData();
-  }, [selectedPeriodId]);
+  }, [selectedPeriodId, selectedTeamId]);
 
   const loadPeriodData = async () => {
     try {
       const [preview, subs] = await Promise.all([
-        isSeniorOfficer ? Promise.resolve(null) : previewTeamKpi(selectedPeriodId).catch(() => null),
+        !isSeniorOfficer && selectedTeamId
+          ? previewTeamKpi(selectedTeamId, selectedPeriodId).catch(() => null)
+          : Promise.resolve(null),
         fetchTeamKpis({ kpiPeriodId: selectedPeriodId }),
       ]);
       setRollup(preview);
@@ -63,9 +73,10 @@ export function TeamKpisPage() {
   };
 
   const handleSend = async () => {
+    if (!selectedTeamId) return;
     setBusy(true);
     try {
-      await submitTeamKpi({ kpiPeriodId: selectedPeriodId, summary: summary || undefined });
+      await submitTeamKpi({ teamId: selectedTeamId, kpiPeriodId: selectedPeriodId, summary: summary || undefined });
       setSummary('');
       await loadPeriodData();
       alert('Team KPI sent to the Managing Team for approval.');
@@ -99,26 +110,46 @@ export function TeamKpisPage() {
         <h1 className="rec-page__title">Team KPIs</h1>
         <p className="muted">
           {isSeniorOfficer
-            ? 'Review Team KPI summaries arranged and sent up by team leaders across the organisation.'
-            : "Arrange your team's KPI summary from your direct reports' approved Personal KPIs, then send it to the Managing Team for approval."}
+            ? 'Review Team KPI summaries arranged and sent up by team leads across the organisation.'
+            : "Arrange your team's KPI summary from its members' approved Personal KPIs, then send it to the Managing Team for approval."}
         </p>
       </div>
 
       {error && <div className="alert alert--danger">{error}</div>}
 
       <section className="card mb-6" style={{ padding: '1.5rem' }}>
-        <label className="rec-form__label">KPI Period</label>
-        <select className="auth-input" value={selectedPeriodId} onChange={(e) => setSelectedPeriodId(e.target.value)}>
-          <option value="">Select a KPI period</option>
-          {periods.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name} ({p.status})
-            </option>
-          ))}
-        </select>
+        <div style={{ display: 'grid', gridTemplateColumns: isSeniorOfficer ? '1fr' : '1fr 1fr', gap: '1.5rem' }}>
+          <div>
+            <label className="rec-form__label">KPI Period</label>
+            <select className="auth-input" value={selectedPeriodId} onChange={(e) => setSelectedPeriodId(e.target.value)}>
+              <option value="">Select a KPI period</option>
+              {periods.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.status})
+                </option>
+              ))}
+            </select>
+          </div>
+          {!isSeniorOfficer && (
+            <div>
+              <label className="rec-form__label">Your Team</label>
+              <select className="auth-input" value={selectedTeamId} onChange={(e) => setSelectedTeamId(e.target.value)}>
+                <option value="">Select a team you lead</option>
+                {myLedTeams.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+              {myLedTeams.length === 0 && (
+                <p className="muted" style={{ fontSize: '0.8rem', marginTop: '0.4rem' }}>
+                  You aren't the lead of any team yet — ask an admin to set this up under Departments.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </section>
 
-      {!isSeniorOfficer && rollup && (
+      {!isSeniorOfficer && selectedTeamId && rollup && (
         <section className="card mb-6" style={{ padding: '1.5rem' }}>
           <h2 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Your Team's Rollup</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '1.5rem' }}>
@@ -165,7 +196,9 @@ export function TeamKpisPage() {
               <div className="card" key={s.id} style={{ padding: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                   <div>
-                    <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>{s.period?.name ?? 'KPI Period'}</div>
+                    <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>
+                      {s.team?.name ?? 'Team'} — {s.period?.name ?? 'KPI Period'}
+                    </div>
                     {s.submittedAt && (
                       <div className="muted" style={{ fontSize: '0.85rem' }}>
                         Sent {new Date(s.submittedAt).toLocaleDateString()}
