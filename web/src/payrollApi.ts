@@ -318,6 +318,41 @@ export async function bulkImportEmployees(
   return parseJson(r);
 }
 
+export type ConsultantBulkImportRow = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  jobTitle: string;
+  startDate: string;
+  clientName: string;
+  phone?: string;
+  department?: string;
+  clientId?: string;
+  basicSalary?: number;
+  roleName?: string;
+  deploymentSite?: string;
+  employmentType?: string;
+  monthlyFee?: number;
+  currency?: string;
+  noticePeriodDays?: number;
+};
+
+export type ConsultantBulkImportResult = {
+  created: number;
+  skipped: number;
+  errors: Array<{ row: number; error: string }>;
+};
+
+export async function bulkImportConsultants(
+  rows: ConsultantBulkImportRow[],
+): Promise<ConsultantBulkImportResult> {
+  const r = await payrollFetch('/api/v1/outsourcing/consultants/import/csv', {
+    method: 'POST',
+    body: JSON.stringify({ rows }),
+  });
+  return parseJson(r);
+}
+
 export async function fetchPayrollConfigClients(): Promise<{ clientId: string }[]> {
   const r = await payrollFetch('/api/v1/payroll/config/clients');
   return parseJson(r);

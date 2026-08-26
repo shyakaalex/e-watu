@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmployeesService } from '../employees/employees.service';
 import {
   CreateAssignmentDto,
   UpdateAssignmentDto,
@@ -11,9 +12,37 @@ import {
   SecondmentContractStatus,
 } from './dtos/outsourcing.dto';
 
+export type ConsultantBulkImportRow = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  jobTitle: string;
+  startDate: string;
+  clientName: string;
+  phone?: string;
+  department?: string;
+  clientId?: string;
+  basicSalary?: number;
+  roleName?: string;
+  deploymentSite?: string;
+  employmentType?: string;
+  monthlyFee?: number;
+  currency?: string;
+  noticePeriodDays?: number;
+};
+
+export type ConsultantBulkImportResult = {
+  created: number;
+  skipped: number;
+  errors: Array<{ row: number; error: string }>;
+};
+
 @Injectable()
 export class OutsourcingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly employees: EmployeesService,
+  ) {}
 
   // ── Assignments / Registry ──────────────────────────────────────
 
@@ -85,6 +114,86 @@ export class OutsourcingService {
     });
 
     return assignment;
+  }
+
+  /** Bulk-onboards consultants: creates each Employee (type OUTSOURCED) and their client
+   *  deployment (OutsourcingAssignment) together, since a consultant row from HC Solutions'
+   *  spreadsheets is never just a person — it's a person already placed at a client. */
+  async bulkImportConsultants(
+    tenantId: string,
+    userId: string,
+    rows: ConsultantBulkImportRow[],
+  ): Promise<ConsultantBulkImportResult> {
+    let created = 0;
+    let skipped = 0;
+    const errors: Array<{ row: number; error: string }> = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row: ConsultantBulkImportRow | undefined = rows[i];
+      const rowNumber = i + 1;
+
+      if (!row || !row.firstName || !row.lastName || !row.email || !row.jobTitle || !row.startDate || !row.clientName) {
+        errors.push({
+          row: rowNumber,
+          error: 'Missing required fields: firstName, lastName, email, jobTitle, startDate, clientName',
+        });
+        continue;
+      }
+
+      const email = row.email.toLowerCase().trim();
+
+      try {
+        const existing = await this.prisma.employee.findFirst({ where: { tenantId, email } });
+        if (existing) {
+          skipped++;
+          continue;
+        }
+
+        if (Number.isNaN(new Date(row.startDate).getTime())) {
+          errors.push({ row: rowNumber, error: `Invalid startDate: ${row.startDate}` });
+          continue;
+        }
+
+        const employee = await this.employees.create(tenantId, {
+          firstName: row.firstName.trim(),
+          lastName: row.lastName.trim(),
+          email,
+          jobTitle: row.jobTitle.trim(),
+          startDate: row.startDate,
+          employeeType: 'OUTSOURCED',
+          phone: row.phone?.trim() || undefined,
+          department: row.department?.trim() || undefined,
+          clientId: row.clientId?.trim() || undefined,
+          basicSalary: row.basicSalary != null && !Number.isNaN(Number(row.basicSalary))
+            ? Number(row.basicSalary)
+            : undefined,
+        });
+
+        await this.createAssignment(tenantId, userId, {
+          employeeId: employee.id,
+          clientName: row.clientName.trim(),
+          clientId: row.clientId?.trim(),
+          roleName: (row.roleName || row.jobTitle).trim(),
+          deploymentSite: row.deploymentSite?.trim() || undefined,
+          employmentType: (row.employmentType as any) || undefined,
+          startDate: row.startDate,
+          monthlyFee: row.monthlyFee != null && !Number.isNaN(Number(row.monthlyFee))
+            ? Number(row.monthlyFee)
+            : undefined,
+          currency: row.currency?.trim() || undefined,
+          noticePeriodDays: row.noticePeriodDays != null && !Number.isNaN(Number(row.noticePeriodDays))
+            ? Number(row.noticePeriodDays)
+            : undefined,
+        });
+
+        created++;
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        errors.push({ row: rowNumber, error: message });
+      }
+    }
+
+    return { created, skipped, errors };
   }
 
   async updateAssignment(tenantId: string, userId: string, id: string, dto: UpdateAssignmentDto) {

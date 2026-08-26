@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { IsArray } from 'class-validator';
 import { AuthUser, CurrentUser, EwatuRole, JwtAuthGuard, Roles, RolesGuard } from '@ewatu/common-auth';
-import { OutsourcingService } from './outsourcing.service';
+import { OutsourcingService, type ConsultantBulkImportRow } from './outsourcing.service';
 import {
   CreateAssignmentDto,
   UpdateAssignmentDto,
@@ -10,10 +11,22 @@ import {
   RenewContractDto,
 } from './dtos/outsourcing.dto';
 
+export class BulkImportConsultantsDto {
+  @IsArray()
+  rows: ConsultantBulkImportRow[];
+}
+
 @Controller('outsourcing')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class OutsourcingController {
   constructor(private readonly svc: OutsourcingService) {}
+
+  // Static segment before the assignments/contracts routes to keep it unambiguous.
+  @Post('consultants/import/csv')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
+  bulkImportConsultants(@CurrentUser() u: AuthUser, @Body() body: BulkImportConsultantsDto) {
+    return this.svc.bulkImportConsultants(u.tenant_id as string, u.sub, body.rows);
+  }
 
   // ── Registry / Assignments ──────────────────────────────────────
 
