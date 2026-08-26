@@ -92,6 +92,14 @@ const IcoReceipt = () => (
   </svg>
 );
 
+const IcoKey = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="7.5" cy="15.5" r="5.5"/>
+    <path d="M21 2l-9.6 9.6"/>
+    <path d="M15.5 7.5l3 3L22 7l-3-3"/>
+  </svg>
+);
+
 const IcoLogout = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -284,6 +292,14 @@ export function AdminLayout() {
               <div className="adm-user__name">{displayName}</div>
               <div className="adm-user__role">{roleLabel}</div>
             </div>
+            <Link
+              to="/platform/account"
+              className="adm-user__logout"
+              title="Change password"
+              aria-label="Change password"
+            >
+              <IcoKey />
+            </Link>
             <button
               type="button"
               className="adm-user__logout"

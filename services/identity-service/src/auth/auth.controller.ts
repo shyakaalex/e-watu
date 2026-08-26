@@ -1,7 +1,8 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
-import { AllowTenantStatus, JwtAuthGuard } from '@ewatu/common-auth';
+import { AllowTenantStatus, AuthUser, CurrentUser, JwtAuthGuard } from '@ewatu/common-auth';
 import { AuthService } from './auth.service';
+import { ChangePasswordDto } from './dtos/change-password.dto';
 import { ForgotPasswordDto } from './dtos/forgot-password.dto';
 import { LoginDto } from './dtos/login.dto';
 import { LogoutDto } from './dtos/logout.dto';
@@ -55,5 +56,12 @@ export class AuthController {
   @Post('reset-password')
   resetPassword(@Body() body: ResetPasswordDto) {
     return this.auth.resetPassword(body.token, body.newPassword);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @AllowTenantStatus('SUSPENDED', 'EXPIRED', 'PENDING_ACTIVATION', 'REJECTED')
+  @Post('change-password')
+  changePassword(@CurrentUser() user: AuthUser, @Body() body: ChangePasswordDto) {
+    return this.auth.changePassword(user.sub, body.currentPassword, body.newPassword);
   }
 }

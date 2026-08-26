@@ -119,6 +119,13 @@ export function UsersPage() {
         roles,
       });
 
+      try {
+        await triggerPasswordReset(email);
+      } catch {
+        // Non-fatal — the account is created either way; the admin can still
+        // share the credentials below or retry the invite from the table.
+      }
+
       setCreatedCredentials({
         email,
         password,
@@ -196,7 +203,7 @@ export function UsersPage() {
             </button>
           </div>
           <p style={{ marginTop: '0.5rem', marginBottom: '0.75rem', fontSize: '0.9rem' }}>
-            Share the credentials below with <strong>{createdCredentials.displayName || createdCredentials.email}</strong> so they can log in to the ERP:
+            A password setup link was emailed to <strong>{createdCredentials.displayName || createdCredentials.email}</strong>. You can also share the temporary credentials below directly:
           </p>
           <div
             style={{

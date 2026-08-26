@@ -289,6 +289,15 @@ export async function triggerPasswordReset(email: string) {
   return parseJson<{ message: string }>(r);
 }
 
+export async function changeMyPassword(currentPassword: string, newPassword: string) {
+  const r = await authFetch(`${identityUrl()}/api/v1/auth/change-password`, {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson<{ changed: boolean }>(r);
+}
+
 
 export type InAppNotification = {
   id: string;

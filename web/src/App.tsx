@@ -28,6 +28,7 @@ import { ProfilesPage } from './pages/talent-pool/ProfilesPage';
 import { SavedSearchesPage } from './pages/talent-pool/SavedSearchesPage';
 import { SettingsPage } from './pages/admin/SettingsPage';
 import { UsersPage } from './pages/admin/UsersPage';
+import { ChangePasswordPage } from './pages/admin/ChangePasswordPage';
 import { PublicCareersLayout } from './pages/public/PublicCareersLayout';
 import { PublicJobsPage } from './pages/public/PublicJobsPage';
 import { PublicApplyPage } from './pages/public/PublicApplyPage';
@@ -102,6 +103,7 @@ export default function App() {
         <Route path="system" element={<SystemPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="users" element={<UsersPage />} />
+        <Route path="account" element={<ChangePasswordPage />} />
       </Route>
       <Route
         path="/recruitment"
