@@ -1527,9 +1527,22 @@ code {
 
 /* —— Shell / Layout —— */
 .rec-shell {
+  /* Dark theme for this shell's content area — scoped here rather than on :root
+     so public/marketing pages keep their existing design. Mirrors .adm-shell. */
+  --surface: #070c18;
+  --surface-alt: #0b1220;
+  --card: #0e172a;
+  --card-sub: #131f38;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --ink: #f8fafc;
+  --ink-muted: #94a3b8;
+  --ink-subtle: #64748b;
+
   display: flex;
   min-height: 100vh;
   background: var(--surface);
+  color: var(--ink);
 }
 
 .rec-sidebar {
@@ -1714,6 +1727,54 @@ code {
 
 .rec-form__label--full {
   grid-column: 1 / -1;
+}
+
+.rec-external-apply {
+  background: var(--surface-alt, var(--card-sub));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1rem;
+}
+
+.rec-external-apply__toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.rec-external-apply__toggle input[type='checkbox'] {
+  margin-top: 0.2rem;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+
+.rec-external-apply__toggle span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.rec-external-apply__toggle strong {
+  color: #f8fafc;
+}
+
+.rec-advanced-toggle {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  padding: 0.3rem 0;
+}
+
+.rec-advanced-toggle:hover {
+  text-decoration: underline;
 }
 
 .rec-form__section-title {
@@ -2482,16 +2543,22 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Headings & Text Color Fixes */
-h1, h2, h3, h4, h5, h6,
+/* Headings & Text Color Fixes — scoped to components that live on dark backgrounds.
+   Do NOT add bare h1-h6 here: with !important it overrides every heading in the
+   app regardless of specificity, including light-background cards (see e.g.
+   .dash-chart-card__title, which needs var(--ink) to stay readable). */
 .adm-page__title,
 .rec-page__title,
 .auth-heading,
+.auth-label,
 .card-title,
 .rec-form-card__title,
 .adm-card__title,
 .candidate-card__name,
-.rec-job-card__title {
+.rec-job-card__title,
+.rec-form__label,
+.rec-form__section-title,
+.rec-modal__title {
   color: #f8fafc !important;
 }
 

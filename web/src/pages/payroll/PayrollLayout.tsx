@@ -183,6 +183,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/payroll/periods', label: 'Payroll Periods', icon: <IcoLayers /> },
   { to: '/payroll/contracts', label: 'Contracts', icon: <IcoContract /> },
   { to: '/payroll/contract-templates', label: 'Contract Templates', icon: <IcoPencil /> },
+  { to: '/payroll/immigration', label: 'Work Permits & Immigration', icon: <IcoContract /> },
   { to: '/payroll/reports', label: 'Reports', icon: <IcoReport /> },
   { to: '/payroll/email-settings', label: 'Email Settings', icon: <IcoMail /> },
   { to: '/payroll/email-templates', label: 'Email Templates', icon: <IcoMailCheck /> },

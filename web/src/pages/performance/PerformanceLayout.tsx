@@ -87,6 +87,15 @@ export function PerformanceLayout() {
             <span className="payroll-nav__icon">👥</span>
             360 Feedback
           </NavLink>
+          <NavLink
+            to="/performance/pips"
+            className={({ isActive }) =>
+              `payroll-nav__link${isActive ? ' payroll-nav__link--active' : ''}`
+            }
+          >
+            <span className="payroll-nav__icon">📈</span>
+            Improvement Plans
+          </NavLink>
         </nav>
       </aside>
       <main className="payroll-main">

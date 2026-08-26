@@ -54,6 +54,8 @@ import { ClientPortalPayrollPage } from './pages/client-portal/ClientPortalPayro
 import { PerformanceCyclesPage } from './pages/payroll/PerformanceCyclesPage';
 import { PerformanceGoalsPage } from './pages/payroll/PerformanceGoalsPage';
 import { PerformanceAppraisalsPage } from './pages/payroll/PerformanceAppraisalsPage';
+import { PerformanceImprovementPlansPage } from './pages/payroll/PerformanceImprovementPlansPage';
+import { ImmigrationPermitsPage } from './pages/payroll/ImmigrationPermitsPage';
 import { Feedback360Page } from './pages/payroll/Feedback360Page';
 import { LeaveLayout } from './pages/leave/LeaveLayout';
 import { LeaveDashboardPage } from './pages/leave/LeaveDashboardPage';
@@ -168,6 +170,7 @@ export default function App() {
         <Route path="billing" element={<PayrollBillingPage />} />
         <Route path="leave" element={<Navigate to="/leave" replace />} />
         <Route path="performance/*" element={<Navigate to="/performance/goals" replace />} />
+        <Route path="immigration" element={<ImmigrationPermitsPage />} />
       </Route>
       <Route
         path="/leave"
@@ -205,6 +208,7 @@ export default function App() {
         <Route path="goals" element={<PerformanceGoalsPage />} />
         <Route path="appraisals" element={<PerformanceAppraisalsPage />} />
         <Route path="360-feedback" element={<Feedback360Page />} />
+        <Route path="pips" element={<PerformanceImprovementPlansPage />} />
       </Route>
       <Route path="/client-portal/payroll" element={<ProtectedRoute><ClientPortalPayrollPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -5,6 +5,7 @@ import {
   createFeedbackRequest,
   submitFeedbackResponse,
   fetchEmployees,
+  fetchMyEmployee,
   fetchAppraisals,
   fetchCompetencyFramework,
 } from '../../payrollApi';
@@ -46,10 +47,15 @@ export function Feedback360Page() {
       const user = await fetchMe();
       setMe(user);
 
-      const empList = await fetchEmployees();
-      setEmployees(empList);
-
-      const matchedEmp = empList.find((e: any) => Boolean(e.email && user?.email && e.email.toLowerCase() === user.email.toLowerCase()));
+      const matchedEmp = await fetchMyEmployee();
+      try {
+        // Listing all employees requires HR/admin privileges — used here only to populate
+        // the "select reviewer" picker. A plain employee without that access still gets
+        // their own requests below; the reviewer picker just falls back to empty.
+        setEmployees(await fetchEmployees());
+      } catch {
+        setEmployees(matchedEmp ? [matchedEmp] : []);
+      }
       const empId = matchedEmp?.id;
 
       if (empId) {

@@ -8,6 +8,7 @@ import {
   fetchGoalTemplates,
   fetchAppraisalCycles,
   fetchEmployees,
+  fetchMyEmployee,
 } from '../../payrollApi';
 
 export function PerformanceGoalsPage() {
@@ -50,10 +51,15 @@ export function PerformanceGoalsPage() {
       const activeCycle = (cycleList || []).find((c: any) => c.status === 'ACTIVE') || cycleList?.[0];
       if (activeCycle) setSelectedCycleId(activeCycle.id);
 
-      const empList = await fetchEmployees();
-      setEmployees(empList);
-
-      const matchedEmp = empList.find((e: any) => Boolean(e.email && user?.email && e.email.toLowerCase() === user.email.toLowerCase()));
+      const matchedEmp = await fetchMyEmployee();
+      try {
+        // Listing all employees requires HR/admin privileges — used here only to populate
+        // the employee picker. A plain employee without that access still gets their own
+        // goals below; the picker just falls back to showing only themselves.
+        setEmployees(await fetchEmployees());
+      } catch {
+        setEmployees(matchedEmp ? [matchedEmp] : []);
+      }
       if (matchedEmp) setSelectedEmployeeId(matchedEmp.id);
 
       const tmplList: any = await fetchGoalTemplates();

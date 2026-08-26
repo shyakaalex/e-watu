@@ -1,7 +1,20 @@
 .payroll-shell {
+  /* Dark theme for this shell's content area — scoped here rather than on :root
+     so public/marketing pages keep their existing design. Mirrors .adm-shell. */
+  --surface: #070c18;
+  --surface-alt: #0b1220;
+  --card: #0e172a;
+  --card-sub: #131f38;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --ink: #f8fafc;
+  --ink-muted: #94a3b8;
+  --ink-subtle: #64748b;
+
   display: flex;
   min-height: 100vh;
   background: var(--surface);
+  color: var(--ink);
 }
 
 /* —— Mobile top bar —— */

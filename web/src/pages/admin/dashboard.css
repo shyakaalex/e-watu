@@ -97,6 +97,125 @@
   color: var(--ink-muted);
 }
 
+/* ── Calendar + KPI row ───────────────────────────────────────────────────── */
+.dash-row-cal {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 1rem;
+  margin-bottom: 1.15rem;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .dash-row-cal { grid-template-columns: 1fr; }
+}
+
+.dash-kpi-grid--2x2 {
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 0;
+}
+
+.dash-calendar-card {
+  display: flex;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.dash-calendar-card__today {
+  flex: 0 0 92px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: var(--accent-soft, rgba(245, 145, 30, 0.16));
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.4rem;
+}
+
+.dash-calendar-card__dayname {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+}
+
+.dash-calendar-card__daynum {
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1.1;
+}
+
+.dash-calendar-card__month {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.dash-calendar-card__grid-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-calendar-card__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.dash-calendar-card__nav button {
+  background: none;
+  border: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.1rem 0.4rem;
+  border-radius: 6px;
+}
+
+.dash-calendar-card__nav button:hover {
+  background: var(--line);
+  color: var(--ink);
+}
+
+.dash-calendar-card__weekdays,
+.dash-calendar-card__days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+}
+
+.dash-calendar-card__weekdays span {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--ink-subtle);
+  text-transform: uppercase;
+  padding-bottom: 0.3rem;
+}
+
+.dash-calendar-card__days span {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  padding: 0.22rem 0;
+  border-radius: 6px;
+}
+
+.dash-calendar-card__day--empty {
+  visibility: hidden;
+}
+
+.dash-calendar-card__day--today {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+
 /* ── 2-column row ─────────────────────────────────────────────────────────── */
 .dash-row-2 {
   display: grid;

@@ -19,16 +19,25 @@ import {
 } from '../../recruitmentApi';
 import {
   fetchEmployees as fetchPayrollEmployees,
+  fetchMyEmployee,
   fetchPayrollRuns,
   fetchLeaveRequests,
   fetchOutsourcingAssignments,
+  fetchOutsourcingBench,
   fetchSecondmentContracts,
+  fetchLeaveBalances,
+  fetchGoals,
+  fetchMyContracts,
+  fetchMyPayslips,
+  reportDownloadUrl,
   type Employee as PayrollEmployee,
   type PayrollRun,
   type LeaveRequest,
   type OutsourcingAssignment,
   type SecondmentContract,
+  type LeaveBalance,
 } from '../../payrollApi';
+import { authFetch } from '../../lib/http';
 import { StatusBadge } from './StatusBadge';
 import { parseError } from './parseError';
 import { useAdminContext } from './useAdminContext';
@@ -404,6 +413,8 @@ function FinanceDashboard() {
   const [employees, setEmployees] = useState<PayrollEmployee[]>([]);
   const [runs, setRuns] = useState<PayrollRun[]>([]);
   const [loading, setLoading] = useState(true);
+  const [bankFileErr, setBankFileErr] = useState<string | null>(null);
+  const [bankFileBusy, setBankFileBusy] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -417,13 +428,35 @@ function FinanceDashboard() {
     }).catch(() => setLoading(false));
   }, []);
 
-  const employeeCount = employees.length || 12;
-  const totalPayout = employeeCount * 450000;
+  const employeeCount = employees.length;
+  const totalPayout = employees.reduce((sum, e) => sum + (Number(e.baseSalary) || 0), 0);
   const taxes = Math.round(totalPayout * 0.25);
   const netPay = totalPayout - taxes;
+  const lockedRuns = runs.filter((r) => (r.status as string) === 'LOCKED' || (r.status as string) === 'APPROVED' || (r.status as string) === 'COMPLETED');
+  const latestLockedRun = lockedRuns[0] ?? null;
 
   const fmtCurrency = (val: number) => {
     return 'RWF ' + val.toLocaleString();
+  };
+
+  const generateBankFile = async () => {
+    if (!latestLockedRun) return;
+    setBankFileBusy(true);
+    setBankFileErr(null);
+    try {
+      const r = await authFetch(reportDownloadUrl(latestLockedRun.id, 'bank-file'));
+      if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+      const blob = await r.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `bank-file-${latestLockedRun.id}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } catch (e) {
+      setBankFileErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBankFileBusy(false);
+    }
   };
 
   return (
@@ -507,29 +540,7 @@ function FinanceDashboard() {
               ))}
             </ul>
           ) : (
-            <ul className="stat-list">
-              <li className="stat-item">
-                <div>
-                  <span className="stat-item__name">June 2026 Monthly Payroll Run</span>
-                  <div className="stat-item__meta">RWF · 12 Employees</div>
-                </div>
-                <span className="status-badge" style={{ background: '#22c55e1a', color: '#22c55e', fontSize: '0.72rem' }}>LOCKED</span>
-              </li>
-              <li className="stat-item">
-                <div>
-                  <span className="stat-item__name">May 2026 Monthly Payroll Run</span>
-                  <div className="stat-item__meta">RWF · 12 Employees</div>
-                </div>
-                <span className="status-badge" style={{ background: '#22c55e1a', color: '#22c55e', fontSize: '0.72rem' }}>LOCKED</span>
-              </li>
-              <li className="stat-item">
-                <div>
-                  <span className="stat-item__name">July 2026 Current Payroll Run</span>
-                  <div className="stat-item__meta">RWF · Draft Calculation</div>
-                </div>
-                <span className="status-badge" style={{ background: '#94a3b81a', color: '#64748b', fontSize: '0.72rem' }}>DRAFT</span>
-              </li>
-            </ul>
+            <p className="muted small" style={{ margin: 0 }}>No payroll runs recorded yet.</p>
           )}
           <div style={{ marginTop: '1rem' }}>
             <Link to="/payroll/runs" className="btn btn--ghost small">View All Runs →</Link>
@@ -537,35 +548,24 @@ function FinanceDashboard() {
         </div>
 
         <div className="dash-chart-card">
-          <h3 className="dash-chart-card__title">Rwanda Statutory Compliance (RRA & RSSB)</h3>
+          <h3 className="dash-chart-card__title">Rwanda Statutory Contribution Rates</h3>
+          <p className="muted small" style={{ margin: '0 0 0.75rem' }}>Reference rates only — actual filing status is tracked per payroll run, not shown here.</p>
           <ul className="stat-list">
             <li className="stat-item">
-              <div>
-                <span className="stat-item__name">RRA PAYE Declaration</span>
-                <div className="stat-item__meta">Monthly progressive tax bands filing</div>
-              </div>
-              <span className="status-badge" style={{ background: '#22c55e1a', color: '#22c55e', fontSize: '0.72rem' }}>DECLARED</span>
+              <span className="stat-item__name">RRA PAYE</span>
+              <span className="stat-item__meta">Monthly progressive tax bands</span>
             </li>
             <li className="stat-item">
-              <div>
-                <span className="stat-item__name">RSSB Pension Fund (10% Combined)</span>
-                <div className="stat-item__meta">5% Employee + 5% Employer pension levy</div>
-              </div>
-              <span className="status-badge" style={{ background: '#f59e0b1a', color: '#f59e0b', fontSize: '0.72rem' }}>PROCESSING</span>
+              <span className="stat-item__name">RSSB Pension Fund</span>
+              <span className="stat-item__meta">5% employee + 5% employer</span>
             </li>
             <li className="stat-item">
-              <div>
-                <span className="stat-item__name">RSSB Medical Contribution (RAMA)</span>
-                <div className="stat-item__meta">7.5% medical health coverage levy</div>
-              </div>
-              <span className="status-badge" style={{ background: '#22c55e1a', color: '#22c55e', fontSize: '0.72rem' }}>PAID</span>
+              <span className="stat-item__name">RSSB Medical (RAMA)</span>
+              <span className="stat-item__meta">7.5% combined</span>
             </li>
             <li className="stat-item">
-              <div>
-                <span className="stat-item__name">Maternity Leave Fund (0.6% Combined)</span>
-                <div className="stat-item__meta">0.3% Employee + 0.3% Employer levy</div>
-              </div>
-              <span className="status-badge" style={{ background: '#94a3b81a', color: '#64748b', fontSize: '0.72rem' }}>PENDING</span>
+              <span className="stat-item__name">Maternity Leave Fund</span>
+              <span className="stat-item__meta">0.3% employee + 0.3% employer</span>
             </li>
           </ul>
         </div>
@@ -592,11 +592,19 @@ function FinanceDashboard() {
         <div className="dash-chart-card">
           <h3 className="dash-chart-card__title">Bank Payment File Exports</h3>
           <p className="muted small" style={{ marginBottom: '1rem' }}>
-            Compile and export a bank-compliant TXT/CSV net salary transfer list for direct upload to corporate banking portals.
+            Compile and export a bank-compliant CSV net salary transfer list for direct upload to corporate banking portals.
           </p>
-          <button className="btn btn--primary small" onClick={() => alert('Generating bank payment transfer file for current period...')}>
-            Generate Bank File (RWF)
+          {bankFileErr && <div className="alert alert--err" style={{ marginBottom: '0.75rem' }}>{bankFileErr}</div>}
+          <button
+            className="btn btn--primary small"
+            disabled={!latestLockedRun || bankFileBusy}
+            onClick={generateBankFile}
+          >
+            {bankFileBusy ? 'Generating…' : 'Generate Bank File (RWF)'}
           </button>
+          {!latestLockedRun && (
+            <p className="muted small" style={{ marginTop: '0.5rem' }}>Lock a payroll run first to enable this export.</p>
+          )}
         </div>
       </div>
     </>
@@ -608,21 +616,41 @@ function FinanceDashboard() {
 function ClientDashboard() {
   const [assignments, setAssignments] = useState<OutsourcingAssignment[]>([]);
   const [contracts, setContracts] = useState<SecondmentContract[]>([]);
+  const [bench, setBench] = useState<OutsourcingAssignment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       fetchOutsourcingAssignments().catch(() => []),
       fetchSecondmentContracts().catch(() => []),
-    ]).then(([assignData, contractData]) => {
+      fetchOutsourcingBench().catch(() => []),
+    ]).then(([assignData, contractData, benchData]) => {
       setAssignments(assignData || []);
       setContracts(contractData || []);
+      setBench(benchData || []);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
 
-  const activeCount = assignments.length || 18;
-  const estBilling = activeCount * 650000;
+  const activeCount = assignments.filter((a) => a.deploymentStatus === 'ACTIVE').length;
+  const estBilling = contracts
+    .filter((c) => c.status === 'ACTIVE')
+    .reduce((sum, c) => sum + (Number(c.billingRate) || 0), 0);
+
+  const daysUntil = (d: string | null) => d ? Math.ceil((new Date(d).getTime() - Date.now()) / 86400000) : null;
+  const expiringSoon = contracts.filter((c) => {
+    const days = daysUntil(c.endDate);
+    return c.status === 'ACTIVE' && days !== null && days >= 0 && days <= 90;
+  }).length;
+
+  const siteHeadcount = useMemo(() => {
+    const bySite: Record<string, number> = {};
+    assignments.filter((a) => a.deploymentStatus === 'ACTIVE').forEach((a) => {
+      const site = a.deploymentSite || 'Unspecified site';
+      bySite[site] = (bySite[site] ?? 0) + 1;
+    });
+    return Object.entries(bySite).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  }, [assignments]);
 
   return (
     <>
@@ -654,9 +682,9 @@ function ClientDashboard() {
           color="#10b981"
         />
         <KpiCard
-          label="Pending Approvals"
-          value="2"
-          secondary="client payroll runs"
+          label="Expiring ≤ 90 Days"
+          value={loading ? '…' : String(expiringSoon)}
+          secondary="secondment contracts"
           icon={
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/>
@@ -667,7 +695,7 @@ function ClientDashboard() {
         />
         <KpiCard
           label="On-Bench Staff"
-          value="3"
+          value={loading ? '…' : String(bench.length)}
           secondary="ready for deployment"
           icon={
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -684,47 +712,45 @@ function ClientDashboard() {
       <div className="dash-row-2">
         <div className="dash-chart-card">
           <h3 className="dash-chart-card__title">Deployment Site Headcount</h3>
-          <ul className="stat-list">
-            <li className="stat-item">
-              <span className="stat-item__name">Kigali Headquarters (Gishushu)</span>
-              <span className="stat-item__meta" style={{ fontWeight: 700 }}>12 Employees</span>
-            </li>
-            <li className="stat-item">
-              <span className="stat-item__name">Rubavu Branch Site</span>
-              <span className="stat-item__meta" style={{ fontWeight: 700 }}>4 Employees</span>
-            </li>
-            <li className="stat-item">
-              <span className="stat-item__name">Huye Depot Logistics Hub</span>
-              <span className="stat-item__meta" style={{ fontWeight: 700 }}>2 Employees</span>
-            </li>
-          </ul>
+          {loading ? (
+            <p className="muted small">Loading…</p>
+          ) : siteHeadcount.length > 0 ? (
+            <ul className="stat-list">
+              {siteHeadcount.map(([site, count]) => (
+                <li key={site} className="stat-item">
+                  <span className="stat-item__name">{site}</span>
+                  <span className="stat-item__meta" style={{ fontWeight: 700 }}>{count} employee{count === 1 ? '' : 's'}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted small" style={{ margin: 0 }}>No active deployments yet</p>
+          )}
         </div>
 
         <div className="dash-chart-card">
-          <h3 className="dash-chart-card__title">Recent Client Invoicing</h3>
-          <ul className="stat-list">
-            <li className="stat-item">
-              <div>
-                <span className="stat-item__name">Invoice #INV-2026-06 (June)</span>
-                <div className="stat-item__meta">RWF 14,800,000 · Due date: July 15</div>
-              </div>
-              <span className="status-badge" style={{ background: '#22c55e1a', color: '#22c55e', fontSize: '0.72rem' }}>PAID</span>
-            </li>
-            <li className="stat-item">
-              <div>
-                <span className="stat-item__name">Invoice #INV-2026-05 (May)</span>
-                <div className="stat-item__meta">RWF 14,200,000</div>
-              </div>
-              <span className="status-badge" style={{ background: '#22c55e1a', color: '#22c55e', fontSize: '0.72rem' }}>PAID</span>
-            </li>
-            <li className="stat-item">
-              <div>
-                <span className="stat-item__name">Invoice #INV-2026-07 (July Draft)</span>
-                <div className="stat-item__meta">RWF 11,700,000 · Accumulating</div>
-              </div>
-              <span className="status-badge" style={{ background: '#94a3b81a', color: '#64748b', fontSize: '0.72rem' }}>DRAFT</span>
-            </li>
-          </ul>
+          <h3 className="dash-chart-card__title">Top Clients by Active Deployments</h3>
+          {loading ? (
+            <p className="muted small">Loading…</p>
+          ) : (() => {
+            const byClient: Record<string, number> = {};
+            assignments.filter((a) => a.deploymentStatus === 'ACTIVE').forEach((a) => {
+              byClient[a.clientName] = (byClient[a.clientName] ?? 0) + 1;
+            });
+            const top = Object.entries(byClient).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            return top.length > 0 ? (
+              <ul className="stat-list">
+                {top.map(([client, count]) => (
+                  <li key={client} className="stat-item">
+                    <span className="stat-item__name">{client}</span>
+                    <span className="stat-item__meta" style={{ fontWeight: 700 }}>{count} deployed</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="muted small" style={{ margin: 0 }}>No active client deployments yet</p>
+            );
+          })()}
         </div>
       </div>
 
@@ -746,22 +772,7 @@ function ClientDashboard() {
               ))}
             </ul>
           ) : (
-            <ul className="stat-list">
-              <li className="stat-item">
-                <div>
-                  <span className="stat-item__name">Senior Software Architect (Summit Corp)</span>
-                  <div className="stat-item__meta">Expires in 42 days · RWF 2,800,000/mo</div>
-                </div>
-                <span className="status-badge" style={{ background: '#ef44441a', color: '#ef4444', fontSize: '0.72rem' }}>ALERT (90D)</span>
-              </li>
-              <li className="stat-item">
-                <div>
-                  <span className="stat-item__name">Finance Analyst (Horizon Ltd)</span>
-                  <div className="stat-item__meta">Expires in 85 days · RWF 1,200,000/mo</div>
-                </div>
-                <span className="status-badge" style={{ background: '#f59e0b1a', color: '#f59e0b', fontSize: '0.72rem' }}>ALERT (90D)</span>
-              </li>
-            </ul>
+            <p className="muted small" style={{ margin: 0 }}>No secondment contracts recorded yet</p>
           )}
         </div>
         <div className="dash-chart-card">
@@ -784,24 +795,76 @@ function ClientDashboard() {
 
 // ── Employee Self-Service Sub-Dashboard ───────────────────────────────────────
 
-function EmployeeDashboard({ me: _me }: { me?: any }) {
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+function EmployeeDashboard({ me }: { me?: any }) {
+  const [employee, setEmployee] = useState<PayrollEmployee | null>(null);
+  const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [goals, setGoals] = useState<any[]>([]);
+  const [contracts, setContracts] = useState<any[]>([]);
+  const [payslips, setPayslips] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    fetchLeaveRequests().then((data) => {
-      setLeaveRequests(data || []);
-      setLoading(false);
-    }).catch(() => setLoading(false));
-  }, []);
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const emp = await fetchMyEmployee();
+        if (cancelled) return;
+        setEmployee(emp);
+        if (!emp) {
+          setNotFound(true);
+          return;
+        }
+        const year = new Date().getFullYear();
+        const [balances, reqs, gls, cons, slips] = await Promise.all([
+          fetchLeaveBalances(emp.id, year).catch(() => []),
+          fetchLeaveRequests(undefined, emp.id).catch(() => []),
+          fetchGoals(emp.id).catch(() => []),
+          fetchMyContracts().catch(() => []),
+          fetchMyPayslips().catch(() => []),
+        ]);
+        if (cancelled) return;
+        setLeaveBalances(balances);
+        setLeaveRequests(reqs || []);
+        setGoals(Array.isArray(gls) ? gls : []);
+        setContracts(Array.isArray(cons) ? cons : []);
+        setPayslips(Array.isArray(slips) ? slips : []);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [me?.email]);
+
+  const totalAllocated = leaveBalances.reduce((s, b) => s + Number(b.allocatedDays), 0);
+  const totalUsed = leaveBalances.reduce((s, b) => s + Number(b.usedDays), 0);
+  const leaveRemaining = totalAllocated - totalUsed;
+
+  const activeGoals = goals.filter((g: any) => g.status !== 'REJECTED');
+  const avgProgress = activeGoals.length
+    ? Math.round(activeGoals.reduce((s: number, g: any) => s + (Number(g.progress) || 0), 0) / activeGoals.length)
+    : null;
+
+  const activeContract = contracts.find((c: any) => c.status === 'ACTIVE') ?? contracts[0] ?? null;
+  const daysToReview = activeContract?.endDate
+    ? Math.max(0, Math.ceil((new Date(activeContract.endDate).getTime() - Date.now()) / 86400000))
+    : null;
+
+  const sortedPayslips = [...payslips].sort((a: any, b: any) =>
+    (b.periodYear - a.periodYear) || (b.periodMonth - a.periodMonth));
+  const latestPayslip = sortedPayslips[0] ?? null;
 
   return (
     <>
       <div className="dash-kpi-grid">
         <KpiCard
           label="Leave Balance"
-          value="18.5"
-          secondary="of 24 total days"
+          value={loading ? '…' : leaveBalances.length ? leaveRemaining.toFixed(1) : '—'}
+          secondary={loading ? '' : leaveBalances.length ? `of ${totalAllocated.toFixed(0)} total days` : 'no allocation yet'}
           icon={
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -814,8 +877,8 @@ function EmployeeDashboard({ me: _me }: { me?: any }) {
         />
         <KpiCard
           label="Active Goals"
-          value="75%"
-          secondary="Q2 cycle progress"
+          value={loading ? '…' : avgProgress !== null ? `${avgProgress}%` : '—'}
+          secondary={loading ? '' : activeGoals.length ? `${activeGoals.length} active goal${activeGoals.length === 1 ? '' : 's'}` : 'no goals set'}
           icon={
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/>
@@ -827,8 +890,8 @@ function EmployeeDashboard({ me: _me }: { me?: any }) {
         />
         <KpiCard
           label="Next Contract Review"
-          value="120"
-          secondary="days left"
+          value={loading ? '…' : daysToReview !== null ? String(daysToReview) : '—'}
+          secondary={loading ? '' : daysToReview !== null ? 'days left' : 'no active contract'}
           icon={
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/>
@@ -839,8 +902,8 @@ function EmployeeDashboard({ me: _me }: { me?: any }) {
         />
         <KpiCard
           label="Latest Payslip"
-          value="June"
-          secondary="ready to download"
+          value={loading ? '…' : latestPayslip ? MONTH_NAMES[latestPayslip.periodMonth - 1]?.slice(0, 3) ?? String(latestPayslip.periodMonth) : '—'}
+          secondary={loading ? '' : latestPayslip ? String(latestPayslip.periodYear) : 'none yet'}
           icon={
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -851,33 +914,34 @@ function EmployeeDashboard({ me: _me }: { me?: any }) {
         />
       </div>
 
+      {notFound && !loading && (
+        <div className="alert alert--warn" style={{ marginBottom: '1rem' }}>
+          No employee record is linked to your account email yet — showing empty state until HR links your profile.
+        </div>
+      )}
+
       <div className="dash-row-2">
         <div className="dash-chart-card">
           <h3 className="dash-chart-card__title">My Profile & Contract Details</h3>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem' }}>
             <div>
               <span className="muted small">Job Title</span>
-              <div style={{ fontWeight: 600, color: 'var(--ink)' }}>Senior Developer</div>
+              <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{(employee as any)?.jobTitle ?? '—'}</div>
             </div>
             <div>
               <span className="muted small">Department</span>
-              <div style={{ fontWeight: 600, color: 'var(--ink)' }}>Engineering</div>
+              <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{employee?.department ?? '—'}</div>
             </div>
             <div>
               <span className="muted small">Contract Type</span>
-              <div style={{ fontWeight: 600, color: 'var(--ink)' }}>Permanent Full-Time</div>
+              <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{activeContract?.contractType ?? '—'}</div>
             </div>
             <div>
               <span className="muted small">Join Date</span>
-              <div style={{ fontWeight: 600, color: 'var(--ink)' }}>January 15, 2024</div>
+              <div style={{ fontWeight: 600, color: 'var(--ink)' }}>
+                {employee?.startDate ? new Date(employee.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}
+              </div>
             </div>
-          </div>
-          <hr style={{ border: 'none', borderTop: '1px solid var(--line)', margin: '1rem 0' }} />
-          <div>
-            <span className="muted small" style={{ display: 'block', marginBottom: '0.5rem' }}>Contract Document</span>
-            <a href="#" onClick={(e) => { e.preventDefault(); alert('Downloading employment contract...'); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', fontWeight: 600, color: 'var(--brand)' }}>
-              📄 Download Signed Contract PDF
-            </a>
           </div>
         </div>
 
@@ -898,29 +962,7 @@ function EmployeeDashboard({ me: _me }: { me?: any }) {
               ))}
             </ul>
           ) : (
-            <ul className="stat-list">
-              <li className="stat-item">
-                <div>
-                  <span className="stat-item__name">Annual Leave (3 Days)</span>
-                  <div className="stat-item__meta">12/04/2026 to 15/04/2026</div>
-                </div>
-                <span className="status-badge" style={{ background: '#22c55e1a', color: '#22c55e', fontSize: '0.72rem' }}>APPROVED</span>
-              </li>
-              <li className="stat-item">
-                <div>
-                  <span className="stat-item__name">Sick Leave (1 Day)</span>
-                  <div className="stat-item__meta">24/05/2026 to 25/05/2026</div>
-                </div>
-                <span className="status-badge" style={{ background: '#22c55e1a', color: '#22c55e', fontSize: '0.72rem' }}>APPROVED</span>
-              </li>
-              <li className="stat-item">
-                <div>
-                  <span className="stat-item__name">Casual Leave (2 Days)</span>
-                  <div className="stat-item__meta">18/07/2026 to 20/07/2026</div>
-                </div>
-                <span className="status-badge" style={{ background: '#f59e0b1a', color: '#f59e0b', fontSize: '0.72rem' }}>PENDING</span>
-              </li>
-            </ul>
+            <p className="muted small" style={{ margin: 0 }}>No leave requests yet</p>
           )}
           <div style={{ marginTop: '1rem' }}>
             <Link to="/leave" className="btn btn--primary small">Request New Leave</Link>
@@ -931,50 +973,51 @@ function EmployeeDashboard({ me: _me }: { me?: any }) {
       <div className="dash-row-2" style={{ marginBottom: 0 }}>
         <div className="dash-chart-card">
           <h3 className="dash-chart-card__title">Active Performance Goals</h3>
-          <ul className="stat-list">
-            <li className="stat-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.4rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span className="stat-item__name">Optimize payroll calc scripts</span>
-                <span className="stat-item__meta">90%</span>
-              </div>
-              <div style={{ background: 'var(--surface)', height: '6px', borderRadius: '999px', overflow: 'hidden' }}>
-                <div style={{ background: 'var(--brand)', height: '100%', width: '90%' }} />
-              </div>
-            </li>
-            <li className="stat-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.4rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span className="stat-item__name">Write RRA report generation tests</span>
-                <span className="stat-item__meta">40%</span>
-              </div>
-              <div style={{ background: 'var(--surface)', height: '6px', borderRadius: '999px', overflow: 'hidden' }}>
-                <div style={{ background: 'var(--brand)', height: '100%', width: '40%' }} />
-              </div>
-            </li>
-          </ul>
+          {loading ? (
+            <p className="muted small">Loading goals…</p>
+          ) : activeGoals.length > 0 ? (
+            <ul className="stat-list">
+              {activeGoals.slice(0, 4).map((g: any) => {
+                const progress = Math.max(0, Math.min(100, Number(g.progress) || 0));
+                return (
+                  <li key={g.id} className="stat-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.4rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span className="stat-item__name">{g.title}</span>
+                      <span className="stat-item__meta">{progress}%</span>
+                    </div>
+                    <div style={{ background: 'var(--surface)', height: '6px', borderRadius: '999px', overflow: 'hidden' }}>
+                      <div style={{ background: 'var(--brand)', height: '100%', width: `${progress}%` }} />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="muted small" style={{ margin: 0 }}>No goals set for the current cycle yet</p>
+          )}
         </div>
 
         <div className="dash-chart-card">
           <h3 className="dash-chart-card__title">Recent Monthly Payslips</h3>
-          <ul className="stat-list">
-            <li className="stat-item">
-              <div>
-                <span className="stat-item__name">June 2026 Payslip</span>
-                <div className="stat-item__meta">RWF · Net Salary Paid</div>
-              </div>
-              <button className="btn btn--ghost small" onClick={() => alert('Downloading payslip PDF for June 2026...')}>
-                Download PDF
-              </button>
-            </li>
-            <li className="stat-item">
-              <div>
-                <span className="stat-item__name">May 2026 Payslip</span>
-                <div className="stat-item__meta">RWF · Net Salary Paid</div>
-              </div>
-              <button className="btn btn--ghost small" onClick={() => alert('Downloading payslip PDF for May 2026...')}>
-                Download PDF
-              </button>
-            </li>
-          </ul>
+          {loading ? (
+            <p className="muted small">Loading payslips…</p>
+          ) : sortedPayslips.length > 0 ? (
+            <ul className="stat-list">
+              {sortedPayslips.slice(0, 3).map((p: any, i: number) => (
+                <li key={i} className="stat-item">
+                  <div>
+                    <span className="stat-item__name">{MONTH_NAMES[p.periodMonth - 1] ?? p.periodMonth} {p.periodYear} Payslip</span>
+                    <div className="stat-item__meta">RWF {Number(p.netPay).toLocaleString()} · Net Salary</div>
+                  </div>
+                  <Link to={p.runId ? `/payroll/runs/${p.runId}` : '/payroll/reports'} className="btn btn--ghost small">
+                    View
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted small" style={{ margin: 0 }}>No payslips issued yet</p>
+          )}
         </div>
       </div>
     </>
@@ -989,7 +1032,19 @@ function CompanyDashboard({ displayName }: { displayName: string }) {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
+  // Switcher Tab Permission Check — computed early so the recruitment fetch below
+  // can be skipped entirely for roles that will never see that tab.
+  const userRoles = me?.roles || [];
+  const canSeeRecruitment = userRoles.some(r => ['TENANT_ADMIN', 'HR_MANAGER', 'RECRUITER'].includes(r));
+  const canSeePayroll = userRoles.some(r => ['TENANT_ADMIN', 'FINANCE_OFFICER', 'PAYROLL_SPECIALIST', 'CFO'].includes(r));
+  const canSeeClient = userRoles.some(r => ['TENANT_ADMIN', 'CLIENT_ADMIN'].includes(r));
+  const canSeeEmployee = userRoles.some(r => ['TENANT_ADMIN', 'HR_MANAGER', 'TENANT_STAFF', 'CLIENT_EMPLOYEE'].includes(r));
+
   const load = useCallback(async () => {
+    if (!canSeeRecruitment) {
+      setLoading(false);
+      return;
+    }
     setErr(null);
     setLoading(true);
     try {
@@ -1005,7 +1060,7 @@ function CompanyDashboard({ displayName }: { displayName: string }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [canSeeRecruitment]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -1059,13 +1114,6 @@ function CompanyDashboard({ displayName }: { displayName: string }) {
   const todayStr = new Date().toLocaleDateString('en-GB', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
-
-  // Switcher Tab Permission Check
-  const userRoles = me?.roles || [];
-  const canSeeRecruitment = userRoles.some(r => ['TENANT_ADMIN', 'HR_MANAGER', 'RECRUITER'].includes(r));
-  const canSeePayroll = userRoles.some(r => ['TENANT_ADMIN', 'FINANCE_OFFICER', 'PAYROLL_SPECIALIST', 'CFO'].includes(r));
-  const canSeeClient = userRoles.some(r => ['TENANT_ADMIN', 'CLIENT_ADMIN'].includes(r));
-  const canSeeEmployee = userRoles.some(r => ['TENANT_ADMIN', 'HR_MANAGER', 'TENANT_STAFF', 'CLIENT_EMPLOYEE'].includes(r));
 
   const tabs = useMemo(() => {
     const list: { id: 'recruitment' | 'payroll' | 'client' | 'employee'; label: string }[] = [];
@@ -1180,6 +1228,62 @@ function PendingBanner({ myTenant }: { myTenant: TenantRow }) {
   );
 }
 
+// ── Calendar card ─────────────────────────────────────────────────────────────
+
+const WEEKDAY_SHORT = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+
+function CalendarCard() {
+  const today = new Date();
+  const [cursor, setCursor] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+
+  const monthLabel = cursor.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  const dayName = today.toLocaleDateString('en-GB', { weekday: 'long' });
+
+  const cells = useMemo(() => {
+    const year = cursor.getFullYear();
+    const month = cursor.getMonth();
+    const firstOfMonth = new Date(year, month, 1);
+    const startOffset = (firstOfMonth.getDay() + 6) % 7; // Monday-first grid
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const out: { day: number | null; isToday: boolean }[] = [];
+    for (let i = 0; i < startOffset; i++) out.push({ day: null, isToday: false });
+    for (let d = 1; d <= daysInMonth; d++) {
+      out.push({
+        day: d,
+        isToday: d === today.getDate() && month === today.getMonth() && year === today.getFullYear(),
+      });
+    }
+    return out;
+  }, [cursor, today]);
+
+  return (
+    <div className="dash-chart-card dash-calendar-card">
+      <div className="dash-calendar-card__today">
+        <div className="dash-calendar-card__dayname">{dayName}</div>
+        <div className="dash-calendar-card__daynum">{today.getDate()}</div>
+        <div className="dash-calendar-card__month">{today.toLocaleDateString('en-GB', { month: 'long' })}</div>
+      </div>
+      <div className="dash-calendar-card__grid-wrap">
+        <div className="dash-calendar-card__nav">
+          <button type="button" aria-label="Previous month" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>‹</button>
+          <span>{monthLabel}</span>
+          <button type="button" aria-label="Next month" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}>›</button>
+        </div>
+        <div className="dash-calendar-card__weekdays">
+          {WEEKDAY_SHORT.map((w) => <span key={w}>{w}</span>)}
+        </div>
+        <div className="dash-calendar-card__days">
+          {cells.map((c, i) => (
+            <span key={i} className={c.day === null ? 'dash-calendar-card__day--empty' : c.isToday ? 'dash-calendar-card__day--today' : ''}>
+              {c.day ?? ''}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Super admin dashboard ─────────────────────────────────────────────────────
 
 function SuperDashboard({ tenants, pending, onApprove, approving, err }: {
@@ -1194,6 +1298,10 @@ function SuperDashboard({ tenants, pending, onApprove, approving, err }: {
   const todayStr = new Date().toLocaleDateString('en-GB', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
+  const recentTenants = useMemo(
+    () => [...tenants].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5),
+    [tenants],
+  );
 
   return (
     <>
@@ -1207,11 +1315,35 @@ function SuperDashboard({ tenants, pending, onApprove, approving, err }: {
 
       {err && <div className="alert alert--err" role="alert" style={{ marginBottom: '1rem' }}>{err}</div>}
 
-      <div className="dash-kpi-grid">
-        <KpiCard label="Total Companies" value={String(tenants.length)} secondary="registered tenants" icon={<IcoBriefcase />} color="#6366f1" />
-        <KpiCard label="Active" value={String(active)} secondary="running workspaces" icon={<IcoAward />} color="#22c55e" />
-        <KpiCard label="Pending Approval" value={String(pending.length)} secondary={pending.length > 0 ? 'need review' : 'all clear'} icon={<IcoCalendar />} color="#f59e0b" />
-        <KpiCard label="Rejected" value={String(rejected)} secondary="not approved" icon={<IcoUsers />} color="#ef4444" />
+      <div className="dash-row-cal">
+        <CalendarCard />
+        <div className="dash-kpi-grid dash-kpi-grid--2x2">
+          <KpiCard label="Total Companies" value={String(tenants.length)} secondary="registered tenants" icon={<IcoBriefcase />} color="#6366f1" />
+          <KpiCard label="Active" value={String(active)} secondary="running workspaces" icon={<IcoAward />} color="#22c55e" />
+          <KpiCard label="Pending Approval" value={String(pending.length)} secondary={pending.length > 0 ? 'need review' : 'all clear'} icon={<IcoCalendar />} color="#f59e0b" />
+          <KpiCard label="Rejected" value={String(rejected)} secondary="not approved" icon={<IcoUsers />} color="#ef4444" />
+        </div>
+      </div>
+
+      <div className="dash-chart-card" style={{ marginBottom: '1rem' }}>
+        <h3 className="dash-chart-card__title">Recently registered companies</h3>
+        {recentTenants.length > 0 ? (
+          <ul className="stat-list">
+            {recentTenants.map((t) => (
+              <li key={t.id} className="stat-item">
+                <div>
+                  <span className="stat-item__name">{t.name}</span>
+                  <div className="stat-item__meta">
+                    <code>{t.slug}</code> · registered {new Date(t.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </div>
+                </div>
+                <StatusBadge status={t.status} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted small" style={{ margin: 0 }}>No companies registered yet</p>
+        )}
       </div>
 
       {pending.length > 0 && (

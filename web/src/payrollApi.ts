@@ -222,6 +222,14 @@ async function payrollFetch(path: string, init?: RequestInit) {
   return r;
 }
 
+/** Self-service: look up the employee record linked to the caller's own account. No admin role required. */
+export async function fetchMyEmployee(): Promise<Employee | null> {
+  const r = await authFetch(`${payrollUrl()}/api/v1/employees/me`);
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
 export async function fetchEmployees(
   params?:
     | string
@@ -810,6 +818,12 @@ export async function fetchContracts(employeeId: string) {
   return parseJson(r);
 }
 
+/** Self-service: the caller's own contracts. No admin role required. */
+export async function fetchMyContracts() {
+  const r = await payrollFetch('/api/v1/employees/me/contracts');
+  return parseJson(r);
+}
+
 export async function createContract(employeeId: string, data: Record<string, unknown>) {
   const r = await payrollFetch(`/api/v1/employees/${employeeId}/contracts`, {
     method: 'POST',
@@ -899,6 +913,12 @@ export const downloadBankFile = (periodId: string) =>
 
 export async function fetchEmployeePayslips(employeeId: string) {
   const r = await payrollFetch(`/api/v1/payroll/payslips/${employeeId}`);
+  return parseJson(r);
+}
+
+/** Self-service: the caller's own payslips. No admin role required. */
+export async function fetchMyPayslips() {
+  const r = await payrollFetch('/api/v1/payroll/payslips/me');
   return parseJson(r);
 }
 
@@ -1060,6 +1080,138 @@ export async function createFeedbackRequest(body: any) {
 export async function submitFeedbackResponse(requestId: string, body: any) {
   const r = await payrollFetch(`/api/v1/performance/360-feedback/requests/${requestId}/response`, {
     method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return parseJson(r);
+}
+
+export type PipStatus = 'ACTIVE' | 'EXTENDED' | 'SUCCEEDED' | 'ESCALATED' | 'CLOSED';
+
+export type PipCheckIn = {
+  id: string;
+  pipId: string;
+  note: string;
+  status: string | null;
+  createdAt: string;
+};
+
+export type PerformanceImprovementPlan = {
+  id: string;
+  tenantId: string;
+  employeeId: string;
+  appraisalId: string | null;
+  managerId: string | null;
+  reason: string;
+  objectives: string;
+  supportProvided: string | null;
+  startDate: string;
+  reviewDate: string;
+  endDate: string | null;
+  status: PipStatus;
+  outcome: string | null;
+  createdAt: string;
+  updatedAt: string;
+  employee?: { firstName: string; lastName: string; jobTitle?: string };
+  checkIns?: PipCheckIn[];
+};
+
+export async function fetchPips(employeeId?: string, status?: string): Promise<PerformanceImprovementPlan[]> {
+  const params: string[] = [];
+  if (employeeId) params.push(`employeeId=${employeeId}`);
+  if (status) params.push(`status=${status}`);
+  const query = params.length > 0 ? `?${params.join('&')}` : '';
+  const r = await payrollFetch(`/api/v1/performance/pips${query}`);
+  return parseJson(r);
+}
+
+export async function fetchPip(id: string): Promise<PerformanceImprovementPlan> {
+  const r = await payrollFetch(`/api/v1/performance/pips/${id}`);
+  return parseJson(r);
+}
+
+export async function createPip(body: {
+  employeeId: string;
+  appraisalId?: string;
+  managerId?: string;
+  reason: string;
+  objectives: string;
+  supportProvided?: string;
+  startDate: string;
+  reviewDate: string;
+}): Promise<PerformanceImprovementPlan> {
+  const r = await payrollFetch('/api/v1/performance/pips', { method: 'POST', body: JSON.stringify(body) });
+  return parseJson(r);
+}
+
+export async function updatePip(
+  id: string,
+  body: Partial<{ status: PipStatus; reviewDate: string; endDate: string; outcome: string }>,
+): Promise<PerformanceImprovementPlan> {
+  const r = await payrollFetch(`/api/v1/performance/pips/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+  return parseJson(r);
+}
+
+export async function addPipCheckIn(id: string, body: { note: string; status?: string }): Promise<PipCheckIn> {
+  const r = await payrollFetch(`/api/v1/performance/pips/${id}/check-ins`, { method: 'POST', body: JSON.stringify(body) });
+  return parseJson(r);
+}
+
+export type PermitType = 'WORK_PERMIT' | 'VISA' | 'RESIDENCE_PERMIT';
+export type PermitStatus = 'APPROVED' | 'EXPIRED' | 'REVOKED';
+export type ChecklistItemStatus = 'PENDING' | 'UPLOADED' | 'VERIFIED';
+
+export type PermitChecklistItem = {
+  id: string;
+  permitId: string;
+  documentName: string;
+  status: ChecklistItemStatus;
+  fileKey: string | null;
+};
+
+export type Permit = {
+  id: string;
+  tenantId: string;
+  employeeId: string;
+  permitNumber: string;
+  permitType: PermitType;
+  country: string;
+  expiryDate: string;
+  status: PermitStatus;
+  createdAt: string;
+  updatedAt: string;
+  employee?: { firstName: string; lastName: string; email?: string };
+  checklistItems?: PermitChecklistItem[];
+};
+
+export async function fetchPermits(status?: string): Promise<Permit[]> {
+  const query = status ? `?status=${status}` : '';
+  const r = await payrollFetch(`/api/v1/permits${query}`);
+  return parseJson(r);
+}
+
+export async function fetchPermit(id: string): Promise<Permit> {
+  const r = await payrollFetch(`/api/v1/permits/${id}`);
+  return parseJson(r);
+}
+
+export async function createPermit(body: {
+  employeeId: string;
+  permitNumber: string;
+  permitType: PermitType;
+  country?: string;
+  expiryDate: string;
+}): Promise<Permit> {
+  const r = await payrollFetch('/api/v1/permits', { method: 'POST', body: JSON.stringify(body) });
+  return parseJson(r);
+}
+
+export async function updatePermitChecklistItem(
+  permitId: string,
+  itemId: string,
+  body: { status: ChecklistItemStatus; fileKey?: string },
+): Promise<PermitChecklistItem> {
+  const r = await payrollFetch(`/api/v1/permits/${permitId}/checklist/${itemId}`, {
+    method: 'PATCH',
     body: JSON.stringify(body),
   });
   return parseJson(r);

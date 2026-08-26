@@ -7,6 +7,7 @@ import {
   submitManagerReview,
   submitHRValidation,
   fetchEmployees,
+  fetchMyEmployee,
   fetchFeedbackRequests,
 } from '../../payrollApi';
 
@@ -52,8 +53,15 @@ export function PerformanceAppraisalsPage() {
       const user = await fetchMe();
       setMe(user);
 
-      const empList = await fetchEmployees();
-      setEmployees(empList);
+      try {
+        // Listing all employees requires HR/admin privileges — used here only to resolve
+        // display names. A plain employee without that access still sees their own
+        // appraisals below; names just fall back to showing their own record only.
+        setEmployees(await fetchEmployees());
+      } catch {
+        const mine = await fetchMyEmployee();
+        setEmployees(mine ? [mine] : []);
+      }
       const list: any = await fetchAppraisals();
       setAppraisals(list || []);
     } catch (err: any) {
