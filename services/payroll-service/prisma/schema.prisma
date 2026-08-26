@@ -511,11 +511,18 @@ model Competency {
   @@map("competencies")
 }
 
+enum GoalType {
+  GOAL
+  KPI
+}
+
 model Goal {
   id                String         @id @default(uuid())
   tenantId          String         @map("tenant_id")
   employeeId        String         @map("employee_id")
-  appraisalCycleId  String         @map("appraisal_cycle_id")
+  appraisalCycleId  String?        @map("appraisal_cycle_id")
+  type              GoalType       @default(GOAL)
+  kpiPeriodId       String?        @map("kpi_period_id")
   title             String
   description       String?
   target            String
@@ -529,13 +536,69 @@ model Goal {
   createdAt         DateTime       @default(now()) @map("created_at")
   updatedAt         DateTime       @updatedAt @map("updated_at")
 
-  employee          Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  cycle             AppraisalCycle @relation(fields: [appraisalCycleId], references: [id], onDelete: Cascade)
+  employee          Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  cycle             AppraisalCycle? @relation(fields: [appraisalCycleId], references: [id], onDelete: Cascade)
+  kpiPeriod         KpiPeriod?      @relation(fields: [kpiPeriodId], references: [id], onDelete: SetNull)
   ratings           AppraisalGoalRating[]
 
   @@index([tenantId])
   @@index([employeeId])
+  @@index([tenantId, type, kpiPeriodId])
   @@map("goals")
+}
+
+enum KpiPeriodStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
+model KpiPeriod {
+  id        String          @id @default(uuid())
+  tenantId  String          @map("tenant_id")
+  name      String
+  startDate DateTime        @map("start_date")
+  endDate   DateTime        @map("end_date")
+  status    KpiPeriodStatus @default(DRAFT)
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  kpis      Goal[]
+  teamKpis  TeamKpiSubmission[]
+
+  @@index([tenantId])
+  @@map("kpi_periods")
+}
+
+enum TeamKpiStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model TeamKpiSubmission {
+  id                String        @id @default(uuid())
+  tenantId          String        @map("tenant_id")
+  teamLeaderId      String        @map("team_leader_id")
+  kpiPeriodId       String        @map("kpi_period_id")
+  status            TeamKpiStatus @default(DRAFT)
+  memberCount       Int           @default(0) @map("member_count")
+  approvedKpiCount  Int           @default(0) @map("approved_kpi_count")
+  avgProgress       Decimal       @default(0.0) @db.Decimal(5, 2) @map("avg_progress")
+  summary           String?
+  submittedAt       DateTime?     @map("submitted_at")
+  reviewerId        String?       @map("reviewer_id")
+  reviewedAt        DateTime?     @map("reviewed_at")
+  reviewComment     String?       @map("review_comment")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  period            KpiPeriod     @relation(fields: [kpiPeriodId], references: [id], onDelete: Cascade)
+
+  @@unique([teamLeaderId, kpiPeriodId])
+  @@index([tenantId])
+  @@map("team_kpi_submissions")
 }
 
 model GoalTemplate {

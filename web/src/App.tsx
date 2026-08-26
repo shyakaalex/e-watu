@@ -57,6 +57,8 @@ import { PerformanceGoalsPage } from './pages/payroll/PerformanceGoalsPage';
 import { PerformanceAppraisalsPage } from './pages/payroll/PerformanceAppraisalsPage';
 import { PerformanceImprovementPlansPage } from './pages/payroll/PerformanceImprovementPlansPage';
 import { ImmigrationPermitsPage } from './pages/payroll/ImmigrationPermitsPage';
+import { PersonalKpisPage } from './pages/payroll/PersonalKpisPage';
+import { TeamKpisPage } from './pages/payroll/TeamKpisPage';
 import { Feedback360Page } from './pages/payroll/Feedback360Page';
 import { LeaveLayout } from './pages/leave/LeaveLayout';
 import { LeaveDashboardPage } from './pages/leave/LeaveDashboardPage';
@@ -211,6 +213,8 @@ export default function App() {
         <Route path="appraisals" element={<PerformanceAppraisalsPage />} />
         <Route path="360-feedback" element={<Feedback360Page />} />
         <Route path="pips" element={<PerformanceImprovementPlansPage />} />
+        <Route path="kpis" element={<PersonalKpisPage />} />
+        <Route path="team-kpis" element={<TeamKpisPage />} />
       </Route>
       <Route path="/client-portal/payroll" element={<ProtectedRoute><ClientPortalPayrollPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />

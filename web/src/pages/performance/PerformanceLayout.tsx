@@ -70,6 +70,24 @@ export function PerformanceLayout() {
             Goal Setting & KPIs
           </NavLink>
           <NavLink
+            to="/performance/kpis"
+            className={({ isActive }) =>
+              `payroll-nav__link${isActive ? ' payroll-nav__link--active' : ''}`
+            }
+          >
+            <span className="payroll-nav__icon">📌</span>
+            Team & Personal KPIs
+          </NavLink>
+          <NavLink
+            to="/performance/team-kpis"
+            className={({ isActive }) =>
+              `payroll-nav__link${isActive ? ' payroll-nav__link--active' : ''}`
+            }
+          >
+            <span className="payroll-nav__icon">📊</span>
+            Team KPI Submissions
+          </NavLink>
+          <NavLink
             to="/performance/appraisals"
             className={({ isActive }) =>
               `payroll-nav__link${isActive ? ' payroll-nav__link--active' : ''}`

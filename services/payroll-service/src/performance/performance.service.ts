@@ -1,5 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { EwatuRole } from '@ewatu/common-auth';
 import { PrismaService } from '../prisma/prisma.service';
+
+const SENIOR_OFFICER_ROLES = [EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER] as const;
 
 @Injectable()
 export class PerformanceService {
@@ -696,6 +699,269 @@ export class PerformanceService {
 
     return this.prisma.pipCheckIn.create({
       data: { pipId, note: body.note, status: body.status },
+    });
+  }
+
+  // --- KPI PERIODS ---
+
+  async listKpiPeriods(tenantId: string) {
+    return this.prisma.kpiPeriod.findMany({
+      where: { tenantId },
+      orderBy: { startDate: 'desc' },
+    });
+  }
+
+  async createKpiPeriod(
+    tenantId: string,
+    body: { name: string; startDate: string; endDate: string },
+  ) {
+    return this.prisma.kpiPeriod.create({
+      data: {
+        tenantId,
+        name: body.name,
+        startDate: new Date(body.startDate),
+        endDate: new Date(body.endDate),
+        status: 'ACTIVE',
+      },
+    });
+  }
+
+  // --- PERSONAL KPIs (Goal rows scoped to type = KPI) ---
+
+  private async resolveCallerEmployee(tenantId: string, email: string) {
+    const employee = await this.prisma.employee.findFirst({
+      where: { tenantId, email: { equals: email, mode: 'insensitive' } },
+    });
+    if (!employee) {
+      throw new NotFoundException('No employee record is linked to this account');
+    }
+    return employee;
+  }
+
+  /** `forReview: true` scopes results to the caller's own direct reports (for a team leader
+   *  triaging what needs their approval) instead of an unrestricted tenant-wide list. Senior
+   *  officers (TENANT_ADMIN/HR_MANAGER) skip that scoping and see everyone's. */
+  async listKpis(
+    tenantId: string,
+    caller: { email: string; roles: string[] },
+    opts: { employeeId?: string; kpiPeriodId?: string; status?: string; forReview?: boolean },
+  ) {
+    const isSeniorOfficer = caller.roles.some((r) => (SENIOR_OFFICER_ROLES as readonly string[]).includes(r));
+    let managerId: string | undefined;
+    if (opts.forReview && !isSeniorOfficer) {
+      const me = await this.resolveCallerEmployee(tenantId, caller.email);
+      managerId = me.id;
+    }
+
+    return this.prisma.goal.findMany({
+      where: {
+        tenantId,
+        type: 'KPI',
+        ...(opts.employeeId ? { employeeId: opts.employeeId } : {}),
+        ...(opts.kpiPeriodId ? { kpiPeriodId: opts.kpiPeriodId } : {}),
+        ...(opts.status ? { status: opts.status as any } : {}),
+        ...(managerId ? { employee: { managerId } } : {}),
+      },
+      include: { employee: true, kpiPeriod: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /** The signed-in employee plans (creates) their own Personal KPI. */
+  async createKpi(
+    tenantId: string,
+    callerEmail: string,
+    body: {
+      kpiPeriodId: string;
+      title: string;
+      description?: string;
+      target: string;
+      measurementMethod: string;
+      weight: number;
+      deadline: string;
+    },
+  ) {
+    const me = await this.resolveCallerEmployee(tenantId, callerEmail);
+    return this.prisma.goal.create({
+      data: {
+        tenantId,
+        employeeId: me.id,
+        kpiPeriodId: body.kpiPeriodId,
+        type: 'KPI',
+        title: body.title,
+        description: body.description,
+        target: body.target,
+        measurementMethod: body.measurementMethod,
+        weight: body.weight,
+        deadline: new Date(body.deadline),
+        status: 'DRAFT',
+      },
+    });
+  }
+
+  private async getOwnKpi(tenantId: string, id: string) {
+    const kpi = await this.prisma.goal.findUnique({ where: { id }, include: { employee: true } });
+    if (!kpi || kpi.tenantId !== tenantId || kpi.type !== 'KPI') {
+      throw new NotFoundException('KPI not found');
+    }
+    return kpi;
+  }
+
+  /** Only the owning employee can submit their own KPI for their team leader's review. */
+  async submitKpi(tenantId: string, callerEmail: string, id: string) {
+    const me = await this.resolveCallerEmployee(tenantId, callerEmail);
+    const kpi = await this.getOwnKpi(tenantId, id);
+    if (kpi.employeeId !== me.id) {
+      throw new ForbiddenException('You can only submit your own KPI');
+    }
+    return this.prisma.goal.update({ where: { id }, data: { status: 'SUBMITTED' } });
+  }
+
+  /** Only the KPI owner or their direct manager may update progress. */
+  async updateKpiProgress(tenantId: string, callerEmail: string, id: string, progress: number) {
+    const me = await this.resolveCallerEmployee(tenantId, callerEmail);
+    const kpi = await this.getOwnKpi(tenantId, id);
+    if (kpi.employeeId !== me.id && kpi.employee.managerId !== me.id) {
+      throw new ForbiddenException('You do not have access to this KPI');
+    }
+    return this.prisma.goal.update({ where: { id }, data: { progress } });
+  }
+
+  /** The team leader (the employee's direct manager) approves or rejects a submitted Personal
+   *  KPI. Senior officers (TENANT_ADMIN/HR_MANAGER) can also decide, matching how they can act
+   *  as a fallback approver elsewhere in this module. */
+  async decideKpi(
+    tenantId: string,
+    caller: { email: string; roles: string[] },
+    id: string,
+    body: { status: 'APPROVED' | 'REJECTED'; managerComment?: string },
+  ) {
+    const kpi = await this.getOwnKpi(tenantId, id);
+    const me = await this.resolveCallerEmployee(tenantId, caller.email).catch(() => null);
+    const isTeamLeader = me && kpi.employee.managerId === me.id;
+    const isSeniorOfficer = caller.roles.some((r) => (SENIOR_OFFICER_ROLES as readonly string[]).includes(r));
+    if (!isTeamLeader && !isSeniorOfficer) {
+      throw new ForbiddenException('Only this employee\'s team leader can approve their KPI');
+    }
+    if (kpi.status !== 'SUBMITTED') {
+      throw new BadRequestException('Only a submitted KPI can be approved or rejected');
+    }
+    return this.prisma.goal.update({
+      where: { id },
+      data: { status: body.status, managerComment: body.managerComment },
+    });
+  }
+
+  // --- TEAM KPIs (rollup of a team leader's direct reports' approved Personal KPIs) ---
+
+  private async computeTeamRollup(tenantId: string, teamLeaderId: string, kpiPeriodId: string) {
+    const reports = await this.prisma.employee.findMany({
+      where: { tenantId, managerId: teamLeaderId },
+      select: { id: true },
+    });
+    const reportIds = reports.map((r) => r.id);
+    const approvedKpis = reportIds.length
+      ? await this.prisma.goal.findMany({
+          where: {
+            tenantId,
+            type: 'KPI',
+            kpiPeriodId,
+            employeeId: { in: reportIds },
+            status: 'APPROVED',
+          },
+          select: { progress: true },
+        })
+      : [];
+    const avgProgress = approvedKpis.length
+      ? approvedKpis.reduce((sum, k) => sum + Number(k.progress), 0) / approvedKpis.length
+      : 0;
+    return {
+      memberCount: reportIds.length,
+      approvedKpiCount: approvedKpis.length,
+      avgProgress,
+    };
+  }
+
+  /** Live preview of the rollup, without persisting anything — lets a team leader see the
+   *  numbers before they arrange and send the Team KPI upward. */
+  async previewTeamKpi(tenantId: string, callerEmail: string, kpiPeriodId: string) {
+    const me = await this.resolveCallerEmployee(tenantId, callerEmail);
+    return this.computeTeamRollup(tenantId, me.id, kpiPeriodId);
+  }
+
+  /** The team leader arranges (computes a fresh snapshot of) their Team KPI and sends it to the
+   *  Managing Team / senior officers (TENANT_ADMIN, HR_MANAGER) for approval. */
+  async submitTeamKpi(
+    tenantId: string,
+    callerEmail: string,
+    body: { kpiPeriodId: string; summary?: string },
+  ) {
+    const me = await this.resolveCallerEmployee(tenantId, callerEmail);
+    const rollup = await this.computeTeamRollup(tenantId, me.id, body.kpiPeriodId);
+
+    return this.prisma.teamKpiSubmission.upsert({
+      where: { teamLeaderId_kpiPeriodId: { teamLeaderId: me.id, kpiPeriodId: body.kpiPeriodId } },
+      create: {
+        tenantId,
+        teamLeaderId: me.id,
+        kpiPeriodId: body.kpiPeriodId,
+        status: 'SUBMITTED',
+        summary: body.summary,
+        submittedAt: new Date(),
+        ...rollup,
+      },
+      update: {
+        status: 'SUBMITTED',
+        summary: body.summary,
+        submittedAt: new Date(),
+        reviewedAt: null,
+        reviewComment: null,
+        ...rollup,
+      },
+    });
+  }
+
+  /** Senior officers see every team's submissions (for review); a team leader without that role
+   *  sees only the submissions they themselves arranged. */
+  async listTeamKpis(
+    tenantId: string,
+    caller: { email: string; roles: string[] },
+    kpiPeriodId?: string,
+    status?: string,
+  ) {
+    const isSeniorOfficer = caller.roles.some((r) => (SENIOR_OFFICER_ROLES as readonly string[]).includes(r));
+    const teamLeaderId = isSeniorOfficer
+      ? undefined
+      : (await this.resolveCallerEmployee(tenantId, caller.email)).id;
+
+    return this.prisma.teamKpiSubmission.findMany({
+      where: {
+        tenantId,
+        ...(teamLeaderId ? { teamLeaderId } : {}),
+        ...(kpiPeriodId ? { kpiPeriodId } : {}),
+        ...(status ? { status: status as any } : {}),
+      },
+      include: { period: true },
+      orderBy: { submittedAt: 'desc' },
+    });
+  }
+
+  /** Senior officers (TENANT_ADMIN/HR_MANAGER) approve or reject the escalated Team KPI. */
+  async decideTeamKpi(
+    tenantId: string,
+    id: string,
+    body: { status: 'APPROVED' | 'REJECTED'; reviewComment?: string },
+  ) {
+    const submission = await this.prisma.teamKpiSubmission.findUnique({ where: { id } });
+    if (!submission || submission.tenantId !== tenantId) {
+      throw new NotFoundException('Team KPI submission not found');
+    }
+    if (submission.status !== 'SUBMITTED') {
+      throw new BadRequestException('Only a submitted Team KPI can be approved or rejected');
+    }
+    return this.prisma.teamKpiSubmission.update({
+      where: { id },
+      data: { status: body.status, reviewComment: body.reviewComment, reviewedAt: new Date() },
     });
   }
 }

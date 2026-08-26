@@ -1217,3 +1217,161 @@ export async function updatePermitChecklistItem(
   return parseJson(r);
 }
 
+// --- KPIs ---
+
+export type KpiPeriodStatus = 'DRAFT' | 'ACTIVE' | 'CLOSED';
+export type KpiStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+export type TeamKpiStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+
+export type KpiPeriod = {
+  id: string;
+  tenantId: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  status: KpiPeriodStatus;
+};
+
+export type Kpi = {
+  id: string;
+  tenantId: string;
+  employeeId: string;
+  kpiPeriodId: string | null;
+  title: string;
+  description: string | null;
+  target: string;
+  measurementMethod: string;
+  weight: string;
+  deadline: string;
+  status: KpiStatus;
+  progress: string;
+  managerComment: string | null;
+  createdAt: string;
+  updatedAt: string;
+  employee?: { firstName: string; lastName: string; jobTitle?: string };
+  kpiPeriod?: KpiPeriod;
+};
+
+export type TeamKpiRollup = {
+  memberCount: number;
+  approvedKpiCount: number;
+  avgProgress: number;
+};
+
+export type TeamKpiSubmission = TeamKpiRollup & {
+  id: string;
+  tenantId: string;
+  teamLeaderId: string;
+  kpiPeriodId: string;
+  status: TeamKpiStatus;
+  summary: string | null;
+  submittedAt: string | null;
+  reviewerId: string | null;
+  reviewedAt: string | null;
+  reviewComment: string | null;
+  period?: KpiPeriod;
+};
+
+export async function fetchKpiPeriods(): Promise<KpiPeriod[]> {
+  const r = await payrollFetch('/api/v1/performance/kpi-periods');
+  return parseJson(r);
+}
+
+export async function createKpiPeriod(body: {
+  name: string;
+  startDate: string;
+  endDate: string;
+}): Promise<KpiPeriod> {
+  const r = await payrollFetch('/api/v1/performance/kpi-periods', { method: 'POST', body: JSON.stringify(body) });
+  return parseJson(r);
+}
+
+export async function fetchKpis(params?: {
+  employeeId?: string;
+  kpiPeriodId?: string;
+  status?: string;
+  forReview?: boolean;
+}): Promise<Kpi[]> {
+  const q: string[] = [];
+  if (params?.employeeId) q.push(`employeeId=${params.employeeId}`);
+  if (params?.kpiPeriodId) q.push(`kpiPeriodId=${params.kpiPeriodId}`);
+  if (params?.status) q.push(`status=${params.status}`);
+  if (params?.forReview) q.push('forReview=true');
+  const query = q.length > 0 ? `?${q.join('&')}` : '';
+  const r = await payrollFetch(`/api/v1/performance/kpis${query}`);
+  return parseJson(r);
+}
+
+export async function createKpi(body: {
+  kpiPeriodId: string;
+  title: string;
+  description?: string;
+  target: string;
+  measurementMethod: string;
+  weight: number;
+  deadline: string;
+}): Promise<Kpi> {
+  const r = await payrollFetch('/api/v1/performance/kpis', { method: 'POST', body: JSON.stringify(body) });
+  return parseJson(r);
+}
+
+export async function submitKpi(id: string): Promise<Kpi> {
+  const r = await payrollFetch(`/api/v1/performance/kpis/${id}/submit`, { method: 'PATCH' });
+  return parseJson(r);
+}
+
+export async function updateKpiProgress(id: string, progress: number): Promise<Kpi> {
+  const r = await payrollFetch(`/api/v1/performance/kpis/${id}/progress`, {
+    method: 'PATCH',
+    body: JSON.stringify({ progress }),
+  });
+  return parseJson(r);
+}
+
+export async function decideKpi(
+  id: string,
+  body: { status: 'APPROVED' | 'REJECTED'; managerComment?: string },
+): Promise<Kpi> {
+  const r = await payrollFetch(`/api/v1/performance/kpis/${id}/decision`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  return parseJson(r);
+}
+
+export async function previewTeamKpi(kpiPeriodId: string): Promise<TeamKpiRollup> {
+  const r = await payrollFetch(`/api/v1/performance/team-kpis/preview?kpiPeriodId=${kpiPeriodId}`);
+  return parseJson(r);
+}
+
+export async function fetchTeamKpis(params?: {
+  kpiPeriodId?: string;
+  status?: string;
+}): Promise<TeamKpiSubmission[]> {
+  const q: string[] = [];
+  if (params?.kpiPeriodId) q.push(`kpiPeriodId=${params.kpiPeriodId}`);
+  if (params?.status) q.push(`status=${params.status}`);
+  const query = q.length > 0 ? `?${q.join('&')}` : '';
+  const r = await payrollFetch(`/api/v1/performance/team-kpis${query}`);
+  return parseJson(r);
+}
+
+export async function submitTeamKpi(body: {
+  kpiPeriodId: string;
+  summary?: string;
+}): Promise<TeamKpiSubmission> {
+  const r = await payrollFetch('/api/v1/performance/team-kpis', { method: 'POST', body: JSON.stringify(body) });
+  return parseJson(r);
+}
+
+export async function decideTeamKpi(
+  id: string,
+  body: { status: 'APPROVED' | 'REJECTED'; reviewComment?: string },
+): Promise<TeamKpiSubmission> {
+  const r = await payrollFetch(`/api/v1/performance/team-kpis/${id}/decision`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  return parseJson(r);
+}
+

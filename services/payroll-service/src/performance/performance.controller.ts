@@ -290,4 +290,126 @@ export class PerformanceController {
   ) {
     return this.service.addPipCheckIn(user.tenant_id as string, id, body);
   }
+
+  // --- KPI PERIODS ---
+
+  @Get('kpi-periods')
+  listKpiPeriods(@CurrentUser() user: AuthUser) {
+    return this.service.listKpiPeriods(user.tenant_id as string);
+  }
+
+  @Post('kpi-periods')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  createKpiPeriod(
+    @CurrentUser() user: AuthUser,
+    @Body() body: { name: string; startDate: string; endDate: string },
+  ) {
+    return this.service.createKpiPeriod(user.tenant_id as string, body);
+  }
+
+  // --- PERSONAL KPIs ---
+
+  @Get('kpis')
+  listKpis(
+    @CurrentUser() user: AuthUser,
+    @Query('employeeId') employeeId?: string,
+    @Query('kpiPeriodId') kpiPeriodId?: string,
+    @Query('status') status?: string,
+    @Query('forReview') forReview?: string,
+  ) {
+    return this.service.listKpis(
+      user.tenant_id as string,
+      { email: user.email as string, roles: user.roles },
+      { employeeId, kpiPeriodId, status, forReview: forReview === 'true' },
+    );
+  }
+
+  @Post('kpis')
+  createKpi(
+    @CurrentUser() user: AuthUser,
+    @Body()
+    body: {
+      kpiPeriodId: string;
+      title: string;
+      description?: string;
+      target: string;
+      measurementMethod: string;
+      weight: number;
+      deadline: string;
+    },
+  ) {
+    return this.service.createKpi(user.tenant_id as string, user.email as string, body);
+  }
+
+  @Patch('kpis/:id/submit')
+  submitKpi(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.service.submitKpi(user.tenant_id as string, user.email as string, id);
+  }
+
+  @Patch('kpis/:id/progress')
+  updateKpiProgress(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() body: { progress: number },
+  ) {
+    return this.service.updateKpiProgress(
+      user.tenant_id as string,
+      user.email as string,
+      id,
+      body.progress,
+    );
+  }
+
+  @Patch('kpis/:id/decision')
+  decideKpi(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() body: { status: 'APPROVED' | 'REJECTED'; managerComment?: string },
+  ) {
+    return this.service.decideKpi(
+      user.tenant_id as string,
+      { email: user.email as string, roles: user.roles },
+      id,
+      body,
+    );
+  }
+
+  // --- TEAM KPIs ---
+
+  @Get('team-kpis/preview')
+  previewTeamKpi(@CurrentUser() user: AuthUser, @Query('kpiPeriodId') kpiPeriodId: string) {
+    return this.service.previewTeamKpi(user.tenant_id as string, user.email as string, kpiPeriodId);
+  }
+
+  @Get('team-kpis')
+  listTeamKpis(
+    @CurrentUser() user: AuthUser,
+    @Query('kpiPeriodId') kpiPeriodId?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.service.listTeamKpis(
+      user.tenant_id as string,
+      { email: user.email as string, roles: user.roles },
+      kpiPeriodId,
+      status,
+    );
+  }
+
+  @Post('team-kpis')
+  submitTeamKpi(
+    @CurrentUser() user: AuthUser,
+    @Body() body: { kpiPeriodId: string; summary?: string },
+  ) {
+    return this.service.submitTeamKpi(user.tenant_id as string, user.email as string, body);
+  }
+
+  @Patch('team-kpis/:id/decision')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  decideTeamKpi(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+    @Body() body: { status: 'APPROVED' | 'REJECTED'; reviewComment?: string },
+  ) {
+    return this.service.decideTeamKpi(user.tenant_id as string, id, body);
+  }
 }
