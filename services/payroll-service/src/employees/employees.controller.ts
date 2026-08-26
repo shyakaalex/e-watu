@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { IsArray } from 'class-validator';
 import {
   AuthUser,
   CurrentUser,
@@ -23,6 +24,7 @@ import { CreateEmployeeFromPlacementDto } from './dtos/create-employee-from-plac
 import { UpdateEmployeeDto } from './dtos/update-employee.dto';
 
 export class BulkImportEmployeesDto {
+  @IsArray()
   rows: BulkImportRow[];
 }
 
