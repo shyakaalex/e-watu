@@ -136,11 +136,52 @@ model Employee {
   feedbackReviewers     FeedbackRequest[] @relation("FeedbackReviewer")
   performanceImprovementPlans PerformanceImprovementPlan[]
   permits               Permit[]
+  teamMemberships       TeamMember[]
 
   @@index([tenantId])
   @@index([tenantId, clientId])
   @@index([tenantId, employmentStatus])
   @@map("employees")
+}
+
+enum TeamMemberRole {
+  LEAD
+  CORE
+  MEMBER
+}
+
+model Team {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  name         String
+  parentTeamId String?  @map("parent_team_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  parentTeam   Team?    @relation("TeamHierarchy", fields: [parentTeamId], references: [id], onDelete: SetNull)
+  subTeams     Team[]   @relation("TeamHierarchy")
+  members      TeamMember[]
+  kpiSubmissions TeamKpiSubmission[]
+
+  @@index([tenantId])
+  @@map("teams")
+}
+
+model TeamMember {
+  id         String         @id @default(uuid())
+  tenantId   String         @map("tenant_id")
+  teamId     String         @map("team_id")
+  employeeId String         @map("employee_id")
+  role       TeamMemberRole @default(MEMBER)
+  createdAt  DateTime       @default(now()) @map("created_at")
+
+  team       Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  employee   Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, employeeId])
+  @@index([tenantId])
+  @@index([employeeId])
+  @@map("team_members")
 }
 
 model EmployeeContract {
@@ -580,6 +621,7 @@ enum TeamKpiStatus {
 model TeamKpiSubmission {
   id                String        @id @default(uuid())
   tenantId          String        @map("tenant_id")
+  teamId            String        @map("team_id")
   teamLeaderId      String        @map("team_leader_id")
   kpiPeriodId       String        @map("kpi_period_id")
   status            TeamKpiStatus @default(DRAFT)
@@ -594,9 +636,10 @@ model TeamKpiSubmission {
   createdAt         DateTime      @default(now()) @map("created_at")
   updatedAt         DateTime      @updatedAt @map("updated_at")
 
+  team              Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
   period            KpiPeriod     @relation(fields: [kpiPeriodId], references: [id], onDelete: Cascade)
 
-  @@unique([teamLeaderId, kpiPeriodId])
+  @@unique([teamId, kpiPeriodId])
   @@index([tenantId])
   @@map("team_kpi_submissions")
 }

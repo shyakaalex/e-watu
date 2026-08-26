@@ -28,7 +28,7 @@ export class ContractsController {
   }
 
   @Post('employees/:employeeId/contracts')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   create(
     @CurrentUser() user: AuthUser,
     @Param('employeeId') employeeId: string,
@@ -56,13 +56,13 @@ export class ContractsController {
   }
 
   @Patch('contracts/:id')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   update(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: UpdateContractDto) {
     return this.service.update(user.tenant_id as string, id, dto);
   }
 
   @Post('contracts/:id/upload')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   upload(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,

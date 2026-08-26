@@ -8,19 +8,19 @@ export class PermitsController {
   constructor(private readonly svc: PermitsService) {}
 
   @Get()
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   list(@CurrentUser() u: AuthUser, @Query('status') status?: string) {
     return this.svc.listPermits(u.tenant_id as string, status);
   }
 
   @Get(':id')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   get(@CurrentUser() u: AuthUser, @Param('id') id: string) {
     return this.svc.getPermit(u.tenant_id as string, id);
   }
 
   @Post()
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   create(
     @CurrentUser() u: AuthUser,
     @Body()
@@ -36,7 +36,7 @@ export class PermitsController {
   }
 
   @Patch(':id/checklist/:itemId')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   updateChecklistItem(
     @CurrentUser() u: AuthUser,
     @Param('id') id: string,

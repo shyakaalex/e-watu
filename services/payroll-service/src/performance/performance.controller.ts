@@ -22,7 +22,7 @@ export class PerformanceController {
   }
 
   @Post('cycles')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   createCycle(
     @CurrentUser() user: AuthUser,
     @Body()
@@ -41,7 +41,7 @@ export class PerformanceController {
   }
 
   @Patch('cycles/:id/status')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   updateCycleStatus(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
@@ -112,7 +112,7 @@ export class PerformanceController {
   }
 
   @Post('goals/templates')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   createGoalTemplate(
     @CurrentUser() user: AuthUser,
     @Body()
@@ -180,7 +180,7 @@ export class PerformanceController {
   }
 
   @Post('appraisals/:id/hr-validate')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   submitHRValidation(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
@@ -231,7 +231,7 @@ export class PerformanceController {
   // --- PERFORMANCE IMPROVEMENT PLANS (PIPs) ---
 
   @Get('pips')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   listPips(
     @CurrentUser() user: AuthUser,
     @Query('employeeId') employeeId?: string,
@@ -241,13 +241,13 @@ export class PerformanceController {
   }
 
   @Get('pips/:id')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   getPip(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.service.getPip(user.tenant_id as string, id);
   }
 
   @Post('pips')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   createPip(
     @CurrentUser() user: AuthUser,
     @Body()
@@ -266,7 +266,7 @@ export class PerformanceController {
   }
 
   @Patch('pips/:id')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   updatePip(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
@@ -282,7 +282,7 @@ export class PerformanceController {
   }
 
   @Post('pips/:id/check-ins')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   addPipCheckIn(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
@@ -299,7 +299,7 @@ export class PerformanceController {
   }
 
   @Post('kpi-periods')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   createKpiPeriod(
     @CurrentUser() user: AuthUser,
     @Body() body: { name: string; startDate: string; endDate: string },
@@ -377,8 +377,12 @@ export class PerformanceController {
   // --- TEAM KPIs ---
 
   @Get('team-kpis/preview')
-  previewTeamKpi(@CurrentUser() user: AuthUser, @Query('kpiPeriodId') kpiPeriodId: string) {
-    return this.service.previewTeamKpi(user.tenant_id as string, user.email as string, kpiPeriodId);
+  previewTeamKpi(
+    @CurrentUser() user: AuthUser,
+    @Query('teamId') teamId: string,
+    @Query('kpiPeriodId') kpiPeriodId: string,
+  ) {
+    return this.service.previewTeamKpi(user.tenant_id as string, user.email as string, teamId, kpiPeriodId);
   }
 
   @Get('team-kpis')
@@ -398,13 +402,13 @@ export class PerformanceController {
   @Post('team-kpis')
   submitTeamKpi(
     @CurrentUser() user: AuthUser,
-    @Body() body: { kpiPeriodId: string; summary?: string },
+    @Body() body: { teamId: string; kpiPeriodId: string; summary?: string },
   ) {
     return this.service.submitTeamKpi(user.tenant_id as string, user.email as string, body);
   }
 
   @Patch('team-kpis/:id/decision')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   decideTeamKpi(
     @Param('id') id: string,
     @CurrentUser() user: AuthUser,

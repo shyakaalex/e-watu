@@ -2,7 +2,11 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException 
 import { EwatuRole } from '@ewatu/common-auth';
 import { PrismaService } from '../prisma/prisma.service';
 
-const SENIOR_OFFICER_ROLES = [EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER] as const;
+const SENIOR_OFFICER_ROLES = [
+  EwatuRole.TENANT_ADMIN,
+  EwatuRole.HR_MANAGER,
+  EwatuRole.MANAGING_DIRECTOR,
+] as const;
 
 @Injectable()
 export class PerformanceService {
@@ -738,19 +742,42 @@ export class PerformanceService {
     return employee;
   }
 
-  /** `forReview: true` scopes results to the caller's own direct reports (for a team leader
-   *  triaging what needs their approval) instead of an unrestricted tenant-wide list. Senior
-   *  officers (TENANT_ADMIN/HR_MANAGER) skip that scoping and see everyone's. */
+  /** Team ids where this employee holds the LEAD role. */
+  private async getLedTeamIds(tenantId: string, employeeId: string): Promise<string[]> {
+    const led = await this.prisma.teamMember.findMany({
+      where: { tenantId, employeeId, role: 'LEAD' },
+      select: { teamId: true },
+    });
+    return led.map((l) => l.teamId);
+  }
+
+  /** Every employee who belongs to any of the given teams (any role), de-duplicated. */
+  private async getTeamsMemberEmployeeIds(tenantId: string, teamIds: string[]): Promise<string[]> {
+    if (!teamIds.length) return [];
+    const members = await this.prisma.teamMember.findMany({
+      where: { tenantId, teamId: { in: teamIds } },
+      select: { employeeId: true },
+    });
+    return [...new Set(members.map((m) => m.employeeId))];
+  }
+
+  /** `forReview: true` scopes results to employees on a team the caller leads (for a team
+   *  leader triaging what needs their approval) instead of an unrestricted tenant-wide list.
+   *  Senior officers (TENANT_ADMIN/HR_MANAGER/MANAGING_DIRECTOR) skip that scoping and see
+   *  everyone's. */
   async listKpis(
     tenantId: string,
     caller: { email: string; roles: string[] },
     opts: { employeeId?: string; kpiPeriodId?: string; status?: string; forReview?: boolean },
   ) {
     const isSeniorOfficer = caller.roles.some((r) => (SENIOR_OFFICER_ROLES as readonly string[]).includes(r));
-    let managerId: string | undefined;
+    let ledMemberEmployeeIds: string[] | undefined;
     if (opts.forReview && !isSeniorOfficer) {
       const me = await this.resolveCallerEmployee(tenantId, caller.email);
-      managerId = me.id;
+      const ledTeamIds = await this.getLedTeamIds(tenantId, me.id);
+      ledMemberEmployeeIds = (await this.getTeamsMemberEmployeeIds(tenantId, ledTeamIds)).filter(
+        (id) => id !== me.id,
+      );
     }
 
     return this.prisma.goal.findMany({
@@ -760,7 +787,7 @@ export class PerformanceService {
         ...(opts.employeeId ? { employeeId: opts.employeeId } : {}),
         ...(opts.kpiPeriodId ? { kpiPeriodId: opts.kpiPeriodId } : {}),
         ...(opts.status ? { status: opts.status as any } : {}),
-        ...(managerId ? { employee: { managerId } } : {}),
+        ...(ledMemberEmployeeIds ? { employeeId: { in: ledMemberEmployeeIds } } : {}),
       },
       include: { employee: true, kpiPeriod: true },
       orderBy: { createdAt: 'desc' },
@@ -817,19 +844,23 @@ export class PerformanceService {
     return this.prisma.goal.update({ where: { id }, data: { status: 'SUBMITTED' } });
   }
 
-  /** Only the KPI owner or their direct manager may update progress. */
+  /** The KPI owner, or anyone leading a team the owner belongs to, may update progress. */
   async updateKpiProgress(tenantId: string, callerEmail: string, id: string, progress: number) {
     const me = await this.resolveCallerEmployee(tenantId, callerEmail);
     const kpi = await this.getOwnKpi(tenantId, id);
-    if (kpi.employeeId !== me.id && kpi.employee.managerId !== me.id) {
-      throw new ForbiddenException('You do not have access to this KPI');
+    if (kpi.employeeId !== me.id) {
+      const ledTeamIds = await this.getLedTeamIds(tenantId, me.id);
+      const ledMemberIds = await this.getTeamsMemberEmployeeIds(tenantId, ledTeamIds);
+      if (!ledMemberIds.includes(kpi.employeeId)) {
+        throw new ForbiddenException('You do not have access to this KPI');
+      }
     }
     return this.prisma.goal.update({ where: { id }, data: { progress } });
   }
 
-  /** The team leader (the employee's direct manager) approves or rejects a submitted Personal
-   *  KPI. Senior officers (TENANT_ADMIN/HR_MANAGER) can also decide, matching how they can act
-   *  as a fallback approver elsewhere in this module. */
+  /** Anyone leading a team the employee belongs to approves or rejects a submitted Personal
+   *  KPI. Senior officers (TENANT_ADMIN/HR_MANAGER/MANAGING_DIRECTOR) can also decide, matching
+   *  how they can act as a fallback approver elsewhere in this module. */
   async decideKpi(
     tenantId: string,
     caller: { email: string; roles: string[] },
@@ -837,9 +868,16 @@ export class PerformanceService {
     body: { status: 'APPROVED' | 'REJECTED'; managerComment?: string },
   ) {
     const kpi = await this.getOwnKpi(tenantId, id);
-    const me = await this.resolveCallerEmployee(tenantId, caller.email).catch(() => null);
-    const isTeamLeader = me && kpi.employee.managerId === me.id;
     const isSeniorOfficer = caller.roles.some((r) => (SENIOR_OFFICER_ROLES as readonly string[]).includes(r));
+    let isTeamLeader = false;
+    if (!isSeniorOfficer) {
+      const me = await this.resolveCallerEmployee(tenantId, caller.email).catch(() => null);
+      if (me) {
+        const ledTeamIds = await this.getLedTeamIds(tenantId, me.id);
+        const ledMemberIds = await this.getTeamsMemberEmployeeIds(tenantId, ledTeamIds);
+        isTeamLeader = ledMemberIds.includes(kpi.employeeId);
+      }
+    }
     if (!isTeamLeader && !isSeniorOfficer) {
       throw new ForbiddenException('Only this employee\'s team leader can approve their KPI');
     }
@@ -852,21 +890,26 @@ export class PerformanceService {
     });
   }
 
-  // --- TEAM KPIs (rollup of a team leader's direct reports' approved Personal KPIs) ---
+  // --- TEAM KPIs (rollup of a team's members' approved Personal KPIs) ---
 
-  private async computeTeamRollup(tenantId: string, teamLeaderId: string, kpiPeriodId: string) {
-    const reports = await this.prisma.employee.findMany({
-      where: { tenantId, managerId: teamLeaderId },
-      select: { id: true },
+  private async assertTeamLead(tenantId: string, teamId: string, employeeId: string) {
+    const membership = await this.prisma.teamMember.findUnique({
+      where: { teamId_employeeId: { teamId, employeeId } },
     });
-    const reportIds = reports.map((r) => r.id);
-    const approvedKpis = reportIds.length
+    if (!membership || membership.role !== 'LEAD') {
+      throw new ForbiddenException('Only this team\'s lead can arrange its Team KPI');
+    }
+  }
+
+  private async computeTeamRollup(tenantId: string, teamId: string, kpiPeriodId: string) {
+    const memberIds = await this.getTeamsMemberEmployeeIds(tenantId, [teamId]);
+    const approvedKpis = memberIds.length
       ? await this.prisma.goal.findMany({
           where: {
             tenantId,
             type: 'KPI',
             kpiPeriodId,
-            employeeId: { in: reportIds },
+            employeeId: { in: memberIds },
             status: 'APPROVED',
           },
           select: { progress: true },
@@ -876,33 +919,37 @@ export class PerformanceService {
       ? approvedKpis.reduce((sum, k) => sum + Number(k.progress), 0) / approvedKpis.length
       : 0;
     return {
-      memberCount: reportIds.length,
+      memberCount: memberIds.length,
       approvedKpiCount: approvedKpis.length,
       avgProgress,
     };
   }
 
-  /** Live preview of the rollup, without persisting anything — lets a team leader see the
-   *  numbers before they arrange and send the Team KPI upward. */
-  async previewTeamKpi(tenantId: string, callerEmail: string, kpiPeriodId: string) {
+  /** Live preview of the rollup, without persisting anything — lets a team lead see the numbers
+   *  before they arrange and send the Team KPI upward. */
+  async previewTeamKpi(tenantId: string, callerEmail: string, teamId: string, kpiPeriodId: string) {
     const me = await this.resolveCallerEmployee(tenantId, callerEmail);
-    return this.computeTeamRollup(tenantId, me.id, kpiPeriodId);
+    await this.assertTeamLead(tenantId, teamId, me.id);
+    return this.computeTeamRollup(tenantId, teamId, kpiPeriodId);
   }
 
-  /** The team leader arranges (computes a fresh snapshot of) their Team KPI and sends it to the
-   *  Managing Team / senior officers (TENANT_ADMIN, HR_MANAGER) for approval. */
+  /** The team lead arranges (computes a fresh snapshot of) their Team KPI and sends it to the
+   *  Managing Team / senior officers (TENANT_ADMIN, HR_MANAGER, MANAGING_DIRECTOR) for
+   *  approval. */
   async submitTeamKpi(
     tenantId: string,
     callerEmail: string,
-    body: { kpiPeriodId: string; summary?: string },
+    body: { teamId: string; kpiPeriodId: string; summary?: string },
   ) {
     const me = await this.resolveCallerEmployee(tenantId, callerEmail);
-    const rollup = await this.computeTeamRollup(tenantId, me.id, body.kpiPeriodId);
+    await this.assertTeamLead(tenantId, body.teamId, me.id);
+    const rollup = await this.computeTeamRollup(tenantId, body.teamId, body.kpiPeriodId);
 
     return this.prisma.teamKpiSubmission.upsert({
-      where: { teamLeaderId_kpiPeriodId: { teamLeaderId: me.id, kpiPeriodId: body.kpiPeriodId } },
+      where: { teamId_kpiPeriodId: { teamId: body.teamId, kpiPeriodId: body.kpiPeriodId } },
       create: {
         tenantId,
+        teamId: body.teamId,
         teamLeaderId: me.id,
         kpiPeriodId: body.kpiPeriodId,
         status: 'SUBMITTED',
@@ -911,6 +958,7 @@ export class PerformanceService {
         ...rollup,
       },
       update: {
+        teamLeaderId: me.id,
         status: 'SUBMITTED',
         summary: body.summary,
         submittedAt: new Date(),
@@ -918,11 +966,12 @@ export class PerformanceService {
         reviewComment: null,
         ...rollup,
       },
+      include: { team: true, period: true },
     });
   }
 
-  /** Senior officers see every team's submissions (for review); a team leader without that role
-   *  sees only the submissions they themselves arranged. */
+  /** Senior officers see every team's submissions (for review); anyone else sees only the
+   *  submissions for teams they themselves lead. */
   async listTeamKpis(
     tenantId: string,
     caller: { email: string; roles: string[] },
@@ -930,23 +979,26 @@ export class PerformanceService {
     status?: string,
   ) {
     const isSeniorOfficer = caller.roles.some((r) => (SENIOR_OFFICER_ROLES as readonly string[]).includes(r));
-    const teamLeaderId = isSeniorOfficer
-      ? undefined
-      : (await this.resolveCallerEmployee(tenantId, caller.email)).id;
+    let teamIds: string[] | undefined;
+    if (!isSeniorOfficer) {
+      const me = await this.resolveCallerEmployee(tenantId, caller.email);
+      teamIds = await this.getLedTeamIds(tenantId, me.id);
+    }
 
     return this.prisma.teamKpiSubmission.findMany({
       where: {
         tenantId,
-        ...(teamLeaderId ? { teamLeaderId } : {}),
+        ...(teamIds ? { teamId: { in: teamIds } } : {}),
         ...(kpiPeriodId ? { kpiPeriodId } : {}),
         ...(status ? { status: status as any } : {}),
       },
-      include: { period: true },
+      include: { team: true, period: true },
       orderBy: { submittedAt: 'desc' },
     });
   }
 
-  /** Senior officers (TENANT_ADMIN/HR_MANAGER) approve or reject the escalated Team KPI. */
+  /** Senior officers (TENANT_ADMIN/HR_MANAGER/MANAGING_DIRECTOR) approve or reject the
+   *  escalated Team KPI. */
   async decideTeamKpi(
     tenantId: string,
     id: string,

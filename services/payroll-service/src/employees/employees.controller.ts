@@ -39,7 +39,7 @@ export class EmployeesController {
 
   // Static segments before `:id` routes to avoid path conflicts.
   @Post('import/csv')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   bulkImport(@CurrentUser() user: AuthUser, @Body() body: BulkImportEmployeesDto) {
     return this.employees.bulkImport(user.tenant_id as string, body.rows);
   }
@@ -57,13 +57,13 @@ export class EmployeesController {
   }
 
   @Post()
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   create(@CurrentUser() user: AuthUser, @Body() body: CreateEmployeeDto) {
     return this.employees.create(user.tenant_id as string, body);
   }
 
   @Post('from-placement')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   createFromPlacement(
     @CurrentUser() user: AuthUser,
     @Body() body: CreateEmployeeFromPlacementDto,
@@ -72,19 +72,19 @@ export class EmployeesController {
   }
 
   @Patch(':id')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   update(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: UpdateEmployeeDto) {
     return this.employees.update(user.tenant_id as string, id, body);
   }
 
   @Delete(':id')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   terminate(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.employees.terminate(user.tenant_id as string, id);
   }
 
   @Post(':id/convert')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER)
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   convert(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,

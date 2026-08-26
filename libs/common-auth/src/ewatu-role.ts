@@ -12,6 +12,7 @@ export const EwatuRole = {
   PAYROLL_SPECIALIST: 'PAYROLL_SPECIALIST',
   CFO: 'CFO',
   PROCUREMENT_MANAGER: 'PROCUREMENT_MANAGER',
+  MANAGING_DIRECTOR: 'MANAGING_DIRECTOR',
 } as const;
 
 export type EwatuRoleName = (typeof EwatuRole)[keyof typeof EwatuRole];
@@ -29,6 +30,7 @@ export const EwatuRolePermissions: Record<EwatuRoleName, string[]> = {
   [EwatuRole.FINANCE_OFFICER]: ['payroll:read', 'payroll:run', 'finance:*', 'lending:*'],
   [EwatuRole.RECRUITER]: ['ats:write', 'employee:read'],
   [EwatuRole.PERMITS_OFFICER]: ['employee:read'],
+  [EwatuRole.MANAGING_DIRECTOR]: ['*:*'],
 } as const;
 
 export function getPermissionsForRoles(roles: string[]): string[] {
