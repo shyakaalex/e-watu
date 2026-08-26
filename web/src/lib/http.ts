@@ -24,7 +24,7 @@ export function apiBase(): string {
 }
 
 export function serviceUrl(
-  service: 'identity' | 'platform' | 'recruitment' | 'notification' | 'document',
+  service: 'identity' | 'platform' | 'recruitment' | 'notification' | 'document' | 'talentPool',
 ): string {
   const gateway = apiBase();
   if (gateway) return gateway;
@@ -35,6 +35,7 @@ export function serviceUrl(
     recruitment: import.meta.env.VITE_RECRUITMENT_API ?? 'http://localhost:3013',
     notification: import.meta.env.VITE_NOTIFICATION_API ?? 'http://localhost:3015',
     document: import.meta.env.VITE_DOCUMENT_API ?? 'http://localhost:3018',
+    talentPool: import.meta.env.VITE_TALENT_POOL_API ?? 'http://localhost:3014',
   };
   return map[service].replace(/\/$/, '');
 }

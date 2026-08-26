@@ -1,8 +1,7 @@
-import { authFetch, parseJson } from './lib/http';
+import { authFetch, parseJson, serviceUrl } from './lib/http';
 
 function tpUrl(): string {
-  const base = import.meta.env.VITE_TALENT_POOL_API ?? 'http://localhost:3014';
-  return base.replace(/\/$/, '');
+  return serviceUrl('talentPool');
 }
 
 export type TalentPool = {
