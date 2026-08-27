@@ -1,11 +1,8 @@
 :root {
   --font: 'Outfit', system-ui, 'Segoe UI', Roboto, sans-serif;
-  --ink: #0c1222;
-  --ink-muted: #64748b;
-  --surface: #f8fafc;
-  --card: #ffffff;
-  --line: #e2e8f0;
-  /* Brand tokens defined in styles/brand.css */
+  /* --ink, --ink-muted, --surface, --card, --line and the brand/tenant-theme tokens are
+     all defined once in styles/brand.css (loaded before this file) — not redeclared here
+     to avoid the two stylesheets drifting out of sync. */
   --hero-deep: #002233;
   --shadow: 0 18px 50px rgba(15, 23, 42, 0.25);
   --radius: 12px;
@@ -1527,18 +1524,9 @@ code {
 
 /* —— Shell / Layout —— */
 .rec-shell {
-  /* Dark theme for this shell's content area — scoped here rather than on :root
-     so public/marketing pages keep their existing design. Mirrors .adm-shell. */
-  --surface: #070c18;
-  --surface-alt: #0b1220;
-  --card: #0e172a;
-  --card-sub: #131f38;
-  --line: rgba(255, 255, 255, 0.09);
-  --line-strong: rgba(255, 255, 255, 0.16);
-  --ink: #f8fafc;
-  --ink-muted: #94a3b8;
-  --ink-subtle: #64748b;
-
+  /* Theme tokens (--surface, --card, --ink, etc.) come from styles/brand.css's :root,
+     which is tenant-color-aware — do not redeclare them here or they'll stop responding
+     to a company's custom brand colors. Mirrors .adm-shell / .payroll-shell. */
   display: flex;
   min-height: 100vh;
   background: var(--surface);
@@ -1838,67 +1826,34 @@ code {
 /* —— Empty state —— */
 .rec-empty {
   text-align: center;
-  padding: 3rem 1rem;
+  padding: 3.5rem 1.5rem;
   color: var(--ink-muted);
-  border: 2px dashed var(--line);
+  background: var(--card-sub, var(--card));
+  border: 1px dashed var(--line-strong, var(--line));
   border-radius: var(--radius);
   margin-top: 1rem;
 }
 
-/* —— Badges —— */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  white-space: nowrap;
+.rec-empty::before {
+  content: '';
+  display: block;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 1rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 12h-6l-2 3h-4l-2-3H2'/%3E%3Cpath d='M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.6;
 }
 
-.badge--green {
-  background: rgba(16, 185, 129, 0.12);
-  color: #059669;
-  border: 1px solid rgba(16, 185, 129, 0.25);
+.rec-empty p {
+  margin: 0;
+  font-size: 0.95rem;
 }
 
-.badge--blue {
-  background: rgba(59, 130, 246, 0.1);
-  color: #2563eb;
-  border: 1px solid rgba(59, 130, 246, 0.2);
-}
-
-.badge--red {
-  background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
-  border: 1px solid rgba(239, 68, 68, 0.2);
-}
-
-.badge--gray {
-  background: var(--line);
-  color: var(--ink-muted);
-  border: 1px solid var(--line);
-}
-
-.badge--teal {
-  background: var(--accent-soft);
-  color: var(--accent-hover);
-  border: 1px solid rgba(15, 71, 117, 0.2);
-}
-
-.badge--orange {
-  background: rgba(245, 158, 11, 0.12);
-  color: #b45309;
-  border: 1px solid rgba(245, 158, 11, 0.25);
-}
-
-.badge--purple {
-  background: rgba(139, 92, 246, 0.1);
-  color: #7c3aed;
-  border: 1px solid rgba(139, 92, 246, 0.2);
-}
+/* —— Badges —— (structural rule + color variants are defined once, near the end of this
+   file under "EXECUTIVE DARK THEME OVERRIDES", which is the version actually rendered —
+   this used to be a duplicate definition that the later one silently shadowed) */
 
 /* —— Jobs list —— */
 .rec-jobs-list {
@@ -1951,6 +1906,27 @@ code {
   color: var(--accent-hover);
   font-weight: 500;
   margin-bottom: 0.5rem;
+}
+
+.rec-job-card__skills {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin: 0.6rem 0;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink-muted);
+  border: 1px solid var(--line);
+  white-space: nowrap;
 }
 
 .rec-job-card__footer {
@@ -2538,8 +2514,8 @@ html {
 
 body {
   font-family: 'Plus Jakarta Sans', var(--font);
-  background: #070c18;
-  color: #f8fafc;
+  background: var(--surface);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -2559,7 +2535,7 @@ body {
 .rec-form__label,
 .rec-form__section-title,
 .rec-modal__title {
-  color: #f8fafc !important;
+  color: var(--ink) !important;
 }
 
 .muted,
@@ -2569,7 +2545,7 @@ body {
 .auth-lead,
 .rec-form__hint,
 .pnav__brand-sub {
-  color: #94a3b8 !important;
+  color: var(--ink-muted) !important;
 }
 
 /* Dark Glassmorphism Cards */
@@ -2582,11 +2558,11 @@ body {
 .app-card,
 .modal-card,
 .drawer-card {
-  background: #0e172a;
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: var(--card);
+  border: 1px solid var(--line);
   border-radius: 16px;
   box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.35);
-  color: #f8fafc;
+  color: var(--ink);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -2595,8 +2571,8 @@ body {
 .tp-pool-card:hover,
 .rec-job-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 16px 36px -8px rgba(0, 70, 108, 0.35);
-  border-color: rgba(0, 70, 108, 0.45);
+  box-shadow: 0 16px 36px -8px var(--brand-glow);
+  border-color: var(--brand-soft);
 }
 
 /* Buttons Polish (Dark Mode) */
@@ -2614,14 +2590,14 @@ body {
 }
 
 .btn--primary {
-  background: linear-gradient(135deg, #00466c 0%, #002d47 100%);
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
   color: #ffffff !important;
-  border: 1px solid #005a8a;
-  box-shadow: 0 4px 14px rgba(0, 70, 108, 0.4);
+  border: 1px solid var(--brand-mid);
+  box-shadow: 0 4px 14px var(--brand-glow);
 }
 .btn--primary:hover {
-  background: linear-gradient(135deg, #005d8f 0%, #00466c 100%);
-  box-shadow: 0 6px 18px rgba(0, 70, 108, 0.55);
+  background: linear-gradient(135deg, var(--brand-mid) 0%, var(--brand) 100%);
+  box-shadow: 0 6px 18px var(--brand-glow);
   transform: translateY(-1px);
 }
 .btn--primary:active {
@@ -2631,28 +2607,28 @@ body {
 .btn--accent,
 .btn--nav-primary,
 .pnav__btn--primary {
-  background: linear-gradient(135deg, #f5911e 0%, #d97d0f 100%) !important;
+  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 80%, black) 100%) !important;
   color: #ffffff !important;
-  border: 1px solid #e07f0f !important;
-  box-shadow: 0 4px 14px rgba(245, 145, 30, 0.35) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 88%, black) !important;
+  box-shadow: 0 4px 14px var(--accent-glow) !important;
 }
 .btn--accent:hover,
 .btn--nav-primary:hover,
 .pnav__btn--primary:hover {
-  background: linear-gradient(135deg, #ff9f33 0%, #f5911e 100%) !important;
-  box-shadow: 0 6px 20px rgba(245, 145, 30, 0.45) !important;
+  background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent) 100%) !important;
+  box-shadow: 0 6px 20px var(--accent-glow) !important;
   transform: translateY(-1px);
 }
 
 .btn--ghost {
   background: transparent;
-  color: #ffb74d;
-  border: 1px solid rgba(245, 145, 30, 0.25);
+  color: var(--accent-hover);
+  border: 1px solid var(--accent-soft);
 }
 .btn--ghost:hover {
-  background: rgba(245, 145, 30, 0.12);
-  border-color: #f5911e;
-  color: #ffa726;
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-hover);
 }
 
 .btn--danger {
@@ -2676,12 +2652,12 @@ select.auth-input,
 textarea.auth-input,
 textarea.rec-textarea {
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--line-strong);
   padding: 0.65rem 0.9rem;
   font-family: 'Plus Jakarta Sans', var(--font);
   font-size: 0.92rem;
-  color: #f8fafc;
-  background: #131f38;
+  color: var(--ink);
+  background: var(--card-sub);
   transition: all 0.15s ease-in-out;
 }
 
@@ -2690,7 +2666,7 @@ textarea.rec-textarea {
 .form input::placeholder,
 .rec-form input::placeholder,
 textarea.auth-input::placeholder {
-  color: #64748b;
+  color: var(--ink-subtle);
 }
 
 .auth-input:focus,
@@ -2701,9 +2677,9 @@ select.auth-input:focus,
 textarea.auth-input:focus,
 textarea.rec-textarea:focus {
   outline: none;
-  border-color: #f5911e;
-  box-shadow: 0 0 0 3.5px rgba(245, 145, 30, 0.2);
-  background: #172645;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3.5px var(--accent-soft);
+  background: color-mix(in srgb, var(--card-sub) 85%, white 8%);
 }
 
 /* High-Density Dark Table */
@@ -2715,27 +2691,27 @@ table,
   font-size: 0.88rem;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid var(--line);
 }
 
 table th,
 .table th {
-  background: #0b1220;
-  color: #60a5fa;
+  background: var(--surface-alt);
+  color: var(--brand-secondary);
   font-weight: 700;
   text-transform: uppercase;
   font-size: 0.72rem;
   letter-spacing: 0.06em;
   padding: 0.85rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid var(--line-strong);
 }
 
 table td,
 .table td {
   padding: 0.85rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  color: #cbd5e1;
-  background: #0e172a;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-muted);
+  background: var(--card);
   vertical-align: middle;
 }
 
@@ -2746,10 +2722,12 @@ table tr:last-child td,
 
 table tr:hover td,
 .table tr:hover td {
-  background: #15223c;
+  background: var(--card-sub);
 }
 
-/* Status Badges (Dark Mode Vibrant) */
+/* Status Badges (Dark Mode Vibrant). Green/blue/red/orange/purple/gray are fixed semantic
+   colors (success/info/error/warning/etc.) and intentionally do NOT follow the tenant
+   palette — only --teal (an explicitly brand-tinted variant) does. */
 .badge {
   padding: 0.25rem 0.65rem;
   border-radius: 9999px;
@@ -2774,9 +2752,9 @@ table tr:hover td,
 }
 
 .badge--teal {
-  background: rgba(0, 70, 108, 0.35);
-  color: #93c5fd;
-  border: 1px solid rgba(0, 70, 108, 0.5);
+  background: var(--brand-secondary-soft);
+  color: var(--brand-secondary);
+  border: 1px solid var(--brand-secondary-soft);
 }
 
 .badge--orange {
@@ -2799,7 +2777,7 @@ table tr:hover td,
 
 .badge--gray {
   background: rgba(255, 255, 255, 0.08);
-  color: #94a3b8;
+  color: var(--ink-muted);
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
@@ -2813,11 +2791,11 @@ table tr:hover td,
 
 .modal-card,
 .drawer-card {
-  background: #0e172a;
+  background: var(--card);
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--line-strong);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-  color: #f8fafc;
+  color: var(--ink);
   animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 

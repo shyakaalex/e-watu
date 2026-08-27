@@ -15,12 +15,27 @@ export class UpdateTenantSettingsDto {
   @IsOptional()
   @IsString()
   @MaxLength(32)
-  primaryColor?: string;
+  primaryColor?: string | null;
 
   @IsOptional()
   @IsString()
   @MaxLength(32)
-  accentColor?: string;
+  secondaryColor?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  accentColor?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  backgroundColor?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  textColor?: string | null;
 
   @IsOptional()
   @IsUrl({}, { message: 'website must be a valid URL' })

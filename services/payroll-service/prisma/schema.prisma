@@ -107,9 +107,11 @@ model Employee {
   gender                String?
   nationality           String?
   department            String?
+  location              String?
   jobTitle              String           @map("job_title")
   startDate             DateTime         @map("start_date")
   endDate               DateTime?        @map("end_date")
+  probationEndDate      DateTime?        @map("probation_end_date")
   employmentStatus      EmploymentStatus @default(ACTIVE) @map("employment_status")
   managerId             String?          @map("manager_id")
   basicSalary           Decimal          @default(0) @map("basic_salary") @db.Decimal(15,2)
@@ -141,6 +143,9 @@ model Employee {
   teamMemberships       TeamMember[]
   documents             EmployeeDocument[]
   tasks                 Task[]
+  grievancesRaised      GrievanceCase[]
+  attendanceRecords     AttendanceRecord[]
+  trainingRecords       TrainingRecord[]
 
   @@index([tenantId])
   @@index([tenantId, clientId])
@@ -149,18 +154,117 @@ model Employee {
 }
 
 model EmployeeDocument {
-  id         String   @id @default(uuid())
-  tenantId   String   @map("tenant_id")
-  employeeId String   @map("employee_id")
+  id         String    @id @default(uuid())
+  tenantId   String    @map("tenant_id")
+  employeeId String    @map("employee_id")
   name       String
-  s3Key      String   @map("s3_key")
-  uploadedAt DateTime @default(now()) @map("uploaded_at")
+  s3Key      String    @map("s3_key")
+  expiryDate DateTime? @map("expiry_date")
+  uploadedAt DateTime  @default(now()) @map("uploaded_at")
 
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee   Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([employeeId])
   @@map("employee_documents")
+}
+
+enum GrievanceCategory {
+  HARASSMENT
+  DISCRIMINATION
+  WORKPLACE_CONDITIONS
+  PAY_DISPUTE
+  POLICY_VIOLATION
+  OTHER
+}
+
+enum GrievanceStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+  DISMISSED
+}
+
+model GrievanceCase {
+  id                 String            @id @default(uuid())
+  tenantId           String            @map("tenant_id")
+  raisedByEmployeeId String            @map("raised_by_employee_id")
+  category           GrievanceCategory @default(OTHER)
+  description        String
+  status             GrievanceStatus   @default(OPEN)
+  handledByName      String?           @map("handled_by_name")
+  resolutionNotes    String?           @map("resolution_notes")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  resolvedAt         DateTime?         @map("resolved_at")
+
+  raisedBy           Employee          @relation(fields: [raisedByEmployeeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("grievance_cases")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+}
+
+model AttendanceRecord {
+  id         String           @id @default(uuid())
+  tenantId   String           @map("tenant_id")
+  employeeId String           @map("employee_id")
+  date       DateTime         @db.Date
+  clockInAt  DateTime?        @map("clock_in_at")
+  clockOutAt DateTime?        @map("clock_out_at")
+  status     AttendanceStatus @default(PRESENT)
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  employee   Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, employeeId, date])
+  @@index([tenantId])
+  @@index([tenantId, date])
+  @@map("attendance_records")
+}
+
+enum TrainingRecordStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model TrainingCourse {
+  id          String           @id @default(uuid())
+  tenantId    String           @map("tenant_id")
+  name        String
+  description String?
+  mandatory   Boolean          @default(true)
+  dueDate     DateTime?        @map("due_date")
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  records     TrainingRecord[]
+
+  @@index([tenantId])
+  @@map("training_courses")
+}
+
+model TrainingRecord {
+  id          String               @id @default(uuid())
+  tenantId    String               @map("tenant_id")
+  courseId    String               @map("course_id")
+  employeeId  String               @map("employee_id")
+  status      TrainingRecordStatus @default(NOT_STARTED)
+  completedAt DateTime?            @map("completed_at")
+  createdAt   DateTime             @default(now()) @map("created_at")
+
+  course      TrainingCourse       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  employee    Employee             @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, employeeId])
+  @@index([tenantId])
+  @@index([tenantId, employeeId])
+  @@map("training_records")
 }
 
 enum TaskStatus {

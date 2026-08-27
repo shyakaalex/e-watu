@@ -1,32 +1,39 @@
 :root {
-  /* Sleek Executive Dark Theme Base Tokens */
-  --surface: #070c18;
-  --surface-alt: #0b1220;
-  --card: #0e172a;
-  --card-sub: #131f38;
-  --line: rgba(255, 255, 255, 0.09);
-  --line-strong: rgba(255, 255, 255, 0.16);
-  
-  --ink: #f8fafc;
-  --ink-muted: #94a3b8;
-  --ink-subtle: #64748b;
-  
-  /* Primary Brand Colors preserved (#00466c & #f5911e) */
-  --brand: #00466c;
-  --brand-dark: #001c2e;
-  --brand-mid: #005a8a;
+  /* Sleek Executive Dark Theme Base Tokens — every one of these is overridable per-tenant
+     via the --tenant-* custom properties injected at runtime (see lib/tenantTheme.ts) from
+     the company's Accessibility > Settings color pickers. A tenant that hasn't set a given
+     color simply falls through to the literal default after the comma, so picking 1-5 of
+     the 5 slots (Primary/Secondary/Accent/Background/Text) both work. */
+  --surface: var(--tenant-background, #070c18);
+  --surface-alt: color-mix(in srgb, var(--tenant-background, #070c18) 88%, white 7%);
+  --card: color-mix(in srgb, var(--tenant-background, #070c18) 93%, white 10%);
+  --card-sub: color-mix(in srgb, var(--tenant-background, #070c18) 89%, white 15%);
+  --line: color-mix(in srgb, var(--tenant-text, #f8fafc) 9%, transparent);
+  --line-strong: color-mix(in srgb, var(--tenant-text, #f8fafc) 16%, transparent);
+
+  --ink: var(--tenant-text, #f8fafc);
+  --ink-muted: color-mix(in srgb, var(--tenant-text, #f8fafc) 62%, var(--tenant-background, #070c18) 38%);
+  --ink-subtle: color-mix(in srgb, var(--tenant-text, #f8fafc) 42%, var(--tenant-background, #070c18) 58%);
+
+  /* Primary Brand Colors preserved (#00466c & #f5911e) as defaults */
+  --brand: var(--tenant-primary, #00466c);
+  --brand-dark: color-mix(in srgb, var(--tenant-primary, #00466c) 55%, black);
+  --brand-mid: color-mix(in srgb, var(--tenant-primary, #00466c) 82%, white 14%);
   --brand-light: #162a3f;
-  --brand-soft: rgba(0, 70, 108, 0.25);
-  --brand-glow: rgba(0, 70, 108, 0.4);
-  
-  --accent: #f5911e;
-  --accent-hover: #ff9f33;
-  --accent-soft: rgba(245, 145, 30, 0.16);
-  --accent-glow: rgba(245, 145, 30, 0.3);
-  
+  --brand-soft: color-mix(in srgb, var(--tenant-primary, #00466c) 25%, transparent);
+  --brand-glow: color-mix(in srgb, var(--tenant-primary, #00466c) 40%, transparent);
+
+  --brand-secondary: var(--tenant-secondary, #005a8a);
+  --brand-secondary-soft: color-mix(in srgb, var(--tenant-secondary, #005a8a) 20%, transparent);
+
+  --accent: var(--tenant-accent, #f5911e);
+  --accent-hover: color-mix(in srgb, var(--tenant-accent, #f5911e) 88%, white 15%);
+  --accent-soft: color-mix(in srgb, var(--tenant-accent, #f5911e) 16%, transparent);
+  --accent-glow: color-mix(in srgb, var(--tenant-accent, #f5911e) 30%, transparent);
+
   --hero-deep: #030712;
   --hero-mid: #070d1a;
-  
+
   --glass-bg: rgba(14, 23, 42, 0.75);
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.2);

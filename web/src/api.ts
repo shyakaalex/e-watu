@@ -124,7 +124,10 @@ export type TenantRow = {
   rejectionReason?: string | null;
   logoUrl?: string | null;
   primaryColor?: string | null;
+  secondaryColor?: string | null;
   accentColor?: string | null;
+  backgroundColor?: string | null;
+  textColor?: string | null;
   website?: string | null;
   baseCurrency?: string | null;
   fiscalYearStartMonth?: number | null;
@@ -223,8 +226,11 @@ export async function fetchTenants() {
 export async function updateTenantSettings(body: {
   name?: string;
   logoUrl?: string;
-  primaryColor?: string;
-  accentColor?: string;
+  primaryColor?: string | null;
+  secondaryColor?: string | null;
+  accentColor?: string | null;
+  backgroundColor?: string | null;
+  textColor?: string | null;
   website?: string;
   baseCurrency?: string;
   fiscalYearStartMonth?: number;

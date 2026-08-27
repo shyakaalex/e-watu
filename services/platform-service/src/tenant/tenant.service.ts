@@ -30,8 +30,11 @@ export class TenantService {
   async updateSettings(tenantId: string, data: {
     name?: string;
     logoUrl?: string;
-    primaryColor?: string;
-    accentColor?: string;
+    primaryColor?: string | null;
+    secondaryColor?: string | null;
+    accentColor?: string | null;
+    backgroundColor?: string | null;
+    textColor?: string | null;
     website?: string;
     baseCurrency?: string;
     fiscalYearStartMonth?: number;
@@ -43,7 +46,10 @@ export class TenantService {
           ...(data.name !== undefined ? { name: data.name } : {}),
           ...(data.logoUrl !== undefined ? { logoUrl: data.logoUrl || null } : {}),
           ...(data.primaryColor !== undefined ? { primaryColor: data.primaryColor } : {}),
+          ...(data.secondaryColor !== undefined ? { secondaryColor: data.secondaryColor } : {}),
           ...(data.accentColor !== undefined ? { accentColor: data.accentColor } : {}),
+          ...(data.backgroundColor !== undefined ? { backgroundColor: data.backgroundColor } : {}),
+          ...(data.textColor !== undefined ? { textColor: data.textColor } : {}),
           ...(data.website !== undefined ? { website: data.website || null } : {}),
           ...(data.baseCurrency !== undefined ? { baseCurrency: data.baseCurrency } : {}),
           ...(data.fiscalYearStartMonth !== undefined

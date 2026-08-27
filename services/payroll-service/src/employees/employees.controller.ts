@@ -81,7 +81,7 @@ export class EmployeesController {
   @Post('me/documents')
   requestMyDocumentUpload(
     @CurrentUser() user: AuthUser,
-    @Body() body: { name: string; contentType: string; fileSize: number },
+    @Body() body: { name: string; contentType: string; fileSize: number; expiryDate?: string },
   ) {
     return this.employees.requestMyDocumentUpload(user.tenant_id as string, user.email as string, body);
   }

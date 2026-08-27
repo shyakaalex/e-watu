@@ -35,7 +35,9 @@ type Form = {
   clientId: string;
   jobTitle: string;
   department: string;
+  location: string;
   startDate: string;
+  probationEndDate: string;
   basicSalary: string;
   housingAllowance: string;
   transportAllowance: string;
@@ -58,7 +60,9 @@ const DEFAULT_FORM: Form = {
   clientId: '',
   jobTitle: '',
   department: '',
+  location: '',
   startDate: '',
+  probationEndDate: '',
   basicSalary: '0',
   housingAllowance: '0',
   transportAllowance: '0',
@@ -92,13 +96,16 @@ export function PayrollEmployeeFormPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const payload = {
+      const payload: Record<string, unknown> = {
         ...form,
         basicSalary: Number(form.basicSalary || 0),
         housingAllowance: Number(form.housingAllowance || 0),
         transportAllowance: Number(form.transportAllowance || 0),
         otherAllowances: Number(form.otherAllowances || 0),
       };
+      for (const key of ['dateOfBirth', 'probationEndDate', 'gender', 'nationality', 'clientId'] as const) {
+        if (payload[key] === '') delete payload[key];
+      }
       const result = id ? await updateEmployee(id, payload) : await createEmployee(payload as any);
       navigate(`/payroll/employees/${(result as any).id}`);
     } finally {
@@ -175,8 +182,16 @@ export function PayrollEmployeeFormPage() {
             <input className="auth-input" type="text" value={form.department} onChange={set('department')} placeholder="Engineering" />
           </label>
           <label className="rec-form__label">
+            Location
+            <input className="auth-input" type="text" value={form.location} onChange={set('location')} placeholder="Kigali HQ" />
+          </label>
+          <label className="rec-form__label">
             Start date <span className="rec-form__req">*</span>
             <input className="auth-input" type="date" required value={form.startDate} onChange={set('startDate')} />
+          </label>
+          <label className="rec-form__label">
+            Probation end date
+            <input className="auth-input" type="date" value={form.probationEndDate} onChange={set('probationEndDate')} />
           </label>
         </div>
 

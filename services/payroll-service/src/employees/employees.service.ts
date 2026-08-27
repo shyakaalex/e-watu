@@ -99,6 +99,7 @@ export class EmployeesService {
         otherAllowances: dto.otherAllowances ?? 0,
         startDate: new Date(dto.startDate),
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+        probationEndDate: dto.probationEndDate ? new Date(dto.probationEndDate) : undefined,
         dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : undefined,
         nationalIdEncrypted,
         bankAccountEncrypted,
@@ -247,7 +248,7 @@ export class EmployeesService {
   async requestMyDocumentUpload(
     tenantId: string,
     email: string,
-    body: { name: string; contentType: string; fileSize: number },
+    body: { name: string; contentType: string; fileSize: number; expiryDate?: string },
   ) {
     const employee = await this.resolveMyEmployeeOrThrow(tenantId, email);
     const objectKey = `employees/${employee.id}/documents/${Date.now()}-${body.name}`;
@@ -258,6 +259,7 @@ export class EmployeesService {
         employeeId: employee.id,
         name: body.name,
         s3Key: presign.key,
+        expiryDate: body.expiryDate ? new Date(body.expiryDate) : undefined,
       },
     });
     return { uploadUrl: presign.uploadUrl, document };
@@ -346,6 +348,7 @@ export class EmployeesService {
         ...rest,
         startDate: dto.startDate ? new Date(dto.startDate) : undefined,
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+        probationEndDate: dto.probationEndDate ? new Date(dto.probationEndDate) : undefined,
         dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : undefined,
         ...(nationalIdEncrypted ? { nationalIdEncrypted } : {}),
         ...(bankAccountEncrypted ? { bankAccountEncrypted } : {}),

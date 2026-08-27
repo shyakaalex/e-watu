@@ -31,7 +31,10 @@ model Tenant {
   rejectionReason    String?   @map("rejection_reason")
   logoUrl            String?   @map("logo_url")
   primaryColor       String?   @default("#00466c") @map("primary_color")
+  secondaryColor     String?   @map("secondary_color")
   accentColor        String?   @default("#f5911e") @map("accent_color")
+  backgroundColor    String?   @map("background_color")
+  textColor          String?   @map("text_color")
   website            String?
   baseCurrency       String?   @default("RWF") @map("base_currency")
   fiscalYearStartMonth Int?    @default(1) @map("fiscal_year_start_month")

@@ -18,6 +18,10 @@ import { PermitsModule } from './permits/permits.module';
 import { TeamsModule } from './teams/teams.module';
 import { TasksModule } from './tasks/tasks.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
+import { HrDashboardModule } from './hr-dashboard/hr-dashboard.module';
+import { GrievancesModule } from './grievances/grievances.module';
+import { AttendanceModule } from './attendance/attendance.module';
+import { TrainingModule } from './training/training.module';
 
 @Module({
   imports: [
@@ -40,6 +44,10 @@ import { AnnouncementsModule } from './announcements/announcements.module';
     TeamsModule,
     TasksModule,
     AnnouncementsModule,
+    HrDashboardModule,
+    GrievancesModule,
+    AttendanceModule,
+    TrainingModule,
   ],
 })
 export class AppModule implements NestModule {

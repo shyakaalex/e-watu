@@ -18,6 +18,8 @@ export type Employee = {
   placementId: string | null;
   candidateId: string | null;
   department?: string | null;
+  location?: string | null;
+  probationEndDate?: string | null;
   managerId?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -273,6 +275,7 @@ export type MyDocument = {
   id: string;
   name: string;
   s3Key: string;
+  expiryDate: string | null;
   uploadedAt: string;
   downloadUrl: string | null;
 };
@@ -283,13 +286,14 @@ export async function fetchMyDocuments(): Promise<MyDocument[]> {
   return parseJson(r);
 }
 
-export async function uploadMyDocument(file: File): Promise<MyDocument> {
+export async function uploadMyDocument(file: File, expiryDate?: string): Promise<MyDocument> {
   const r = await authFetch(`${payrollUrl()}/api/v1/employees/me/documents`, {
     method: 'POST',
     body: JSON.stringify({
       name: file.name,
       contentType: file.type || 'application/octet-stream',
       fileSize: file.size,
+      expiryDate: expiryDate || undefined,
     }),
   });
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
@@ -399,6 +403,202 @@ export async function createAnnouncement(body: { title: string; body: string; te
 
 export async function deleteAnnouncement(id: string): Promise<void> {
   await payrollFetchAuth(`/api/v1/announcements/${id}`, { method: 'DELETE' });
+}
+
+// --- HR Dashboard ---
+
+export type HrDashboardSummary = {
+  headcount: {
+    total: number;
+    byDepartment: { department: string; count: number }[];
+    byType: { type: string; count: number }[];
+    byLocation: { location: string; count: number }[];
+  };
+  leave: {
+    pendingApprovals: number;
+    approvedThisMonth: number;
+    rejectedThisMonth: number;
+  };
+  payroll: {
+    inProgressPeriods: {
+      id: string;
+      periodMonth: number;
+      periodYear: number;
+      status: string;
+      recordCount: number;
+    }[];
+    exceptionsCount: number;
+    exceptions: { employeeId: string; employeeName: string; issue: string }[];
+  };
+  lifecycleAlerts: {
+    contractsExpiringSoon: { id: string; employeeId: string; employeeName: string; endDate: string }[];
+    permitsExpiringSoon: { id: string; employeeId: string; employeeName: string; expiryDate: string; permitType: string }[];
+    probationsEndingSoon: { employeeId: string; employeeName: string; probationEndDate: string }[];
+    documentsExpiringSoon: { id: string; employeeId: string; employeeName: string; documentName: string; expiryDate: string }[];
+  };
+  performance: {
+    cycleId: string;
+    cycleName: string;
+    totalEmployees: number;
+    completedCount: number;
+    completionPct: number;
+    overdueCount: number;
+  } | null;
+  turnover: {
+    terminatedLast12Months: number;
+    currentActiveHeadcount: number;
+    ratePct: number;
+  };
+  disciplinary: {
+    activeCount: number;
+    escalatedCount: number;
+  };
+  attendance: {
+    lateCount30d: number;
+    absentCount30d: number;
+    onTimeRatePct: number | null;
+  };
+  training: {
+    courseId: string;
+    courseName: string;
+    totalAssigned: number;
+    completedCount: number;
+    completionPct: number;
+    overdueCount: number;
+  }[];
+  grievances: {
+    openCount: number;
+    investigatingCount: number;
+  };
+};
+
+export async function fetchHrDashboardSummary(): Promise<HrDashboardSummary> {
+  return parseJson(await payrollFetchAuth('/api/v1/hr-dashboard/summary'));
+}
+
+// --- Grievances ---
+
+export type GrievanceCategory =
+  | 'HARASSMENT'
+  | 'DISCRIMINATION'
+  | 'WORKPLACE_CONDITIONS'
+  | 'PAY_DISPUTE'
+  | 'POLICY_VIOLATION'
+  | 'OTHER';
+
+export type GrievanceStatus = 'OPEN' | 'INVESTIGATING' | 'RESOLVED' | 'DISMISSED';
+
+export type GrievanceCase = {
+  id: string;
+  tenantId: string;
+  raisedByEmployeeId: string;
+  category: GrievanceCategory;
+  description: string;
+  status: GrievanceStatus;
+  handledByName: string | null;
+  resolutionNotes: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+  raisedBy?: { id: string; firstName: string; lastName: string };
+};
+
+export async function createGrievance(body: { category: GrievanceCategory; description: string }): Promise<GrievanceCase> {
+  return parseJson(await payrollFetchAuth('/api/v1/grievances', { method: 'POST', body: JSON.stringify(body) }));
+}
+
+export async function fetchMyGrievances(): Promise<GrievanceCase[]> {
+  return parseJson(await payrollFetchAuth('/api/v1/grievances/me'));
+}
+
+export async function fetchAllGrievances(status?: string): Promise<GrievanceCase[]> {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  return parseJson(await payrollFetchAuth(`/api/v1/grievances${qs}`));
+}
+
+export async function updateGrievance(
+  id: string,
+  body: { status?: GrievanceStatus; resolutionNotes?: string },
+): Promise<GrievanceCase> {
+  return parseJson(await payrollFetchAuth(`/api/v1/grievances/${id}`, { method: 'PATCH', body: JSON.stringify(body) }));
+}
+
+// --- Attendance ---
+
+export type AttendanceStatus = 'PRESENT' | 'LATE' | 'ABSENT';
+
+export type AttendanceRecord = {
+  id: string;
+  tenantId: string;
+  employeeId: string;
+  date: string;
+  clockInAt: string | null;
+  clockOutAt: string | null;
+  status: AttendanceStatus;
+  createdAt: string;
+};
+
+export async function clockIn(): Promise<AttendanceRecord> {
+  return parseJson(await payrollFetchAuth('/api/v1/attendance/clock-in', { method: 'POST' }));
+}
+
+export async function clockOut(): Promise<AttendanceRecord> {
+  return parseJson(await payrollFetchAuth('/api/v1/attendance/clock-out', { method: 'POST' }));
+}
+
+export async function fetchMyAttendance(): Promise<AttendanceRecord[]> {
+  return parseJson(await payrollFetchAuth('/api/v1/attendance/me'));
+}
+
+// --- Training ---
+
+export type TrainingRecordStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+
+export type TrainingCourse = {
+  id: string;
+  tenantId: string;
+  name: string;
+  description: string | null;
+  mandatory: boolean;
+  dueDate: string | null;
+  createdAt: string;
+};
+
+export type TrainingRecord = {
+  id: string;
+  tenantId: string;
+  courseId: string;
+  employeeId: string;
+  status: TrainingRecordStatus;
+  completedAt: string | null;
+  createdAt: string;
+  course: TrainingCourse;
+};
+
+export async function fetchTrainingCourses(): Promise<TrainingCourse[]> {
+  return parseJson(await payrollFetchAuth('/api/v1/training/courses'));
+}
+
+export async function createTrainingCourse(body: {
+  name: string;
+  description?: string;
+  mandatory?: boolean;
+  dueDate?: string;
+}): Promise<TrainingCourse> {
+  return parseJson(await payrollFetchAuth('/api/v1/training/courses', { method: 'POST', body: JSON.stringify(body) }));
+}
+
+export async function deleteTrainingCourse(id: string): Promise<void> {
+  await payrollFetchAuth(`/api/v1/training/courses/${id}`, { method: 'DELETE' });
+}
+
+export async function fetchMyTrainingRecords(): Promise<TrainingRecord[]> {
+  return parseJson(await payrollFetchAuth('/api/v1/training/me'));
+}
+
+export async function updateMyTrainingRecord(recordId: string, status: 'IN_PROGRESS' | 'COMPLETED'): Promise<TrainingRecord> {
+  return parseJson(
+    await payrollFetchAuth(`/api/v1/training/me/${recordId}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  );
 }
 
 export async function fetchEmployees(

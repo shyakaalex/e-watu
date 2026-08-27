@@ -1,8 +1,19 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { fetchMyTenant, updateTenantSettings, type TenantRow } from '../../api';
+import { applyTenantTheme } from '../../lib/tenantTheme';
 import { parseError } from './parseError';
 import { useAdminContext } from './useAdminContext';
+
+type ColorField = 'primaryColor' | 'secondaryColor' | 'accentColor' | 'backgroundColor' | 'textColor';
+
+const COLOR_FIELDS: { key: ColorField; label: string; hint: string; fallback: string }[] = [
+  { key: 'primaryColor', label: 'Primary', hint: 'Main buttons & highlights', fallback: '#00466c' },
+  { key: 'secondaryColor', label: 'Secondary', hint: 'Table headers & secondary accents', fallback: '#005a8a' },
+  { key: 'accentColor', label: 'Accent', hint: 'Call-to-action buttons & focus states', fallback: '#f5911e' },
+  { key: 'backgroundColor', label: 'Background', hint: 'App background & card surfaces', fallback: '#070c18' },
+  { key: 'textColor', label: 'Text', hint: 'Main text color', fallback: '#f8fafc' },
+];
 
 export function SettingsPage() {
   const { me, isSuper } = useAdminContext();
@@ -13,8 +24,13 @@ export function SettingsPage() {
 
   const [name, setName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
-  const [primaryColor, setPrimaryColor] = useState('#00466c');
-  const [accentColor, setAccentColor] = useState('#f5911e');
+  const [colors, setColors] = useState<Record<ColorField, string | null>>({
+    primaryColor: null,
+    secondaryColor: null,
+    accentColor: null,
+    backgroundColor: null,
+    textColor: null,
+  });
   const [website, setWebsite] = useState('');
   const [baseCurrency, setBaseCurrency] = useState('RWF');
   const [fiscalYearStartMonth, setFiscalYearStartMonth] = useState(1);
@@ -28,8 +44,13 @@ export function SettingsPage() {
       if (t) {
         setName(t.name);
         setLogoUrl(t.logoUrl ?? '');
-        setPrimaryColor(t.primaryColor ?? '#00466c');
-        setAccentColor(t.accentColor ?? '#f5911e');
+        setColors({
+          primaryColor: t.primaryColor ?? null,
+          secondaryColor: t.secondaryColor ?? null,
+          accentColor: t.accentColor ?? null,
+          backgroundColor: t.backgroundColor ?? null,
+          textColor: t.textColor ?? null,
+        });
         setWebsite(t.website ?? '');
         setBaseCurrency(t.baseCurrency ?? 'RWF');
         setFiscalYearStartMonth(t.fiscalYearStartMonth ?? 1);
@@ -62,15 +83,19 @@ export function SettingsPage() {
     setErr(null);
     setSaved(false);
     try {
-      await updateTenantSettings({
+      const updated = await updateTenantSettings({
         name,
         logoUrl: logoUrl || undefined,
-        primaryColor,
-        accentColor,
+        primaryColor: colors.primaryColor,
+        secondaryColor: colors.secondaryColor,
+        accentColor: colors.accentColor,
+        backgroundColor: colors.backgroundColor,
+        textColor: colors.textColor,
         website: website || undefined,
         baseCurrency,
         fiscalYearStartMonth,
       });
+      applyTenantTheme(updated);
       setSaved(true);
       await load();
     } catch (e) {
@@ -110,15 +135,41 @@ export function SettingsPage() {
             Logo URL
             <input className="auth-input" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} placeholder="https://…" />
           </label>
-          <div className="adm-grid-2">
-            <label>
-              Primary color
-              <input className="auth-input" type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} />
-            </label>
-            <label>
-              Accent color
-              <input className="auth-input" type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} />
-            </label>
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Brand colors</div>
+            <p className="muted small" style={{ marginTop: 0, marginBottom: '0.75rem' }}>
+              Pick as many or as few as you like — anything left on "Default" keeps the standard
+              E-Watu look, so you can set just your Primary color or all five.
+            </p>
+            <div className="adm-grid-2">
+              {COLOR_FIELDS.map((f) => (
+                <div key={f.key} style={{ marginBottom: '0.75rem' }}>
+                  <label style={{ display: 'block' }}>
+                    {f.label} <span className="muted small">— {f.hint}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.3rem' }}>
+                      <input
+                        className="auth-input"
+                        type="color"
+                        style={{ width: 52, padding: '0.25rem' }}
+                        value={colors[f.key] ?? f.fallback}
+                        onChange={(e) => setColors((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                      />
+                      {colors[f.key] ? (
+                        <button
+                          type="button"
+                          className="btn btn--ghost small"
+                          onClick={() => setColors((prev) => ({ ...prev, [f.key]: null }))}
+                        >
+                          Reset to default
+                        </button>
+                      ) : (
+                        <span className="muted small">Default</span>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              ))}
+            </div>
           </div>
           <label>
             Website

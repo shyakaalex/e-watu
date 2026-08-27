@@ -25,6 +25,7 @@ export function MyProfilePage() {
   const [bankBranch, setBankBranch] = useState('');
   const [emergencyContactName, setEmergencyContactName] = useState('');
   const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
+  const [docExpiryDate, setDocExpiryDate] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -81,8 +82,9 @@ export function MyProfilePage() {
     setError(null);
     setUploading(true);
     try {
-      const doc = await uploadMyDocument(file);
+      const doc = await uploadMyDocument(file, docExpiryDate || undefined);
       setDocuments((prev) => [doc, ...prev]);
+      setDocExpiryDate('');
     } catch (e) {
       setError(parseApiError(e).message);
     } finally {
@@ -189,14 +191,28 @@ export function MyProfilePage() {
         <p className="muted small" style={{ marginBottom: '1rem' }}>
           Personal documents — ID copies, certificates, etc.
         </p>
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="auth-input"
-          style={{ marginBottom: '1rem' }}
-          onChange={(e) => onUpload(e.target.files?.[0] ?? null)}
-          disabled={uploading}
-        />
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: '1rem' }}>
+          <label style={{ flex: '1 1 220px' }}>
+            File
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="auth-input"
+              onChange={(e) => onUpload(e.target.files?.[0] ?? null)}
+              disabled={uploading}
+            />
+          </label>
+          <label style={{ flex: '0 1 180px' }}>
+            Expiry date <span className="muted small">(optional, for licenses/certs)</span>
+            <input
+              type="date"
+              className="auth-input"
+              value={docExpiryDate}
+              onChange={(e) => setDocExpiryDate(e.target.value)}
+              disabled={uploading}
+            />
+          </label>
+        </div>
         {documents.length === 0 ? (
           <p className="muted small">No documents uploaded yet.</p>
         ) : (
@@ -205,6 +221,7 @@ export function MyProfilePage() {
               <tr>
                 <th>Name</th>
                 <th>Uploaded</th>
+                <th>Expires</th>
                 <th></th>
               </tr>
             </thead>
@@ -213,6 +230,7 @@ export function MyProfilePage() {
                 <tr key={d.id}>
                   <td>{d.downloadUrl ? <a href={d.downloadUrl} target="_blank" rel="noreferrer">{d.name}</a> : d.name}</td>
                   <td className="muted">{new Date(d.uploadedAt).toLocaleDateString()}</td>
+                  <td className="muted">{d.expiryDate ? new Date(d.expiryDate).toLocaleDateString() : '—'}</td>
                   <td>
                     <button type="button" className="btn btn--ghost small" onClick={() => onDeleteDoc(d.id)}>
                       Remove

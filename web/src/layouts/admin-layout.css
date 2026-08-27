@@ -8,19 +8,9 @@
 }
 
 .adm-shell {
-  /* Dark theme for the authenticated app content area — scoped here rather than on
-     :root so the public marketing/login/candidate-facing pages (which read the same
-     variable names from index.css's :root) keep their existing light design. */
-  --surface: #070c18;
-  --surface-alt: #0b1220;
-  --card: #0e172a;
-  --card-sub: #131f38;
-  --line: rgba(255, 255, 255, 0.09);
-  --line-strong: rgba(255, 255, 255, 0.16);
-  --ink: #f8fafc;
-  --ink-muted: #94a3b8;
-  --ink-subtle: #64748b;
-
+  /* Theme tokens (--surface, --card, --ink, etc.) come from styles/brand.css's :root,
+     which is tenant-color-aware — do not redeclare them here or they'll stop responding
+     to a company's custom brand colors. */
   display: flex;
   min-height: 100vh;
   background: var(--surface);

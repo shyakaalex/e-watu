@@ -46,12 +46,20 @@ export class CreateEmployeeDto {
   @IsString()
   department?: string;
 
+  @IsOptional()
+  @IsString()
+  location?: string;
+
   @IsDateString()
   startDate!: string;
 
   @IsOptional()
   @IsDateString()
   endDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  probationEndDate?: string;
 
   @IsOptional()
   @Type(() => Number)

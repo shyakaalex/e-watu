@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthSessionRefresh } from './components/AuthSessionRefresh';
+import { useTenantThemeSync } from './lib/useTenantThemeSync';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
@@ -28,6 +29,7 @@ import { ProfilesPage } from './pages/talent-pool/ProfilesPage';
 import { SavedSearchesPage } from './pages/talent-pool/SavedSearchesPage';
 import { SettingsPage } from './pages/admin/SettingsPage';
 import { UsersPage } from './pages/admin/UsersPage';
+import { AccessibilityPage } from './pages/admin/AccessibilityPage';
 import { ChangePasswordPage } from './pages/admin/ChangePasswordPage';
 import { TeamsPage } from './pages/admin/TeamsPage';
 import { MyProfilePage } from './pages/admin/MyProfilePage';
@@ -35,6 +37,10 @@ import { MyPayslipsPage } from './pages/admin/MyPayslipsPage';
 import { CompanyDirectoryPage } from './pages/admin/CompanyDirectoryPage';
 import { MyTasksPage } from './pages/admin/MyTasksPage';
 import { AnnouncementsPage } from './pages/admin/AnnouncementsPage';
+import { HrDashboardPage } from './pages/admin/HrDashboardPage';
+import { AttendancePage } from './pages/admin/AttendancePage';
+import { TrainingPage } from './pages/admin/TrainingPage';
+import { GrievancesPage } from './pages/admin/GrievancesPage';
 import { PublicCareersLayout } from './pages/public/PublicCareersLayout';
 import { PublicJobsPage } from './pages/public/PublicJobsPage';
 import { PublicApplyPage } from './pages/public/PublicApplyPage';
@@ -82,6 +88,7 @@ import { PerformanceLayout } from './pages/performance/PerformanceLayout';
 
 
 export default function App() {
+  useTenantThemeSync();
   return (
     <>
       <AuthSessionRefresh />
@@ -112,6 +119,7 @@ export default function App() {
         <Route path="system" element={<SystemPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="users" element={<UsersPage />} />
+        <Route path="accessibility" element={<AccessibilityPage />} />
         <Route path="account" element={<ChangePasswordPage />} />
         <Route path="departments" element={<TeamsPage />} />
         <Route path="profile" element={<MyProfilePage />} />
@@ -119,6 +127,10 @@ export default function App() {
         <Route path="directory" element={<CompanyDirectoryPage />} />
         <Route path="tasks" element={<MyTasksPage />} />
         <Route path="announcements" element={<AnnouncementsPage />} />
+        <Route path="hr-dashboard" element={<HrDashboardPage />} />
+        <Route path="attendance" element={<AttendancePage />} />
+        <Route path="training" element={<TrainingPage />} />
+        <Route path="grievances" element={<GrievancesPage />} />
       </Route>
       <Route
         path="/recruitment"
