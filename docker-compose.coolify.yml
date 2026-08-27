@@ -78,6 +78,7 @@ services:
       PORT: 3016
       CORS_ORIGIN: ${CORS_ORIGIN}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      IDENTITY_SERVICE_URL: ${IDENTITY_SERVICE_URL}
 
   notification-service:
     build:

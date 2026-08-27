@@ -244,6 +244,15 @@ export class AuthService {
     return { userId: user.id };
   }
 
+  async findUserIdByEmail(email: string): Promise<{ id: string; email: string } | null> {
+    if (!email) return null;
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+      select: { id: true, email: true },
+    });
+    return user ?? null;
+  }
+
   private async notifyPlatformEmailVerified(tenantId: string) {
     const base = this.config.get<string>('PLATFORM_SERVICE_URL')?.replace(/\/$/, '');
     const key = this.config.get<string>('INTERNAL_API_KEY');
