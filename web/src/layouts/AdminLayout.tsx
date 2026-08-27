@@ -188,6 +188,11 @@ export function AdminLayout() {
   const showRecruitment = me ? hasAnyRole(me.roles, RECRUITMENT_ROLES) : false;
   const showTalentPool = me ? hasAnyRole(me.roles, TALENT_POOL_ROLES) : false;
   const showPayroll = me ? hasAnyRole(me.roles, PAYROLL_ROLES) : false;
+  // Leave/Performance are self-service — every employee needs them, not just payroll-admin roles.
+  const showLeaveAndPerformance = me ? hasAnyRole(me.roles, [...PAYROLL_ROLES, 'TENANT_STAFF']) : false;
+  const showTeamManagement = me ? hasAnyRole(me.roles, ['TENANT_ADMIN']) : false;
+  const showDepartments = me ? hasAnyRole(me.roles, ['TENANT_ADMIN', 'HR_MANAGER', 'MANAGING_DIRECTOR']) : false;
+  const showSettings = me ? hasAnyRole(me.roles, ['TENANT_ADMIN']) : false;
   const displayName = me?.username ?? me?.email ?? 'User';
   const initials = displayName.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
   const roleLabel = me?.roles[0]?.replace(/_/g, ' ') ?? 'User';
@@ -259,8 +264,10 @@ export function AdminLayout() {
                 <NavItem to="/recruitment" icon={<IcoRecruitment />} label="Recruitment" />
               )}
               {showPayroll && (
+                <NavItem to="/payroll" icon={<IcoPayroll />} label="Payroll" />
+              )}
+              {showLeaveAndPerformance && (
                 <>
-                  <NavItem to="/payroll" icon={<IcoPayroll />} label="Payroll" />
                   <NavItem to="/leave" icon={<IcoCalendar />} label="Leave Management" />
                   <NavItem to="/performance/goals" icon={<IcoCheckSquare />} label="Performance" />
                 </>
@@ -275,10 +282,20 @@ export function AdminLayout() {
                 </>
               )}
 
-              <NavSection label="Others" />
-              <NavItem to="/platform/settings" icon={<IcoSettings />} label="Settings" />
-              <NavItem to="/platform/users" icon={<IcoUsers />} label="Team" />
-              <NavItem to="/platform/departments" icon={<IcoTenants />} label="Departments" />
+              {(showSettings || showTeamManagement || showDepartments) && (
+                <>
+                  <NavSection label="Others" />
+                  {showSettings && (
+                    <NavItem to="/platform/settings" icon={<IcoSettings />} label="Settings" />
+                  )}
+                  {showTeamManagement && (
+                    <NavItem to="/platform/users" icon={<IcoUsers />} label="Team" />
+                  )}
+                  {showDepartments && (
+                    <NavItem to="/platform/departments" icon={<IcoTenants />} label="Departments" />
+                  )}
+                </>
+              )}
             </>
           )}
         </nav>

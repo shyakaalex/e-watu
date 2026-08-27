@@ -1475,30 +1475,32 @@ export function AdminOverviewPage() {
 
   return (
     <div className="adm-page">
+      {err && (
+        <div className="alert alert--err" role="alert" style={{ marginBottom: '1rem' }}>
+          {err}{' '}
+          <button type="button" className="btn btn--ghost" style={{ fontSize: '0.8rem', padding: '0 0.5rem' }} onClick={load}>
+            Retry
+          </button>
+        </div>
+      )}
+
       {isSuper && tenants && pending && (
         <SuperDashboard
           tenants={tenants}
           pending={pending}
           onApprove={onQuickApprove}
           approving={approving}
-          err={err}
+          err={null}
         />
       )}
 
       {!isSuper && myTenant !== undefined && (
         myTenant?.status === 'ACTIVE' ? (
           <CompanyDashboard displayName={displayName} />
+        ) : myTenant ? (
+          <PendingBanner myTenant={myTenant} />
         ) : (
-          <>
-            {err && (
-              <div className="alert alert--err" role="alert" style={{ marginBottom: '1rem' }}>{err}</div>
-            )}
-            {myTenant ? (
-              <PendingBanner myTenant={myTenant} />
-            ) : (
-              <p className="muted">No company is linked to this account.</p>
-            )}
-          </>
+          !err && <p className="muted">No company is linked to this account.</p>
         )
       )}
     </div>
