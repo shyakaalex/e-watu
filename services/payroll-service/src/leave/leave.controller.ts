@@ -1,9 +1,11 @@
-import { Controller, Get, Post, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import {
   AuthUser,
   CurrentUser,
+  EwatuRole,
   JwtAuthGuard,
+  Roles,
   RolesGuard,
 } from '@ewatu/common-auth';
 import { LeaveService } from './leave.service';
@@ -29,7 +31,18 @@ export class LeaveController {
       user.tenant_id as string,
       employeeId,
       targetYear,
+      { email: user.email, roles: user.roles },
     );
+  }
+
+  // Static segment before the generic list route to avoid ambiguity.
+  @Get('leave-requests/team-out')
+  getTeamOut(
+    @CurrentUser() user: AuthUser,
+    @Query('start') start: string,
+    @Query('end') end: string,
+  ) {
+    return this.leaveService.getTeamOut(user.tenant_id as string, user.email, start, end);
   }
 
   @Get('leave-requests')
@@ -44,16 +57,11 @@ export class LeaveController {
     @Query('endDate') endDate?: string,
     @Query('search') search?: string,
   ) {
-    return this.leaveService.getLeaveRequests(user.tenant_id as string, {
-      status,
-      employeeId,
-      department,
-      leaveTypeId,
-      managerId,
-      startDate,
-      endDate,
-      search,
-    });
+    return this.leaveService.getLeaveRequests(
+      user.tenant_id as string,
+      { status, employeeId, department, leaveTypeId, managerId, startDate, endDate, search },
+      { email: user.email, roles: user.roles },
+    );
   }
 
   @Post('leave-requests')
@@ -75,8 +83,42 @@ export class LeaveController {
   ) {
     return this.leaveService.createLeaveRequest(user.tenant_id as string, body, {
       userId: user.sub,
+      email: user.email,
+      roles: user.roles,
       ip: req.ip,
     });
+  }
+
+  // --- Holidays ---
+
+  @Get('holidays')
+  listHolidays(@CurrentUser() user: AuthUser) {
+    return this.leaveService.listHolidays(user.tenant_id as string);
+  }
+
+  @Post('holidays')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
+  createHoliday(
+    @CurrentUser() user: AuthUser,
+    @Body() body: { name: string; month: number; day: number; note?: string },
+  ) {
+    return this.leaveService.createHoliday(user.tenant_id as string, body);
+  }
+
+  @Patch('holidays/:id')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
+  updateHoliday(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() body: Partial<{ name: string; month: number; day: number; note: string }>,
+  ) {
+    return this.leaveService.updateHoliday(user.tenant_id as string, id, body);
+  }
+
+  @Delete('holidays/:id')
+  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
+  deleteHoliday(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.leaveService.deleteHoliday(user.tenant_id as string, id);
   }
 
   @Post('leave-requests/:id/attachment')

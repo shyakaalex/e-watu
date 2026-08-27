@@ -11,6 +11,22 @@ import { AuditLogService } from '../common/audit-log.service';
 import { dispatchNotification } from '../common/notification.dispatch';
 
 const MANAGER_ROLES = ['TENANT_ADMIN', 'HR_MANAGER'];
+const SENIOR_ROLES = ['TENANT_ADMIN', 'HR_MANAGER', 'MANAGING_DIRECTOR'];
+
+// Ported from web/src/pages/leave/publicHolidays.ts so the seeded backend data matches what
+// the frontend previously hardcoded. Movable religious holidays are intentionally excluded.
+const RWANDA_DEFAULT_HOLIDAYS = [
+  { name: "New Year's Day", month: 1, day: 1 },
+  { name: "Heroes' Day", month: 2, day: 1 },
+  { name: 'Genocide against the Tutsi Memorial Day', month: 4, day: 7 },
+  { name: 'Labour Day', month: 5, day: 1 },
+  { name: 'Independence Day', month: 7, day: 1 },
+  { name: 'Liberation Day', month: 7, day: 4 },
+  { name: 'Umuganura Day', month: 8, day: 1, note: 'First Friday of August' },
+  { name: 'Assumption Day', month: 8, day: 15 },
+  { name: 'Christmas Day', month: 12, day: 25 },
+  { name: 'Boxing Day', month: 12, day: 26 },
+];
 
 @Injectable()
 export class LeaveService implements OnModuleInit {
@@ -60,7 +76,53 @@ export class LeaveService implements OnModuleInit {
     });
   }
 
-  async getLeaveBalances(tenantId: string, employeeId: string, year: number) {
+  /** Team ids where this employee holds the LEAD role. */
+  private async getLedTeamIds(tenantId: string, employeeId: string): Promise<string[]> {
+    const led = await this.prisma.teamMember.findMany({
+      where: { tenantId, employeeId, role: 'LEAD' },
+      select: { teamId: true },
+    });
+    return led.map((l) => l.teamId);
+  }
+
+  /** Every employee who belongs to any of the given teams (any role), de-duplicated. */
+  private async getTeamsMemberEmployeeIds(tenantId: string, teamIds: string[]): Promise<string[]> {
+    if (!teamIds.length) return [];
+    const members = await this.prisma.teamMember.findMany({
+      where: { tenantId, teamId: { in: teamIds } },
+      select: { employeeId: true },
+    });
+    return [...new Set(members.map((m) => m.employeeId))];
+  }
+
+  /** Self, a senior officer, or a lead of a team the target belongs to may view someone's leave
+   *  data. Throws otherwise. */
+  private async assertCanViewEmployeeLeaveData(
+    tenantId: string,
+    targetEmployeeId: string,
+    caller: { email?: string; roles: string[] },
+  ): Promise<void> {
+    if (SENIOR_ROLES.some((r) => caller.roles.includes(r))) return;
+
+    const me = await this.findEmployeeForUser(tenantId, caller.email);
+    if (me?.id === targetEmployeeId) return;
+
+    if (me) {
+      const ledTeamIds = await this.getLedTeamIds(tenantId, me.id);
+      const ledMemberIds = await this.getTeamsMemberEmployeeIds(tenantId, ledTeamIds);
+      if (ledMemberIds.includes(targetEmployeeId)) return;
+    }
+
+    throw new ForbiddenException('You are not authorized to view this employee\'s leave data');
+  }
+
+  async getLeaveBalances(
+    tenantId: string,
+    employeeId: string,
+    year: number,
+    caller: { email?: string; roles: string[] },
+  ) {
+    await this.assertCanViewEmployeeLeaveData(tenantId, employeeId, caller);
     // Ensure balances exist for all types
     const types = await this.getLeaveTypes(tenantId);
     const balances = [];
@@ -131,8 +193,15 @@ export class LeaveService implements OnModuleInit {
       delegateToEmployeeId?: string;
       emergencyContactPhone?: string;
     },
-    actor: { userId: string; ip?: string },
+    actor: { userId: string; email?: string; roles: string[]; ip?: string },
   ) {
+    if (!SENIOR_ROLES.some((r) => actor.roles.includes(r))) {
+      const me = await this.findEmployeeForUser(tenantId, actor.email);
+      if (!me || me.id !== body.employeeId) {
+        throw new ForbiddenException('You can only submit a leave request for yourself');
+      }
+    }
+
     const startDate = new Date(body.startDate);
     const endDate = new Date(body.endDate);
     if (endDate < startDate) {
@@ -210,6 +279,11 @@ export class LeaveService implements OnModuleInit {
     return request;
   }
 
+  /** `filters.employeeId` set: caller must be that employee, a senior officer, or lead a team
+   *  the employee belongs to (checked via assertCanViewEmployeeLeaveData). No employeeId (a
+   *  broad/list query, e.g. the HR approvals queue): senior officers see everyone; a team lead
+   *  is scoped to their teams' members; anyone else gets an empty list rather than an error,
+   *  matching the KPI module's `forReview` scoping convention. */
   async getLeaveRequests(
     tenantId: string,
     filters: {
@@ -222,10 +296,24 @@ export class LeaveService implements OnModuleInit {
       endDate?: string;
       search?: string;
     } = {},
+    caller: { email?: string; roles: string[] },
   ) {
+    const isSeniorOfficer = SENIOR_ROLES.some((r) => caller.roles.includes(r));
+    let scopedEmployeeIds: string[] | undefined;
+
+    if (filters.employeeId) {
+      await this.assertCanViewEmployeeLeaveData(tenantId, filters.employeeId, caller);
+    } else if (!isSeniorOfficer) {
+      const me = await this.findEmployeeForUser(tenantId, caller.email);
+      const ledTeamIds = me ? await this.getLedTeamIds(tenantId, me.id) : [];
+      scopedEmployeeIds = await this.getTeamsMemberEmployeeIds(tenantId, ledTeamIds);
+      if (scopedEmployeeIds.length === 0) return [];
+    }
+
     const where: any = { tenantId };
     if (filters.status) where.status = filters.status;
     if (filters.employeeId) where.employeeId = filters.employeeId;
+    else if (scopedEmployeeIds) where.employeeId = { in: scopedEmployeeIds };
     if (filters.leaveTypeId) where.leaveTypeId = filters.leaveTypeId;
     if (filters.startDate) where.startDate = { ...(where.startDate ?? {}), gte: new Date(filters.startDate) };
     if (filters.endDate) where.endDate = { ...(where.endDate ?? {}), lte: new Date(filters.endDate) };
@@ -496,5 +584,95 @@ export class LeaveService implements OnModuleInit {
       curDate.setDate(curDate.getDate() + 1);
     }
     return count;
+  }
+
+  // --- Holidays ---
+
+  private nextOccurrence(h: { month: number; day: number }, from: Date): Date {
+    const year = from.getFullYear();
+    let date = new Date(year, h.month - 1, h.day);
+    if (date < new Date(from.getFullYear(), from.getMonth(), from.getDate())) {
+      date = new Date(year + 1, h.month - 1, h.day);
+    }
+    return date;
+  }
+
+  async ensureDefaultHolidays(tenantId: string): Promise<void> {
+    const existing = await this.prisma.holiday.count({ where: { tenantId } });
+    if (existing > 0) return;
+    await this.prisma.holiday.createMany({
+      data: RWANDA_DEFAULT_HOLIDAYS.map((h) => ({ tenantId, ...h })),
+    });
+  }
+
+  /** Returns holidays sorted by next upcoming occurrence from `from` (default: now). */
+  async listHolidays(tenantId: string, from: Date = new Date()) {
+    await this.ensureDefaultHolidays(tenantId);
+    const holidays = await this.prisma.holiday.findMany({ where: { tenantId } });
+    return holidays
+      .map((h) => ({ ...h, nextDate: this.nextOccurrence(h, from) }))
+      .sort((a, b) => a.nextDate.getTime() - b.nextDate.getTime());
+  }
+
+  async createHoliday(tenantId: string, body: { name: string; month: number; day: number; note?: string }) {
+    if (body.month < 1 || body.month > 12) throw new BadRequestException('month must be 1-12');
+    if (body.day < 1 || body.day > 31) throw new BadRequestException('day must be 1-31');
+    return this.prisma.holiday.create({ data: { tenantId, ...body } });
+  }
+
+  async updateHoliday(
+    tenantId: string,
+    id: string,
+    body: Partial<{ name: string; month: number; day: number; note: string }>,
+  ) {
+    const existing = await this.prisma.holiday.findUnique({ where: { id } });
+    if (!existing || existing.tenantId !== tenantId) throw new NotFoundException('Holiday not found');
+    return this.prisma.holiday.update({ where: { id }, data: body });
+  }
+
+  async deleteHoliday(tenantId: string, id: string) {
+    const existing = await this.prisma.holiday.findUnique({ where: { id } });
+    if (!existing || existing.tenantId !== tenantId) throw new NotFoundException('Holiday not found');
+    return this.prisma.holiday.delete({ where: { id } });
+  }
+
+  // --- Team "who's out" ---
+
+  /** APPROVED leave requests, overlapping [start, end], for co-members of any team the caller
+   *  belongs to (excluding the caller themselves). Returns an empty list for someone on no
+   *  team, rather than falling back to a company-wide view — this is meant to be private by
+   *  default, matching the "team calendar, not org calendar" scope of the employee dashboard. */
+  async getTeamOut(tenantId: string, callerEmail: string | undefined, start: string, end: string) {
+    const me = await this.findEmployeeForUser(tenantId, callerEmail);
+    if (!me) return [];
+
+    const memberships = await this.prisma.teamMember.findMany({
+      where: { tenantId, employeeId: me.id },
+      select: { teamId: true },
+    });
+    const teamIds = memberships.map((m) => m.teamId);
+    if (!teamIds.length) return [];
+
+    const teammates = await this.prisma.teamMember.findMany({
+      where: { tenantId, teamId: { in: teamIds }, employeeId: { not: me.id } },
+      select: { employeeId: true },
+    });
+    const teammateIds = [...new Set(teammates.map((t) => t.employeeId))];
+    if (!teammateIds.length) return [];
+
+    return this.prisma.leaveRequest.findMany({
+      where: {
+        tenantId,
+        employeeId: { in: teammateIds },
+        status: 'APPROVED',
+        startDate: { lte: new Date(end) },
+        endDate: { gte: new Date(start) },
+      },
+      include: {
+        leaveType: true,
+        employee: { select: { id: true, firstName: true, lastName: true, jobTitle: true } },
+      },
+      orderBy: { startDate: 'asc' },
+    });
   }
 }
