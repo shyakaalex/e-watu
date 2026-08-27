@@ -126,6 +126,7 @@ services:
       NOTIFICATION_SERVICE_URL: http://notification-service:3015
       DOCUMENT_SERVICE_URL: http://document-service:3018
       IDENTITY_SERVICE_URL: http://identity-service:3011
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
     depends_on:
       postgres:
         condition: service_healthy

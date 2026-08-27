@@ -119,6 +119,8 @@ model Employee {
   bankAccountEncrypted  String?          @map("bank_account_encrypted")
   bankName              String?          @map("bank_name")
   bankBranch            String?          @map("bank_branch")
+  emergencyContactName  String?          @map("emergency_contact_name")
+  emergencyContactPhone String?          @map("emergency_contact_phone")
   createdAt             DateTime         @default(now()) @map("created_at")
   updatedAt             DateTime         @updatedAt @map("updated_at")
 
@@ -137,11 +139,27 @@ model Employee {
   performanceImprovementPlans PerformanceImprovementPlan[]
   permits               Permit[]
   teamMemberships       TeamMember[]
+  documents             EmployeeDocument[]
 
   @@index([tenantId])
   @@index([tenantId, clientId])
   @@index([tenantId, employmentStatus])
   @@map("employees")
+}
+
+model EmployeeDocument {
+  id         String   @id @default(uuid())
+  tenantId   String   @map("tenant_id")
+  employeeId String   @map("employee_id")
+  name       String
+  s3Key      String   @map("s3_key")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@map("employee_documents")
 }
 
 enum TeamMemberRole {

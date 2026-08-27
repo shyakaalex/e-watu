@@ -79,6 +79,7 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       IDENTITY_SERVICE_URL: ${IDENTITY_SERVICE_URL}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
 
   notification-service:
     build:

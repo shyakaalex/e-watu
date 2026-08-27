@@ -150,13 +150,153 @@ export class EmployeesService {
     };
   }
 
-  /** Self-service lookup: find the employee record linked to the caller's own account email. */
-  async findMyRecord(tenantId: string, email: string) {
+  private async resolveMyEmployeeOrThrow(tenantId: string, email: string) {
     const employee = await this.prisma.employee.findFirst({
       where: { tenantId, email: { equals: email, mode: 'insensitive' } },
     });
     if (!employee) throw new NotFoundException('No employee record is linked to this account');
+    return employee;
+  }
+
+  /** Self-service lookup: find the employee record linked to the caller's own account email. */
+  async findMyRecord(tenantId: string, email: string) {
+    const employee = await this.resolveMyEmployeeOrThrow(tenantId, email);
     return this.sanitizeEmployee(employee);
+  }
+
+  /** Like findMyRecord, but decrypted — for the caller's own profile screen, where they should
+   *  be able to see (and edit) what's on file for their own bank details. */
+  async getMyProfile(tenantId: string, email: string) {
+    const employee = await this.resolveMyEmployeeOrThrow(tenantId, email);
+    return this.enrichDetail(employee);
+  }
+
+  /** Only the safe subset of fields an employee may edit about themselves — job title, salary,
+   *  employment status, manager, department, etc. stay HR/admin-only via the regular update(). */
+  async updateMyProfile(
+    tenantId: string,
+    email: string,
+    dto: {
+      phone?: string;
+      bankAccount?: string;
+      bankName?: string;
+      bankBranch?: string;
+      emergencyContactName?: string;
+      emergencyContactPhone?: string;
+    },
+  ) {
+    const employee = await this.resolveMyEmployeeOrThrow(tenantId, email);
+    const bankAccountEncrypted = dto.bankAccount ? this.encrypt(dto.bankAccount) : undefined;
+
+    const updated = await this.prisma.employee.update({
+      where: { id: employee.id },
+      data: {
+        ...(dto.phone !== undefined ? { phone: dto.phone } : {}),
+        ...(dto.bankName !== undefined ? { bankName: dto.bankName } : {}),
+        ...(dto.bankBranch !== undefined ? { bankBranch: dto.bankBranch } : {}),
+        ...(dto.emergencyContactName !== undefined ? { emergencyContactName: dto.emergencyContactName } : {}),
+        ...(dto.emergencyContactPhone !== undefined ? { emergencyContactPhone: dto.emergencyContactPhone } : {}),
+        ...(bankAccountEncrypted ? { bankAccountEncrypted } : {}),
+      },
+    });
+    return this.enrichDetail(updated);
+  }
+
+  private buildDocumentUrl(s3Key: string): string | null {
+    const endpoint = process.env.S3_ENDPOINT?.replace(/\/$/, '');
+    const bucket = process.env.S3_BUCKET;
+    if (!endpoint || !bucket) return null;
+    return `${endpoint}/${bucket}/${s3Key}`;
+  }
+
+  private async requestDocumentPresign(
+    tenantId: string,
+    objectKey: string,
+    contentType: string,
+    fileSize: number,
+  ): Promise<{ uploadUrl: string; key: string }> {
+    const base = (process.env.DOCUMENT_SERVICE_URL ?? 'http://document-service:3018').replace(/\/$/, '');
+    const key = process.env.INTERNAL_API_KEY;
+    if (!key) throw new ForbiddenException('Document service not configured');
+
+    const response = await fetch(`${base}/api/v1/document/internal/presign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-internal-key': key },
+      body: JSON.stringify({ tenantId, objectKey, contentType, fileSize }),
+    });
+    if (!response.ok) {
+      throw new ForbiddenException('Failed to obtain upload URL from document service');
+    }
+    const body = (await response.json()) as { data?: { uploadUrl: string; key: string } };
+    if (!body.data?.uploadUrl || !body.data?.key) {
+      throw new ForbiddenException('Document service returned an unexpected response');
+    }
+    return body.data;
+  }
+
+  async listMyDocuments(tenantId: string, email: string) {
+    const employee = await this.resolveMyEmployeeOrThrow(tenantId, email);
+    const docs = await this.prisma.employeeDocument.findMany({
+      where: { tenantId, employeeId: employee.id },
+      orderBy: { uploadedAt: 'desc' },
+    });
+    return docs.map((d) => ({ ...d, downloadUrl: this.buildDocumentUrl(d.s3Key) }));
+  }
+
+  async requestMyDocumentUpload(
+    tenantId: string,
+    email: string,
+    body: { name: string; contentType: string; fileSize: number },
+  ) {
+    const employee = await this.resolveMyEmployeeOrThrow(tenantId, email);
+    const objectKey = `employees/${employee.id}/documents/${Date.now()}-${body.name}`;
+    const presign = await this.requestDocumentPresign(tenantId, objectKey, body.contentType, body.fileSize);
+    const document = await this.prisma.employeeDocument.create({
+      data: { tenantId, employeeId: employee.id, name: body.name, s3Key: presign.key },
+    });
+    return { uploadUrl: presign.uploadUrl, document };
+  }
+
+  async deleteMyDocument(tenantId: string, email: string, documentId: string) {
+    const employee = await this.resolveMyEmployeeOrThrow(tenantId, email);
+    const doc = await this.prisma.employeeDocument.findFirst({
+      where: { id: documentId, tenantId, employeeId: employee.id },
+    });
+    if (!doc) throw new NotFoundException('Document not found');
+    return this.prisma.employeeDocument.delete({ where: { id: documentId } });
+  }
+
+  /** Staff-safe colleague listing — name, job title, department, work contact only. No salary,
+   *  bank details, national ID, or employment-status/manager-chain data. Open to any
+   *  authenticated tenant user, unlike the full findAll() (HR/admin only). */
+  async getDirectory(tenantId: string, search?: string) {
+    const employees = await this.prisma.employee.findMany({
+      where: {
+        tenantId,
+        employmentStatus: 'ACTIVE',
+        ...(search
+          ? {
+              OR: [
+                { firstName: { contains: search, mode: 'insensitive' } },
+                { lastName: { contains: search, mode: 'insensitive' } },
+                { jobTitle: { contains: search, mode: 'insensitive' } },
+                { department: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        jobTitle: true,
+        department: true,
+        email: true,
+        phone: true,
+      },
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+    });
+    return employees;
   }
 
   async findOne(tenantId: string, id: string) {

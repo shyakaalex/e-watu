@@ -52,6 +52,51 @@ export class EmployeesController {
     return this.employees.findMyRecord(user.tenant_id as string, user.email as string);
   }
 
+  @Get('me/profile')
+  getMyProfile(@CurrentUser() user: AuthUser) {
+    return this.employees.getMyProfile(user.tenant_id as string, user.email as string);
+  }
+
+  @Patch('me/profile')
+  updateMyProfile(
+    @CurrentUser() user: AuthUser,
+    @Body()
+    body: {
+      phone?: string;
+      bankAccount?: string;
+      bankName?: string;
+      bankBranch?: string;
+      emergencyContactName?: string;
+      emergencyContactPhone?: string;
+    },
+  ) {
+    return this.employees.updateMyProfile(user.tenant_id as string, user.email as string, body);
+  }
+
+  @Get('me/documents')
+  listMyDocuments(@CurrentUser() user: AuthUser) {
+    return this.employees.listMyDocuments(user.tenant_id as string, user.email as string);
+  }
+
+  @Post('me/documents')
+  requestMyDocumentUpload(
+    @CurrentUser() user: AuthUser,
+    @Body() body: { name: string; contentType: string; fileSize: number },
+  ) {
+    return this.employees.requestMyDocumentUpload(user.tenant_id as string, user.email as string, body);
+  }
+
+  @Delete('me/documents/:documentId')
+  deleteMyDocument(@CurrentUser() user: AuthUser, @Param('documentId') documentId: string) {
+    return this.employees.deleteMyDocument(user.tenant_id as string, user.email as string, documentId);
+  }
+
+  /** No @Roles guard — staff-safe fields only (see EmployeesService.getDirectory). */
+  @Get('directory')
+  directory(@CurrentUser() user: AuthUser, @Query('search') search?: string) {
+    return this.employees.getDirectory(user.tenant_id as string, search);
+  }
+
   @Get(':id')
   @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.FINANCE_OFFICER)
   get(@CurrentUser() user: AuthUser, @Param('id') id: string) {
