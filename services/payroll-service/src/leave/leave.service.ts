@@ -6,9 +6,19 @@ import {
   ServiceUnavailableException,
   OnModuleInit,
 } from '@nestjs/common';
+import { COMPENSATION_FIELDS, maskFields } from '@ewatu/common-auth';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../common/audit-log.service';
 import { dispatchNotification } from '../common/notification.dispatch';
+
+/** Strips salary/allowance fields from an embedded Employee unless the caller holds
+ *  employee-compensation:read — leave approval never needs to expose pay figures. */
+function maskEmployeeCompensation<T extends { employee: Record<string, unknown> }>(
+  requestLike: T,
+  caller: { permissions?: string[] },
+): T {
+  return { ...requestLike, employee: maskFields(requestLike.employee, COMPENSATION_FIELDS, caller, 'employee-compensation') };
+}
 
 const MANAGER_ROLES = ['TENANT_ADMIN', 'HR_MANAGER'];
 const SENIOR_ROLES = ['TENANT_ADMIN', 'HR_MANAGER', 'MANAGING_DIRECTOR'];
@@ -120,7 +130,7 @@ export class LeaveService implements OnModuleInit {
     tenantId: string,
     employeeId: string,
     year: number,
-    caller: { email?: string; roles: string[] },
+    caller: { email?: string; roles: string[]; permissions?: string[] },
   ) {
     await this.assertCanViewEmployeeLeaveData(tenantId, employeeId, caller);
     // Ensure balances exist for all types
@@ -296,7 +306,7 @@ export class LeaveService implements OnModuleInit {
       endDate?: string;
       search?: string;
     } = {},
-    caller: { email?: string; roles: string[] },
+    caller: { email?: string; roles: string[]; permissions?: string[] },
   ) {
     const isSeniorOfficer = SENIOR_ROLES.some((r) => caller.roles.includes(r));
     let scopedEmployeeIds: string[] | undefined;
@@ -342,7 +352,9 @@ export class LeaveService implements OnModuleInit {
       orderBy: { createdAt: 'desc' },
     });
 
-    return requests.map((r) => ({ ...r, attachmentUrl: this.buildAttachmentUrl(r.attachmentS3Key) }));
+    return requests
+      .map((r) => ({ ...r, attachmentUrl: this.buildAttachmentUrl(r.attachmentS3Key) }))
+      .map((r) => maskEmployeeCompensation(r, caller));
   }
 
   private buildAttachmentUrl(s3Key: string | null): string | null {
@@ -356,7 +368,7 @@ export class LeaveService implements OnModuleInit {
   async approveLeaveRequest(
     tenantId: string,
     id: string,
-    actor: { userId: string; roles: string[]; email?: string; ip?: string },
+    actor: { userId: string; roles: string[]; email?: string; permissions?: string[]; ip?: string },
     note?: string,
   ) {
     const request = await this.prisma.leaveRequest.findUnique({
@@ -420,13 +432,13 @@ export class LeaveService implements OnModuleInit {
       leaveType: updated.leaveType.name,
     });
 
-    return updated;
+    return maskEmployeeCompensation(updated, actor);
   }
 
   async rejectLeaveRequest(
     tenantId: string,
     id: string,
-    actor: { userId: string; roles: string[]; email?: string; ip?: string },
+    actor: { userId: string; roles: string[]; email?: string; permissions?: string[]; ip?: string },
     note?: string,
   ) {
     const request = await this.prisma.leaveRequest.findUnique({
@@ -473,13 +485,13 @@ export class LeaveService implements OnModuleInit {
       reason: note,
     });
 
-    return updated;
+    return maskEmployeeCompensation(updated, actor);
   }
 
   async requestMoreInfo(
     tenantId: string,
     id: string,
-    actor: { userId: string; roles: string[]; email?: string; ip?: string },
+    actor: { userId: string; roles: string[]; email?: string; permissions?: string[]; ip?: string },
     note: string,
   ) {
     const request = await this.prisma.leaveRequest.findUnique({

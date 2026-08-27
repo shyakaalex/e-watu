@@ -1,4 +1,6 @@
-export { EwatuRole, type EwatuRoleName, getPermissionsForRoles, EwatuRolePermissions } from './ewatu-role';
+export { EwatuRole, type EwatuRoleName, getPermissionsForRoles, EwatuRolePermissions, COMPENSATION_FIELDS } from './ewatu-role';
+export { can } from './can';
+export { maskFields, maskFieldsList } from './field-masking';
 export type { AuthUser } from './auth-user';
 export { CommonAuthModule } from './common-auth.module';
 export { CurrentUser } from './current-user.decorator';

@@ -84,9 +84,29 @@ async function main() {
     },
   });
 
+  await prisma.user.upsert({
+    where: { email: 'hr.manager@ewatu.dev' },
+    update: {
+      passwordHash,
+      emailVerified: true,
+      roles: ['HR_MANAGER'],
+      emailVerificationToken: null,
+      ...(tenantId ? { tenantId } : {}),
+    },
+    create: {
+      email: 'hr.manager@ewatu.dev',
+      passwordHash,
+      displayName: 'Dev HR Manager',
+      roles: ['HR_MANAGER'],
+      emailVerified: true,
+      tenantId: tenantId ?? undefined,
+    },
+  });
+
   console.log('\nDev login accounts (local only):\n');
   console.log('  Platform admin → admin@ewatu.dev / DevPassword12!');
   console.log('  Company admin  → tenant@ewatu.dev / DevPassword12!');
+  console.log('  HR manager     → hr.manager@ewatu.dev / DevPassword12! (no compensation-field access — for testing field-level masking)');
   console.log('  Employee       → grace.mukamana@ewatu.dev / DevPassword12! (no Employee record seeded yet — create one with this email in the tenant to use the Employee Portal dashboard)');
   if (!tenantId) {
     console.log('\n  (Run platform seed for demo-tenant to link these accounts to a company.)\n');

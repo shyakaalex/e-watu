@@ -58,7 +58,7 @@ export class PerformanceController {
     @Query('employeeId') employeeId?: string,
     @Query('appraisalCycleId') appraisalCycleId?: string,
   ) {
-    return this.service.listGoals(user.tenant_id as string, employeeId, appraisalCycleId);
+    return this.service.listGoals(user.tenant_id as string, employeeId, appraisalCycleId, user.permissions);
   }
 
   @Post('goals')
@@ -142,12 +142,12 @@ export class PerformanceController {
     @Query('employeeId') employeeId?: string,
     @Query('managerId') managerId?: string,
   ) {
-    return this.service.listAppraisals(user.tenant_id as string, employeeId, managerId);
+    return this.service.listAppraisals(user.tenant_id as string, employeeId, managerId, user.permissions);
   }
 
   @Get('appraisals/:id')
   getAppraisal(@CurrentUser() user: AuthUser, @Param('id') id: string) {
-    return this.service.getAppraisal(user.tenant_id as string, id);
+    return this.service.getAppraisal(user.tenant_id as string, id, user.permissions);
   }
 
   @Post('appraisals/:id/self-assess')
@@ -197,7 +197,7 @@ export class PerformanceController {
     @Query('reviewerId') reviewerId?: string,
     @Query('employeeId') employeeId?: string,
   ) {
-    return this.service.listFeedbackRequests(user.tenant_id as string, reviewerId, employeeId);
+    return this.service.listFeedbackRequests(user.tenant_id as string, reviewerId, employeeId, user.permissions);
   }
 
   @Post('360-feedback/requests')
@@ -237,13 +237,13 @@ export class PerformanceController {
     @Query('employeeId') employeeId?: string,
     @Query('status') status?: string,
   ) {
-    return this.service.listPips(user.tenant_id as string, employeeId, status);
+    return this.service.listPips(user.tenant_id as string, employeeId, status, user.permissions);
   }
 
   @Get('pips/:id')
   @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   getPip(@CurrentUser() user: AuthUser, @Param('id') id: string) {
-    return this.service.getPip(user.tenant_id as string, id);
+    return this.service.getPip(user.tenant_id as string, id, user.permissions);
   }
 
   @Post('pips')
@@ -319,7 +319,7 @@ export class PerformanceController {
   ) {
     return this.service.listKpis(
       user.tenant_id as string,
-      { email: user.email as string, roles: user.roles },
+      { email: user.email as string, roles: user.roles, permissions: user.permissions },
       { employeeId, kpiPeriodId, status, forReview: forReview === 'true' },
     );
   }

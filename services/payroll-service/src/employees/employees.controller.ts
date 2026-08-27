@@ -36,7 +36,7 @@ export class EmployeesController {
   @Get()
   @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.FINANCE_OFFICER)
   list(@CurrentUser() user: AuthUser, @Query() query: Record<string, string | undefined>) {
-    return this.employees.findAll(user.tenant_id as string, query);
+    return this.employees.findAll(user.tenant_id as string, query, user.permissions);
   }
 
   // Static segments before `:id` routes to avoid path conflicts.
@@ -100,7 +100,7 @@ export class EmployeesController {
   @Get(':id')
   @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.FINANCE_OFFICER)
   get(@CurrentUser() user: AuthUser, @Param('id') id: string) {
-    return this.employees.findOne(user.tenant_id as string, id);
+    return this.employees.findOne(user.tenant_id as string, id, user.permissions);
   }
 
   @Post()

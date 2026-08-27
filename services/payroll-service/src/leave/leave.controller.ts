@@ -31,7 +31,7 @@ export class LeaveController {
       user.tenant_id as string,
       employeeId,
       targetYear,
-      { email: user.email, roles: user.roles },
+      { email: user.email, roles: user.roles, permissions: user.permissions },
     );
   }
 
@@ -60,7 +60,7 @@ export class LeaveController {
     return this.leaveService.getLeaveRequests(
       user.tenant_id as string,
       { status, employeeId, department, leaveTypeId, managerId, startDate, endDate, search },
-      { email: user.email, roles: user.roles },
+      { email: user.email, roles: user.roles, permissions: user.permissions },
     );
   }
 
@@ -145,7 +145,7 @@ export class LeaveController {
     return this.leaveService.approveLeaveRequest(
       user.tenant_id as string,
       id,
-      { userId: user.sub, roles: user.roles, email: user.email, ip: req.ip },
+      { userId: user.sub, roles: user.roles, email: user.email, permissions: user.permissions, ip: req.ip },
       body.note,
     );
   }
@@ -160,7 +160,7 @@ export class LeaveController {
     return this.leaveService.rejectLeaveRequest(
       user.tenant_id as string,
       id,
-      { userId: user.sub, roles: user.roles, email: user.email, ip: req.ip },
+      { userId: user.sub, roles: user.roles, email: user.email, permissions: user.permissions, ip: req.ip },
       body.note,
     );
   }
@@ -175,7 +175,7 @@ export class LeaveController {
     return this.leaveService.requestMoreInfo(
       user.tenant_id as string,
       id,
-      { userId: user.sub, roles: user.roles, email: user.email, ip: req.ip },
+      { userId: user.sub, roles: user.roles, email: user.email, permissions: user.permissions, ip: req.ip },
       body.note,
     );
   }

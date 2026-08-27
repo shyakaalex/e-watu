@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { EwatuRole } from '@ewatu/common-auth';
 import { PrismaService } from '../prisma/prisma.service';
+import { maskEmbeddedEmployee, maskEmbeddedEmployeeList } from '../common/employee-masking';
 
 const SENIOR_OFFICER_ROLES = [
   EwatuRole.TENANT_ADMIN,
@@ -95,8 +96,8 @@ export class PerformanceService {
 
   // --- GOAL SETTING & KPI MANAGEMENT ---
 
-  async listGoals(tenantId: string, employeeId?: string, appraisalCycleId?: string) {
-    return this.prisma.goal.findMany({
+  async listGoals(tenantId: string, employeeId?: string, appraisalCycleId?: string, callerPermissions?: string[]) {
+    const goals = await this.prisma.goal.findMany({
       where: {
         tenantId,
         ...(employeeId ? { employeeId } : {}),
@@ -108,6 +109,7 @@ export class PerformanceService {
       },
       orderBy: { createdAt: 'desc' },
     });
+    return maskEmbeddedEmployeeList(goals, callerPermissions);
   }
 
   async createGoal(
@@ -286,8 +288,8 @@ export class PerformanceService {
 
   // --- APPRAISALS & REVIEWS ---
 
-  async listAppraisals(tenantId: string, employeeId?: string, managerId?: string) {
-    return this.prisma.appraisal.findMany({
+  async listAppraisals(tenantId: string, employeeId?: string, managerId?: string, callerPermissions?: string[]) {
+    const appraisals = await this.prisma.appraisal.findMany({
       where: {
         tenantId,
         ...(employeeId ? { employeeId } : {}),
@@ -299,9 +301,10 @@ export class PerformanceService {
       },
       orderBy: { createdAt: 'desc' },
     });
+    return maskEmbeddedEmployeeList(appraisals, callerPermissions);
   }
 
-  async getAppraisal(tenantId: string, id: string) {
+  async getAppraisal(tenantId: string, id: string, callerPermissions?: string[]) {
     const appraisal = await this.prisma.appraisal.findUnique({
       where: { id },
       include: {
@@ -334,7 +337,7 @@ export class PerformanceService {
       throw new NotFoundException('Appraisal not found');
     }
 
-    return appraisal;
+    return maskEmbeddedEmployee(appraisal, callerPermissions);
   }
 
   async submitSelfAssessment(
@@ -519,8 +522,8 @@ export class PerformanceService {
 
   // --- 360-DEGREE FEEDBACK ---
 
-  async listFeedbackRequests(tenantId: string, reviewerId?: string, employeeId?: string) {
-    return this.prisma.feedbackRequest.findMany({
+  async listFeedbackRequests(tenantId: string, reviewerId?: string, employeeId?: string, callerPermissions?: string[]) {
+    const requests = await this.prisma.feedbackRequest.findMany({
       where: {
         tenantId,
         ...(reviewerId ? { reviewerId } : {}),
@@ -538,6 +541,7 @@ export class PerformanceService {
       },
       orderBy: { createdAt: 'desc' },
     });
+    return maskEmbeddedEmployeeList(requests, callerPermissions);
   }
 
   async createFeedbackRequest(
@@ -612,8 +616,8 @@ export class PerformanceService {
 
   // --- PERFORMANCE IMPROVEMENT PLANS (PIPs) ---
 
-  async listPips(tenantId: string, employeeId?: string, status?: string) {
-    return this.prisma.performanceImprovementPlan.findMany({
+  async listPips(tenantId: string, employeeId?: string, status?: string, callerPermissions?: string[]) {
+    const pips = await this.prisma.performanceImprovementPlan.findMany({
       where: {
         tenantId,
         ...(employeeId ? { employeeId } : {}),
@@ -625,9 +629,10 @@ export class PerformanceService {
       },
       orderBy: { createdAt: 'desc' },
     });
+    return maskEmbeddedEmployeeList(pips, callerPermissions);
   }
 
-  async getPip(tenantId: string, id: string) {
+  async getPip(tenantId: string, id: string, callerPermissions?: string[]) {
     const pip = await this.prisma.performanceImprovementPlan.findUnique({
       where: { id },
       include: {
@@ -639,7 +644,7 @@ export class PerformanceService {
     if (!pip || pip.tenantId !== tenantId) {
       throw new NotFoundException('Performance improvement plan not found');
     }
-    return pip;
+    return maskEmbeddedEmployee(pip, callerPermissions);
   }
 
   async createPip(
@@ -767,7 +772,7 @@ export class PerformanceService {
    *  everyone's. */
   async listKpis(
     tenantId: string,
-    caller: { email: string; roles: string[] },
+    caller: { email: string; roles: string[]; permissions?: string[] },
     opts: { employeeId?: string; kpiPeriodId?: string; status?: string; forReview?: boolean },
   ) {
     const isSeniorOfficer = caller.roles.some((r) => (SENIOR_OFFICER_ROLES as readonly string[]).includes(r));
@@ -780,7 +785,7 @@ export class PerformanceService {
       );
     }
 
-    return this.prisma.goal.findMany({
+    const kpis = await this.prisma.goal.findMany({
       where: {
         tenantId,
         type: 'KPI',
@@ -792,6 +797,7 @@ export class PerformanceService {
       include: { employee: true, kpiPeriod: true },
       orderBy: { createdAt: 'desc' },
     });
+    return maskEmbeddedEmployeeList(kpis, caller.permissions);
   }
 
   /** The signed-in employee plans (creates) their own Personal KPI. */

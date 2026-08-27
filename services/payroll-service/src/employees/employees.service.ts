@@ -1,5 +1,5 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { AuthUser } from '@ewatu/common-auth';
+import { AuthUser, COMPENSATION_FIELDS, maskFieldsList, maskFields, can } from '@ewatu/common-auth';
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 import { EmploymentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -108,7 +108,7 @@ export class EmployeesService {
     return this.sanitizeEmployee(created);
   }
 
-  async findAll(tenantId: string, query: Record<string, string | undefined>) {
+  async findAll(tenantId: string, query: Record<string, string | undefined>, callerPermissions?: string[]) {
     const page = Math.max(1, Number.parseInt(query.page ?? '1', 10) || 1);
     const limit = Math.min(100, Math.max(1, Number.parseInt(query.limit ?? '20', 10) || 20));
     const search = query.search?.trim();
@@ -142,8 +142,9 @@ export class EmployeesService {
       this.prisma.employee.count({ where }),
     ]);
 
+    const sanitized = items.map((item) => this.sanitizeEmployee(item));
     return {
-      data: items.map((item) => this.sanitizeEmployee(item)),
+      data: maskFieldsList(sanitized, COMPENSATION_FIELDS, { permissions: callerPermissions }, 'employee-compensation'),
       page,
       limit,
       total,
@@ -252,7 +253,12 @@ export class EmployeesService {
     const objectKey = `employees/${employee.id}/documents/${Date.now()}-${body.name}`;
     const presign = await this.requestDocumentPresign(tenantId, objectKey, body.contentType, body.fileSize);
     const document = await this.prisma.employeeDocument.create({
-      data: { tenantId, employeeId: employee.id, name: body.name, s3Key: presign.key },
+      data: {
+        tenantId,
+        employeeId: employee.id,
+        name: body.name,
+        s3Key: presign.key,
+      },
     });
     return { uploadUrl: presign.uploadUrl, document };
   }
@@ -299,7 +305,7 @@ export class EmployeesService {
     return employees;
   }
 
-  async findOne(tenantId: string, id: string) {
+  async findOne(tenantId: string, id: string, callerPermissions?: string[]) {
     const employee = await this.prisma.employee.findFirst({
       where: { id, tenantId },
       include: {
@@ -312,7 +318,16 @@ export class EmployeesService {
       },
     });
     if (!employee) throw new NotFoundException('Employee not found');
-    return this.enrichDetail(employee);
+    const detail = this.enrichDetail(employee);
+    const caller = { permissions: callerPermissions };
+    const masked = maskFields(detail, COMPENSATION_FIELDS, caller, 'employee-compensation');
+    // payrollRecords carry their own gross/net figures — same confidentiality tier as
+    // basicSalary/allowances, so the whole list is withheld alongside them rather than
+    // masked record-by-record.
+    if (!can(caller, 'read', 'employee-compensation')) {
+      return { ...masked, payrollRecords: [] };
+    }
+    return masked;
   }
 
   async update(tenantId: string, id: string, dto: UpdateEmployeeDto) {
