@@ -325,6 +325,82 @@ export async function fetchDirectory(search?: string): Promise<DirectoryEntry[]>
   return parseJson(r);
 }
 
+// --- Tasks ---
+
+export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'DONE';
+
+export type Task = {
+  id: string;
+  tenantId: string;
+  employeeId: string;
+  assignedByName: string;
+  title: string;
+  description: string | null;
+  dueDate: string | null;
+  status: TaskStatus;
+  completedAt: string | null;
+  createdAt: string;
+  employee?: { id: string; firstName: string; lastName: string };
+};
+
+async function payrollFetchAuth(path: string, init?: RequestInit): Promise<Response> {
+  const r = await authFetch(`${payrollUrl()}${path}`, init);
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return r;
+}
+
+export async function fetchMyTasks(): Promise<Task[]> {
+  return parseJson(await payrollFetchAuth('/api/v1/tasks/me'));
+}
+
+export async function fetchTasksAssignedByMe(): Promise<Task[]> {
+  return parseJson(await payrollFetchAuth('/api/v1/tasks/assigned-by-me'));
+}
+
+export async function createTask(body: {
+  employeeId: string;
+  title: string;
+  description?: string;
+  dueDate?: string;
+}): Promise<Task> {
+  return parseJson(await payrollFetchAuth('/api/v1/tasks', { method: 'POST', body: JSON.stringify(body) }));
+}
+
+export async function updateTaskStatus(id: string, status: TaskStatus): Promise<Task> {
+  return parseJson(
+    await payrollFetchAuth(`/api/v1/tasks/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  );
+}
+
+export async function deleteTask(id: string): Promise<void> {
+  await payrollFetchAuth(`/api/v1/tasks/${id}`, { method: 'DELETE' });
+}
+
+// --- Announcements ---
+
+export type Announcement = {
+  id: string;
+  tenantId: string;
+  teamId: string | null;
+  title: string;
+  body: string;
+  postedByName: string;
+  createdAt: string;
+  team?: { id: string; name: string } | null;
+};
+
+export async function fetchAnnouncements(): Promise<Announcement[]> {
+  return parseJson(await payrollFetchAuth('/api/v1/announcements'));
+}
+
+export async function createAnnouncement(body: { title: string; body: string; teamId?: string }): Promise<Announcement> {
+  return parseJson(await payrollFetchAuth('/api/v1/announcements', { method: 'POST', body: JSON.stringify(body) }));
+}
+
+export async function deleteAnnouncement(id: string): Promise<void> {
+  await payrollFetchAuth(`/api/v1/announcements/${id}`, { method: 'DELETE' });
+}
+
 export async function fetchEmployees(
   params?:
     | string

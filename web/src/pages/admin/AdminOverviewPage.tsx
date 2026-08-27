@@ -29,6 +29,9 @@ import {
   fetchGoals,
   fetchMyContracts,
   fetchMyPayslips,
+  fetchMyTasks,
+  fetchAnnouncements,
+  updateTaskStatus,
   reportDownloadUrl,
   type Employee as PayrollEmployee,
   type PayrollRun,
@@ -36,6 +39,8 @@ import {
   type OutsourcingAssignment,
   type SecondmentContract,
   type LeaveBalance,
+  type Task,
+  type Announcement,
 } from '../../payrollApi';
 import { authFetch } from '../../lib/http';
 import { StatusBadge } from './StatusBadge';
@@ -804,6 +809,8 @@ function EmployeeDashboard({ me }: { me?: any }) {
   const [goals, setGoals] = useState<any[]>([]);
   const [contracts, setContracts] = useState<any[]>([]);
   const [payslips, setPayslips] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -820,12 +827,14 @@ function EmployeeDashboard({ me }: { me?: any }) {
           return;
         }
         const year = new Date().getFullYear();
-        const [balances, reqs, gls, cons, slips] = await Promise.all([
+        const [balances, reqs, gls, cons, slips, myTasks, notices] = await Promise.all([
           fetchLeaveBalances(emp.id, year).catch(() => []),
           fetchLeaveRequests(undefined, emp.id).catch(() => []),
           fetchGoals(emp.id).catch(() => []),
           fetchMyContracts().catch(() => []),
           fetchMyPayslips().catch(() => []),
+          fetchMyTasks().catch(() => []),
+          fetchAnnouncements().catch(() => []),
         ]);
         if (cancelled) return;
         setLeaveBalances(balances);
@@ -833,12 +842,25 @@ function EmployeeDashboard({ me }: { me?: any }) {
         setGoals(Array.isArray(gls) ? gls : []);
         setContracts(Array.isArray(cons) ? cons : []);
         setPayslips(Array.isArray(slips) ? slips : []);
+        setTasks(myTasks);
+        setAnnouncements(notices);
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
   }, [me?.email]);
+
+  const openTasks = tasks.filter((t) => t.status !== 'DONE');
+
+  const onQuickComplete = async (id: string) => {
+    try {
+      await updateTaskStatus(id, 'DONE');
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status: 'DONE' } : t)));
+    } catch {
+      // Non-fatal — the task stays open if this fails; user can retry from the Tasks page.
+    }
+  };
 
   const totalAllocated = leaveBalances.reduce((s, b) => s + Number(b.allocatedDays), 0);
   const totalUsed = leaveBalances.reduce((s, b) => s + Number(b.usedDays), 0);
@@ -1017,6 +1039,57 @@ function EmployeeDashboard({ me }: { me?: any }) {
             </ul>
           ) : (
             <p className="muted small" style={{ margin: 0 }}>No payslips issued yet</p>
+          )}
+        </div>
+      </div>
+
+      <div className="dash-row-2" style={{ marginBottom: 0, marginTop: '1.5rem' }}>
+        <div className="dash-chart-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <h3 className="dash-chart-card__title" style={{ margin: 0 }}>My Tasks</h3>
+            <Link to="/platform/tasks" className="btn btn--ghost small">View All →</Link>
+          </div>
+          {loading ? (
+            <p className="muted small">Loading tasks…</p>
+          ) : openTasks.length > 0 ? (
+            <ul className="stat-list">
+              {openTasks.slice(0, 4).map((t) => (
+                <li key={t.id} className="stat-item">
+                  <div>
+                    <span className="stat-item__name">{t.title}</span>
+                    <div className="stat-item__meta">
+                      {t.dueDate ? `Due ${new Date(t.dueDate).toLocaleDateString()}` : 'No due date'} · {t.assignedByName}
+                    </div>
+                  </div>
+                  <button type="button" className="btn btn--ghost small" onClick={() => onQuickComplete(t.id)}>
+                    Mark Done
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted small" style={{ margin: 0 }}>Nothing on your list right now</p>
+          )}
+        </div>
+
+        <div className="dash-chart-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <h3 className="dash-chart-card__title" style={{ margin: 0 }}>Announcements</h3>
+            <Link to="/platform/announcements" className="btn btn--ghost small">View All →</Link>
+          </div>
+          {loading ? (
+            <p className="muted small">Loading announcements…</p>
+          ) : announcements.length > 0 ? (
+            <ul className="stat-list">
+              {announcements.slice(0, 3).map((a) => (
+                <li key={a.id} className="stat-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.2rem' }}>
+                  <span className="stat-item__name">{a.title}</span>
+                  <span className="stat-item__meta">{a.team?.name ?? 'Company-wide'} · {a.postedByName}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted small" style={{ margin: 0 }}>No announcements yet</p>
           )}
         </div>
       </div>

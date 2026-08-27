@@ -33,6 +33,8 @@ import { TeamsPage } from './pages/admin/TeamsPage';
 import { MyProfilePage } from './pages/admin/MyProfilePage';
 import { MyPayslipsPage } from './pages/admin/MyPayslipsPage';
 import { CompanyDirectoryPage } from './pages/admin/CompanyDirectoryPage';
+import { MyTasksPage } from './pages/admin/MyTasksPage';
+import { AnnouncementsPage } from './pages/admin/AnnouncementsPage';
 import { PublicCareersLayout } from './pages/public/PublicCareersLayout';
 import { PublicJobsPage } from './pages/public/PublicJobsPage';
 import { PublicApplyPage } from './pages/public/PublicApplyPage';
@@ -115,6 +117,8 @@ export default function App() {
         <Route path="profile" element={<MyProfilePage />} />
         <Route path="payslips" element={<MyPayslipsPage />} />
         <Route path="directory" element={<CompanyDirectoryPage />} />
+        <Route path="tasks" element={<MyTasksPage />} />
+        <Route path="announcements" element={<AnnouncementsPage />} />
       </Route>
       <Route
         path="/recruitment"

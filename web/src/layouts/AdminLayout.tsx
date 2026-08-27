@@ -129,6 +129,20 @@ const IcoBookOpen = () => (
   </svg>
 );
 
+const IcoClipboard = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+    <path d="M9 12l2 2 4-4" />
+  </svg>
+);
+
+const IcoMegaphone = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 11l18-5v12L3 13v-2z" /><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+  </svg>
+);
+
 const IcoCheckSquare = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="9 11 12 14 22 4" />
@@ -298,6 +312,8 @@ export function AdminLayout() {
               <NavItem to="/platform/profile" icon={<IcoUserCircle />} label="My Profile" />
               <NavItem to="/platform/payslips" icon={<IcoReceipt />} label="My Payslips" />
               <NavItem to="/platform/directory" icon={<IcoBookOpen />} label="Directory" />
+              <NavItem to="/platform/tasks" icon={<IcoClipboard />} label="Tasks" />
+              <NavItem to="/platform/announcements" icon={<IcoMegaphone />} label="Announcements" />
 
               {(showSettings || showTeamManagement || showDepartments) && (
                 <>
