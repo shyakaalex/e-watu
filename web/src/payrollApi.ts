@@ -688,6 +688,47 @@ export async function fetchLeaveTypes(): Promise<LeaveType[]> {
   return parseJson(r);
 }
 
+export type Holiday = {
+  id: string;
+  tenantId: string;
+  name: string;
+  month: number;
+  day: number;
+  note: string | null;
+  nextDate: string;
+};
+
+export async function fetchHolidays(): Promise<Holiday[]> {
+  const r = await payrollFetch('/api/v1/hr/holidays');
+  return parseJson(r);
+}
+
+export async function createHoliday(body: { name: string; month: number; day: number; note?: string }): Promise<Holiday> {
+  const r = await payrollFetch('/api/v1/hr/holidays', { method: 'POST', body: JSON.stringify(body) });
+  return parseJson(r);
+}
+
+export async function updateHoliday(
+  id: string,
+  body: Partial<{ name: string; month: number; day: number; note: string }>,
+): Promise<Holiday> {
+  const r = await payrollFetch(`/api/v1/hr/holidays/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+  return parseJson(r);
+}
+
+export async function deleteHoliday(id: string): Promise<void> {
+  await payrollFetch(`/api/v1/hr/holidays/${id}`, { method: 'DELETE' });
+}
+
+export type TeamOutRequest = LeaveRequest & {
+  employee: { id: string; firstName: string; lastName: string; jobTitle?: string };
+};
+
+export async function fetchTeamOut(start: string, end: string): Promise<TeamOutRequest[]> {
+  const r = await payrollFetch(`/api/v1/hr/leave-requests/team-out?start=${start}&end=${end}`);
+  return parseJson(r);
+}
+
 export type LeaveRequestFilters = {
   status?: string;
   employeeId?: string;
