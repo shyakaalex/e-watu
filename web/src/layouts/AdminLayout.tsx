@@ -117,6 +117,18 @@ const IcoCalendar = () => (
   </svg>
 );
 
+const IcoUserCircle = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" /><circle cx="12" cy="10" r="3" /><path d="M6.5 19a6 6 0 0 1 11 0" />
+  </svg>
+);
+
+const IcoBookOpen = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+  </svg>
+);
+
 const IcoCheckSquare = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="9 11 12 14 22 4" />
@@ -281,6 +293,11 @@ export function AdminLayout() {
                   <NavItem to="/talent-pool/profiles" icon={<IcoUsers />} label="Pool Profiles" />
                 </>
               )}
+
+              <NavSection label="My Profile" />
+              <NavItem to="/platform/profile" icon={<IcoUserCircle />} label="My Profile" />
+              <NavItem to="/platform/payslips" icon={<IcoReceipt />} label="My Payslips" />
+              <NavItem to="/platform/directory" icon={<IcoBookOpen />} label="Directory" />
 
               {(showSettings || showTeamManagement || showDepartments) && (
                 <>

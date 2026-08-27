@@ -230,6 +230,101 @@ export async function fetchMyEmployee(): Promise<Employee | null> {
   return parseJson(r);
 }
 
+export type MyProfile = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string | null;
+  jobTitle: string;
+  department: string | null;
+  startDate: string;
+  bankAccount?: string;
+  bankName: string | null;
+  bankBranch: string | null;
+  emergencyContactName: string | null;
+  emergencyContactPhone: string | null;
+};
+
+export async function fetchMyProfile(): Promise<MyProfile | null> {
+  const r = await authFetch(`${payrollUrl()}/api/v1/employees/me/profile`);
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
+export async function updateMyProfile(body: {
+  phone?: string;
+  bankAccount?: string;
+  bankName?: string;
+  bankBranch?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+}): Promise<MyProfile> {
+  const r = await authFetch(`${payrollUrl()}/api/v1/employees/me/profile`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
+export type MyDocument = {
+  id: string;
+  name: string;
+  s3Key: string;
+  uploadedAt: string;
+  downloadUrl: string | null;
+};
+
+export async function fetchMyDocuments(): Promise<MyDocument[]> {
+  const r = await authFetch(`${payrollUrl()}/api/v1/employees/me/documents`);
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
+export async function uploadMyDocument(file: File): Promise<MyDocument> {
+  const r = await authFetch(`${payrollUrl()}/api/v1/employees/me/documents`, {
+    method: 'POST',
+    body: JSON.stringify({
+      name: file.name,
+      contentType: file.type || 'application/octet-stream',
+      fileSize: file.size,
+    }),
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  const { uploadUrl, document } = await parseJson<{ uploadUrl: string; document: MyDocument }>(r);
+  const put = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type || 'application/octet-stream' },
+    body: file,
+  });
+  if (!put.ok) throw new Error('Failed to upload document');
+  return document;
+}
+
+export async function deleteMyDocument(id: string): Promise<void> {
+  const r = await authFetch(`${payrollUrl()}/api/v1/employees/me/documents/${id}`, { method: 'DELETE' });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+}
+
+export type DirectoryEntry = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  jobTitle: string;
+  department: string | null;
+  email: string;
+  phone: string | null;
+};
+
+export async function fetchDirectory(search?: string): Promise<DirectoryEntry[]> {
+  const qs = search ? `?search=${encodeURIComponent(search)}` : '';
+  const r = await authFetch(`${payrollUrl()}/api/v1/employees/directory${qs}`);
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}
+
 export async function fetchEmployees(
   params?:
     | string

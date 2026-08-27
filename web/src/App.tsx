@@ -30,6 +30,9 @@ import { SettingsPage } from './pages/admin/SettingsPage';
 import { UsersPage } from './pages/admin/UsersPage';
 import { ChangePasswordPage } from './pages/admin/ChangePasswordPage';
 import { TeamsPage } from './pages/admin/TeamsPage';
+import { MyProfilePage } from './pages/admin/MyProfilePage';
+import { MyPayslipsPage } from './pages/admin/MyPayslipsPage';
+import { CompanyDirectoryPage } from './pages/admin/CompanyDirectoryPage';
 import { PublicCareersLayout } from './pages/public/PublicCareersLayout';
 import { PublicJobsPage } from './pages/public/PublicJobsPage';
 import { PublicApplyPage } from './pages/public/PublicApplyPage';
@@ -109,6 +112,9 @@ export default function App() {
         <Route path="users" element={<UsersPage />} />
         <Route path="account" element={<ChangePasswordPage />} />
         <Route path="departments" element={<TeamsPage />} />
+        <Route path="profile" element={<MyProfilePage />} />
+        <Route path="payslips" element={<MyPayslipsPage />} />
+        <Route path="directory" element={<CompanyDirectoryPage />} />
       </Route>
       <Route
         path="/recruitment"
