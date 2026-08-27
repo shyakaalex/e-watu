@@ -16,6 +16,8 @@ import { LeaveModule } from './leave/leave.module';
 import { PerformanceModule } from './performance/performance.module';
 import { PermitsModule } from './permits/permits.module';
 import { TeamsModule } from './teams/teams.module';
+import { TasksModule } from './tasks/tasks.module';
+import { AnnouncementsModule } from './announcements/announcements.module';
 
 @Module({
   imports: [
@@ -36,6 +38,8 @@ import { TeamsModule } from './teams/teams.module';
     PerformanceModule,
     PermitsModule,
     TeamsModule,
+    TasksModule,
+    AnnouncementsModule,
   ],
 })
 export class AppModule implements NestModule {

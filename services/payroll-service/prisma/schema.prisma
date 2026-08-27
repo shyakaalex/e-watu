@@ -140,6 +140,7 @@ model Employee {
   permits               Permit[]
   teamMemberships       TeamMember[]
   documents             EmployeeDocument[]
+  tasks                 Task[]
 
   @@index([tenantId])
   @@index([tenantId, clientId])
@@ -162,6 +163,48 @@ model EmployeeDocument {
   @@map("employee_documents")
 }
 
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+}
+
+model Task {
+  id             String     @id @default(uuid())
+  tenantId       String     @map("tenant_id")
+  employeeId     String     @map("employee_id")
+  assignedByName String     @map("assigned_by_name")
+  title          String
+  description    String?
+  dueDate        DateTime?  @map("due_date")
+  status         TaskStatus @default(PENDING)
+  completedAt    DateTime?  @map("completed_at")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  employee       Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@map("tasks")
+}
+
+model Announcement {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  teamId       String?  @map("team_id")
+  title        String
+  body         String
+  postedByName String   @map("posted_by_name")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  team         Team?    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, teamId])
+  @@map("announcements")
+}
+
 enum TeamMemberRole {
   LEAD
   CORE
@@ -180,6 +223,7 @@ model Team {
   subTeams     Team[]   @relation("TeamHierarchy")
   members      TeamMember[]
   kpiSubmissions TeamKpiSubmission[]
+  announcements  Announcement[]
 
   @@index([tenantId])
   @@map("teams")
