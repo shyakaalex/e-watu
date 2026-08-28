@@ -319,9 +319,9 @@ export function PersonalKpisPage() {
       </section>
 
       {showKpiModal && (
-        <div className="modal-backdrop">
-          <div className="modal" style={{ maxWidth: '550px', padding: '2rem' }}>
-            <h3 className="modal-title mb-4">Plan a Personal KPI</h3>
+        <div className="rec-modal-backdrop">
+          <div className="rec-modal" style={{ maxWidth: '550px', padding: '2rem' }}>
+            <h3 className="rec-modal__title mb-4">Plan a Personal KPI</h3>
             <form onSubmit={handleCreateKpi}>
               <div className="mb-4">
                 <label className="rec-form__label">Title</label>
@@ -404,9 +404,9 @@ export function PersonalKpisPage() {
       )}
 
       {showPeriodModal && (
-        <div className="modal-backdrop">
-          <div className="modal" style={{ maxWidth: '450px', padding: '2rem' }}>
-            <h3 className="modal-title mb-4">New KPI Period</h3>
+        <div className="rec-modal-backdrop">
+          <div className="rec-modal" style={{ maxWidth: '450px', padding: '2rem' }}>
+            <h3 className="rec-modal__title mb-4">New KPI Period</h3>
             <form onSubmit={handleCreatePeriod}>
               <div className="mb-4">
                 <label className="rec-form__label">Name</label>

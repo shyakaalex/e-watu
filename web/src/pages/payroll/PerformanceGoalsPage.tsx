@@ -386,11 +386,11 @@ export function PerformanceGoalsPage() {
 
       {/* Goal Modal */}
       {showGoalModal && (
-        <div className="modal-backdrop">
-          <div className="modal" style={{ maxWidth: '750px', padding: '2rem', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2rem' }}>
+        <div className="rec-modal-backdrop">
+          <div className="rec-modal" style={{ maxWidth: '750px', padding: '2rem', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '2rem' }}>
             {/* Form Column */}
             <div>
-              <h3 className="modal-title mb-4">Write Performance Goal</h3>
+              <h3 className="rec-modal__title mb-4">Write Performance Goal</h3>
               <form onSubmit={handleCreateGoal}>
                 <div className="mb-4">
                   <label className="rec-form__label">Goal Title</label>

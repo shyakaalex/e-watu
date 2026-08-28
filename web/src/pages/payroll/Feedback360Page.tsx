@@ -300,9 +300,9 @@ export function Feedback360Page() {
 
       {/* Nominate modal */}
       {showNominateModal && (
-        <div className="modal-backdrop">
-          <div className="modal" style={{ maxWidth: '500px', padding: '2rem' }}>
-            <h3 className="modal-title mb-4">Nominate Peer Reviewer</h3>
+        <div className="rec-modal-backdrop">
+          <div className="rec-modal" style={{ maxWidth: '500px', padding: '2rem' }}>
+            <h3 className="rec-modal__title mb-4">Nominate Peer Reviewer</h3>
             <form onSubmit={handleNominate}>
               <div className="mb-4">
                 <label className="rec-form__label">Select Cycle Appraisal</label>
@@ -366,9 +366,9 @@ export function Feedback360Page() {
 
       {/* Survey Modal */}
       {showSurveyModal && activeRequest && (
-        <div className="modal-backdrop">
-          <div className="modal" style={{ maxWidth: '650px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h3 className="modal-title mb-2">Colleague Performance Survey</h3>
+        <div className="rec-modal-backdrop">
+          <div className="rec-modal" style={{ maxWidth: '650px', padding: '2rem', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h3 className="rec-modal__title mb-2">Colleague Performance Survey</h3>
             <p className="muted mb-4">
               Providing feedback for: <strong>{activeRequest.employee?.firstName} {activeRequest.employee?.lastName}</strong> ({activeRequest.employee?.jobTitle})
             </p>

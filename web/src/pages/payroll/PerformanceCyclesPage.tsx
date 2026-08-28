@@ -266,9 +266,9 @@ export function PerformanceCyclesPage() {
 
       {/* Cycle Modal */}
       {showCycleModal && (
-        <div className="modal-backdrop">
-          <div className="modal" style={{ maxWidth: '600px', padding: '2rem' }}>
-            <h3 className="modal-title mb-4">Create Appraisal Cycle</h3>
+        <div className="rec-modal-backdrop">
+          <div className="rec-modal" style={{ maxWidth: '600px', padding: '2rem' }}>
+            <h3 className="rec-modal__title mb-4">Create Appraisal Cycle</h3>
             <form onSubmit={handleCreateCycle}>
               <div className="mb-4">
                 <label className="rec-form__label">Cycle Name</label>
@@ -381,9 +381,9 @@ export function PerformanceCyclesPage() {
 
       {/* Template Modal */}
       {showTemplateModal && (
-        <div className="modal-backdrop">
-          <div className="modal" style={{ maxWidth: '500px', padding: '2rem' }}>
-            <h3 className="modal-title mb-4">Add Goal Template</h3>
+        <div className="rec-modal-backdrop">
+          <div className="rec-modal" style={{ maxWidth: '500px', padding: '2rem' }}>
+            <h3 className="rec-modal__title mb-4">Add Goal Template</h3>
             <form onSubmit={handleCreateTemplate}>
               <div className="mb-4">
                 <label className="rec-form__label">Goal Title</label>
