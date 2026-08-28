@@ -22,6 +22,7 @@ import { HrDashboardModule } from './hr-dashboard/hr-dashboard.module';
 import { GrievancesModule } from './grievances/grievances.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { TrainingModule } from './training/training.module';
+import { DocumentsModule } from './documents/documents.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { TrainingModule } from './training/training.module';
     GrievancesModule,
     AttendanceModule,
     TrainingModule,
+    DocumentsModule,
   ],
 })
 export class AppModule implements NestModule {

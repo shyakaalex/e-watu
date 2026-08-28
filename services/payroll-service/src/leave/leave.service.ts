@@ -352,17 +352,32 @@ export class LeaveService implements OnModuleInit {
       orderBy: { createdAt: 'desc' },
     });
 
-    return requests
-      .map((r) => ({ ...r, attachmentUrl: this.buildAttachmentUrl(r.attachmentS3Key) }))
-      .map((r) => maskEmployeeCompensation(r, caller));
+    const withAttachments = await Promise.all(
+      requests.map(async (r) => ({ ...r, attachmentUrl: await this.buildAttachmentUrl(r.attachmentS3Key) })),
+    );
+    return withAttachments.map((r) => maskEmployeeCompensation(r, caller));
   }
 
-  private buildAttachmentUrl(s3Key: string | null): string | null {
+  /** The bucket is private, so a bare bucket URL 403s — every download link needs a
+   *  short-lived signed GET URL from document-service instead. */
+  private async buildAttachmentUrl(s3Key: string | null): Promise<string | null> {
     if (!s3Key) return null;
-    const endpoint = process.env.S3_ENDPOINT?.replace(/\/$/, '');
-    const bucket = process.env.S3_BUCKET;
-    if (!endpoint || !bucket) return null;
-    return `${endpoint}/${bucket}/${s3Key}`;
+    const base = (process.env.DOCUMENT_SERVICE_URL ?? 'http://document-service:3018').replace(/\/$/, '');
+    const key = process.env.INTERNAL_API_KEY;
+    if (!key) return null;
+
+    try {
+      const response = await fetch(`${base}/api/v1/document/internal/presign-download`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-internal-key': key },
+        body: JSON.stringify({ key: s3Key }),
+      });
+      if (!response.ok) return null;
+      const body = (await response.json()) as { data?: { downloadUrl: string } };
+      return body.data?.downloadUrl ?? null;
+    } catch {
+      return null;
+    }
   }
 
   async approveLeaveRequest(

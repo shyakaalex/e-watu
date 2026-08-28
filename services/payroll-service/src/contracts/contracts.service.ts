@@ -52,17 +52,17 @@ export class ContractsService {
     });
   }
 
-  async uploadContract(tenantId: string, id: string, _objectKey: string) {
+  async uploadContract(tenantId: string, id: string, contentType: string, fileSize: number) {
     const contract = await this.findOne(tenantId, id);
     const objectKey = `contracts/${tenantId}/${contract.id}/contract.pdf`;
-    const presign = await this.requestPresign(objectKey);
+    const presign = await this.requestPresign(tenantId, objectKey, contentType, fileSize);
 
     await this.prisma.employeeContract.update({
       where: { id: contract.id },
       data: { s3Key: objectKey },
     });
 
-    return { uploadUrl: presign.url, objectKey };
+    return { uploadUrl: presign.uploadUrl, objectKey };
   }
 
   async findExpiring(tenantId: string, days: number) {
@@ -77,7 +77,12 @@ export class ContractsService {
     });
   }
 
-  private async requestPresign(objectKey: string, expiresIn = 3600): Promise<{ url: string; objectKey: string }> {
+  private async requestPresign(
+    tenantId: string,
+    objectKey: string,
+    contentType: string,
+    fileSize: number,
+  ): Promise<{ uploadUrl: string; key: string }> {
     const base = (process.env.DOCUMENT_SERVICE_URL ?? 'http://document-service:3018').replace(/\/$/, '');
     const key = process.env.INTERNAL_API_KEY;
     if (!key) throw new ServiceUnavailableException('Document service not configured');
@@ -88,13 +93,17 @@ export class ContractsService {
         'Content-Type': 'application/json',
         'x-internal-key': key,
       },
-      body: JSON.stringify({ objectKey, expiresIn }),
+      body: JSON.stringify({ tenantId, objectKey, contentType, fileSize }),
     });
 
     if (!response.ok) {
       throw new ServiceUnavailableException('Failed to obtain upload URL from document service');
     }
 
-    return response.json() as Promise<{ url: string; objectKey: string }>;
+    const body = (await response.json()) as { data?: { uploadUrl: string; key: string } };
+    if (!body.data?.uploadUrl || !body.data?.key) {
+      throw new ServiceUnavailableException('Document service returned an unexpected response');
+    }
+    return body.data;
   }
 }

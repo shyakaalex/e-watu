@@ -66,8 +66,8 @@ export class ContractsController {
   upload(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
-    @Body() body: { objectKey: string },
+    @Body() body: { contentType: string; fileSize: number },
   ) {
-    return this.service.uploadContract(user.tenant_id as string, id, body.objectKey);
+    return this.service.uploadContract(user.tenant_id as string, id, body.contentType, body.fileSize);
   }
 }

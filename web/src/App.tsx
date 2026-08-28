@@ -41,6 +41,7 @@ import { HrDashboardPage } from './pages/admin/HrDashboardPage';
 import { AttendancePage } from './pages/admin/AttendancePage';
 import { TrainingPage } from './pages/admin/TrainingPage';
 import { GrievancesPage } from './pages/admin/GrievancesPage';
+import { DocumentsPage } from './pages/admin/DocumentsPage';
 import { PublicCareersLayout } from './pages/public/PublicCareersLayout';
 import { PublicJobsPage } from './pages/public/PublicJobsPage';
 import { PublicApplyPage } from './pages/public/PublicApplyPage';
@@ -131,6 +132,7 @@ export default function App() {
         <Route path="attendance" element={<AttendancePage />} />
         <Route path="training" element={<TrainingPage />} />
         <Route path="grievances" element={<GrievancesPage />} />
+        <Route path="documents" element={<DocumentsPage />} />
       </Route>
       <Route
         path="/recruitment"

@@ -1284,10 +1284,10 @@ export async function updateContract(id: string, data: Record<string, unknown>) 
   return parseJson(r);
 }
 
-export async function uploadContractFile(id: string, objectKey: string) {
+export async function uploadContractFile(id: string, contentType: string, fileSize: number) {
   const r = await payrollFetch(`/api/v1/contracts/${id}/upload`, {
     method: 'POST',
-    body: JSON.stringify({ objectKey }),
+    body: JSON.stringify({ contentType, fileSize }),
   });
   return parseJson(r);
 }
@@ -1900,5 +1900,23 @@ export async function updateTeamMember(
 
 export async function removeTeamMember(teamId: string, employeeId: string): Promise<void> {
   await payrollFetch(`/api/v1/teams/${teamId}/members/${employeeId}`, { method: 'DELETE' });
+}
+
+// --- Document catalog ---
+
+export type DocumentCatalogEntry = {
+  id: string;
+  category: string;
+  name: string;
+  subjectName: string;
+  uploadedAt: string;
+  expiryDate: string | null;
+  downloadUrl: string | null;
+};
+
+export async function fetchEmployeeDocumentCatalog(search?: string): Promise<DocumentCatalogEntry[]> {
+  const qs = search ? `?search=${encodeURIComponent(search)}` : '';
+  const r = await payrollFetch(`/api/v1/employees/documents/all${qs}`);
+  return parseJson(r);
 }
 

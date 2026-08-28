@@ -1025,3 +1025,22 @@ export async function updatePlacementInvoice(
   if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
   return parseJson(r);
 }
+
+// --- Document catalog ---
+
+export type CandidateDocumentEntry = {
+  id: string;
+  category: string;
+  name: string;
+  subjectName: string;
+  uploadedAt: string;
+  expiryDate: null;
+  downloadUrl: string | null;
+};
+
+export async function fetchCandidateDocumentCatalog(search?: string): Promise<CandidateDocumentEntry[]> {
+  const qs = search ? `?search=${encodeURIComponent(search)}` : '';
+  const r = await authFetch(`${recruitmentUrl()}/api/v1/candidates/documents/all${qs}`);
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson(r);
+}

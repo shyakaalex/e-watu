@@ -92,7 +92,7 @@ export function PayrollEmployeeDetailPage() {
       setUploadMsg(null);
       setErr(null);
       try {
-        const { uploadUrl } = (await uploadContractFile(contractId, 'pending')) as {
+        const { uploadUrl } = (await uploadContractFile(contractId, file.type || 'application/pdf', file.size)) as {
           uploadUrl: string;
           objectKey: string;
         };

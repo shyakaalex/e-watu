@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EwatuRole, type AuthUser } from '@ewatu/common-auth';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { PresignUploadDto } from './dto/presign-upload.dto';
 
@@ -113,5 +113,20 @@ export class PresignService {
       bucket: this.bucket,
       expiresInSeconds: expires,
     };
+  }
+
+  /** The bucket is private, so the bare `objectUrl` returned above 404s/403s on GET —
+   *  callers that need to let a user actually view/download a stored file must ask for
+   *  a signed GET URL here instead. `key` is the exact key as stored (already includes
+   *  the `tenants/<id>/` prefix if the caller's own record has it baked in). */
+  async createPresignedGetForKey(key: string, expiresIn = 900): Promise<{ downloadUrl: string }> {
+    const command = new GetObjectCommand({ Bucket: this.bucket, Key: key });
+    try {
+      const downloadUrl = await getSignedUrl(this.client, command, { expiresIn });
+      return { downloadUrl };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new ServiceUnavailableException(`Storage error: ${msg}`);
+    }
   }
 }
