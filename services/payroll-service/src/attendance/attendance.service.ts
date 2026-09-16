@@ -1,5 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { isIpAllowed } from './ip-network.util';
+import { UpdateAttendanceNetworkPolicyDto } from './dtos/update-network-policy.dto';
 
 const LATE_THRESHOLD_HOUR = 9;
 const LATE_THRESHOLD_MINUTE = 15;
@@ -28,9 +30,10 @@ export class AttendanceService {
     );
   }
 
-  async clockIn(tenantId: string, callerEmail?: string) {
+  async clockIn(tenantId: string, callerEmail?: string, callerIp?: string) {
     const me = await this.resolveCallerEmployee(tenantId, callerEmail);
     if (!me) throw new ForbiddenException('No linked employee record');
+    await this.assertOnAllowedNetwork(tenantId, callerIp);
 
     const now = new Date();
     const date = this.startOfDay(now);
@@ -51,9 +54,10 @@ export class AttendanceService {
     });
   }
 
-  async clockOut(tenantId: string, callerEmail?: string) {
+  async clockOut(tenantId: string, callerEmail?: string, callerIp?: string) {
     const me = await this.resolveCallerEmployee(tenantId, callerEmail);
     if (!me) throw new ForbiddenException('No linked employee record');
+    await this.assertOnAllowedNetwork(tenantId, callerIp);
 
     const date = this.startOfDay(new Date());
     const existing = await this.prisma.attendanceRecord.findUnique({
@@ -75,6 +79,29 @@ export class AttendanceService {
       where: { tenantId, employeeId: me.id },
       orderBy: { date: 'desc' },
       take: 30,
+    });
+  }
+
+  private async assertOnAllowedNetwork(tenantId: string, callerIp?: string) {
+    const policy = await this.prisma.attendanceNetworkPolicy.findUnique({ where: { tenantId } });
+    if (!policy?.enabled) return;
+    if (!callerIp || !isIpAllowed(callerIp, policy.allowedCidrs)) {
+      throw new ForbiddenException(
+        'Clock-in/out is only allowed from the company office network. Connect to the office WiFi and try again.',
+      );
+    }
+  }
+
+  async getNetworkPolicy(tenantId: string) {
+    const policy = await this.prisma.attendanceNetworkPolicy.findUnique({ where: { tenantId } });
+    return policy ?? { tenantId, enabled: false, allowedCidrs: [] as string[] };
+  }
+
+  async updateNetworkPolicy(tenantId: string, dto: UpdateAttendanceNetworkPolicyDto, updatedByEmail?: string) {
+    return this.prisma.attendanceNetworkPolicy.upsert({
+      where: { tenantId },
+      create: { tenantId, enabled: dto.enabled, allowedCidrs: dto.allowedCidrs, updatedByEmail },
+      update: { enabled: dto.enabled, allowedCidrs: dto.allowedCidrs, updatedByEmail },
     });
   }
 }

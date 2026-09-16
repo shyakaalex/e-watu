@@ -549,6 +549,25 @@ export async function fetchMyAttendance(): Promise<AttendanceRecord[]> {
   return parseJson(await payrollFetchAuth('/api/v1/attendance/me'));
 }
 
+export type AttendanceNetworkPolicy = {
+  tenantId: string;
+  enabled: boolean;
+  allowedCidrs: string[];
+  callerIp?: string | null;
+};
+
+export async function fetchAttendanceNetworkPolicy(): Promise<AttendanceNetworkPolicy> {
+  return parseJson(await payrollFetchAuth('/api/v1/attendance/network-policy'));
+}
+
+export async function updateAttendanceNetworkPolicy(
+  body: Pick<AttendanceNetworkPolicy, 'enabled' | 'allowedCidrs'>,
+): Promise<AttendanceNetworkPolicy> {
+  return parseJson(
+    await payrollFetchAuth('/api/v1/attendance/network-policy', { method: 'PUT', body: JSON.stringify(body) }),
+  );
+}
+
 // --- Training ---
 
 export type TrainingRecordStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';

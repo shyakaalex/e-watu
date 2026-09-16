@@ -1,6 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
-import { clockIn, clockOut, fetchMyAttendance, type AttendanceRecord } from '../../payrollApi';
+import { type FormEvent, useCallback, useEffect, useState } from 'react';
+import { fetchMe } from '../../api';
+import {
+  clockIn,
+  clockOut,
+  fetchAttendanceNetworkPolicy,
+  fetchMyAttendance,
+  updateAttendanceNetworkPolicy,
+  type AttendanceNetworkPolicy,
+  type AttendanceRecord,
+} from '../../payrollApi';
 import { parseApiError } from '../../lib/parseApiError';
+
+const NETWORK_POLICY_ROLES = ['TENANT_ADMIN', 'MANAGING_DIRECTOR'];
 
 function isToday(dateStr: string): boolean {
   const d = new Date(dateStr);
@@ -20,11 +31,27 @@ export function AttendancePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [canManagePolicy, setCanManagePolicy] = useState(false);
+  const [policy, setPolicy] = useState<AttendanceNetworkPolicy | null>(null);
+  const [policyEnabled, setPolicyEnabled] = useState(false);
+  const [cidrsText, setCidrsText] = useState('');
+  const [policyBusy, setPolicyBusy] = useState(false);
+  const [policyError, setPolicyError] = useState<string | null>(null);
+  const [policySaved, setPolicySaved] = useState(false);
+
   const load = useCallback(async () => {
     setError(null);
     setLoading(true);
     try {
+      const me = await fetchMe();
       setRecords(await fetchMyAttendance());
+      if (me.roles?.some((r) => NETWORK_POLICY_ROLES.includes(r))) {
+        setCanManagePolicy(true);
+        const p = await fetchAttendanceNetworkPolicy();
+        setPolicy(p);
+        setPolicyEnabled(p.enabled);
+        setCidrsText(p.allowedCidrs.join('\n'));
+      }
     } catch (e) {
       setError(parseApiError(e).message);
     } finally {
@@ -35,6 +62,31 @@ export function AttendancePage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const onAddMyIp = () => {
+    if (!policy?.callerIp) return;
+    setCidrsText((prev) => (prev.trim() ? `${prev.trim()}\n${policy.callerIp}` : `${policy.callerIp}`));
+  };
+
+  const onSavePolicy = async (ev: FormEvent) => {
+    ev.preventDefault();
+    setPolicyError(null);
+    setPolicySaved(false);
+    setPolicyBusy(true);
+    try {
+      const allowedCidrs = cidrsText
+        .split('\n')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const updated = await updateAttendanceNetworkPolicy({ enabled: policyEnabled, allowedCidrs });
+      setPolicy((prev) => (prev ? { ...updated, callerIp: prev.callerIp } : updated));
+      setPolicySaved(true);
+    } catch (e) {
+      setPolicyError(parseApiError(e).message);
+    } finally {
+      setPolicyBusy(false);
+    }
+  };
 
   const today = records.find((r) => isToday(r.date));
 
@@ -132,6 +184,51 @@ export function AttendancePage() {
           </table>
         )}
       </div>
+
+      {canManagePolicy && (
+        <div className="adm-card" style={{ marginTop: '1.5rem' }}>
+          <h3 style={{ margin: '0 0 0.25rem' }}>Office Network Restriction</h3>
+          <p className="muted small" style={{ marginTop: 0 }}>
+            When enabled, clock-in and clock-out are only accepted from the IP addresses or ranges listed below —
+            typically the office's public IP as seen from the internet. Staff off that network will be blocked with
+            a clear message.
+          </p>
+
+          {policyError && <div className="alert alert--err">{policyError}</div>}
+          {policySaved && <div className="alert alert--ok">Saved.</div>}
+
+          <form className="form" onSubmit={onSavePolicy}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input type="checkbox" checked={policyEnabled} onChange={(e) => setPolicyEnabled(e.target.checked)} />
+              Restrict clock-in/out to the office network
+            </label>
+
+            <label>
+              Allowed IP addresses / CIDR ranges (one per line)
+              <textarea
+                className="auth-input"
+                style={{ minHeight: '90px', fontFamily: 'monospace' }}
+                placeholder={'41.186.12.4\n41.186.12.0/24'}
+                value={cidrsText}
+                onChange={(e) => setCidrsText(e.target.value)}
+              />
+            </label>
+
+            {policy?.callerIp && (
+              <p className="muted small">
+                Your current request IP is <code>{policy.callerIp}</code>.{' '}
+                <button type="button" className="btn btn--ghost small" onClick={onAddMyIp}>
+                  Add it to the list
+                </button>
+              </p>
+            )}
+
+            <button type="submit" className="btn btn--primary" disabled={policyBusy} style={{ marginTop: '0.5rem' }}>
+              {policyBusy ? 'Saving…' : 'Save'}
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

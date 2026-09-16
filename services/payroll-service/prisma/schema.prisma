@@ -228,6 +228,22 @@ model AttendanceRecord {
   @@map("attendance_records")
 }
 
+/// Restricts clock-in/out to the tenant's office network, identified by the caller's
+/// public IP address (the only signal a server can actually verify — there is no way
+/// to check WiFi SSID over HTTP). One policy per tenant; disabled by default so existing
+/// tenants aren't locked out until an admin opts in.
+model AttendanceNetworkPolicy {
+  id             String   @id @default(uuid())
+  tenantId       String   @unique @map("tenant_id")
+  enabled        Boolean  @default(false)
+  allowedCidrs   String[] @map("allowed_cidrs")
+  updatedByEmail String?  @map("updated_by_email")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("attendance_network_policies")
+}
+
 enum TrainingRecordStatus {
   NOT_STARTED
   IN_PROGRESS
