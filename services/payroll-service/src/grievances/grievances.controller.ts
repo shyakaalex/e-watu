@@ -17,14 +17,21 @@ export class GrievancesController {
     return this.service.listMyGrievances(user.tenant_id as string, user.email);
   }
 
+  // Non-sensitive cases raised by a team this caller leads — empty for anyone who isn't a lead.
+  @Get('my-team')
+  myTeam(@CurrentUser() user: AuthUser) {
+    return this.service.listForLineManager(user.tenant_id as string, user.email);
+  }
+
   @Get()
   @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   listAll(@CurrentUser() user: AuthUser, @Query('status') status?: string) {
     return this.service.listAll(user.tenant_id as string, status);
   }
 
+  // Authorization is enforced in the service, not here: HR/Admin/MD may act on anything, a line
+  // manager only on non-sensitive cases raised by their own team.
   @Patch(':id')
-  @Roles(EwatuRole.TENANT_ADMIN, EwatuRole.HR_MANAGER, EwatuRole.MANAGING_DIRECTOR)
   update(
     @CurrentUser() user: AuthUser,
     @Param('id') id: string,
@@ -33,7 +40,11 @@ export class GrievancesController {
     return this.service.updateCase(
       user.tenant_id as string,
       id,
-      user.preferred_username ?? user.email ?? 'HR',
+      {
+        email: user.email,
+        roles: user.roles ?? [],
+        displayName: user.preferred_username ?? user.email ?? 'HR',
+      },
       body,
     );
   }

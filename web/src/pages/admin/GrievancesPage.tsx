@@ -4,6 +4,7 @@ import {
   createGrievance,
   fetchMyGrievances,
   fetchAllGrievances,
+  fetchTeamGrievances,
   updateGrievance,
   type GrievanceCase,
   type GrievanceCategory,
@@ -32,6 +33,7 @@ const STATUS_BADGE: Record<GrievanceStatus, string> = {
 export function GrievancesPage() {
   const [mine, setMine] = useState<GrievanceCase[]>([]);
   const [all, setAll] = useState<GrievanceCase[]>([]);
+  const [team, setTeam] = useState<GrievanceCase[]>([]);
   const [isSenior, setIsSenior] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,12 +48,15 @@ export function GrievancesPage() {
       const me = await fetchMe();
       const senior = me.roles?.some((r) => SENIOR_ROLES.includes(r)) ?? false;
       setIsSenior(senior);
-      const [myCases, allCases] = await Promise.all([
+      const [myCases, allCases, teamCases] = await Promise.all([
         fetchMyGrievances(),
         senior ? fetchAllGrievances() : Promise.resolve([]),
+        // Self-scoped server-side to teams the caller leads — empty for anyone who isn't a lead.
+        fetchTeamGrievances().catch(() => []),
       ]);
       setMine(myCases);
       setAll(allCases);
+      setTeam(teamCases);
     } catch (e) {
       setError(parseApiError(e).message);
     } finally {
@@ -82,6 +87,16 @@ export function GrievancesPage() {
     try {
       const updated = await updateGrievance(id, { status });
       setAll((prev) => prev.map((c) => (c.id === id ? updated : c)));
+    } catch (e) {
+      setError(parseApiError(e).message);
+    }
+  };
+
+  const onUpdateTeamStatus = async (id: string, status: GrievanceStatus) => {
+    setError(null);
+    try {
+      const updated = await updateGrievance(id, { status });
+      setTeam((prev) => prev.map((c) => (c.id === id ? updated : c)));
     } catch (e) {
       setError(parseApiError(e).message);
     }
@@ -148,6 +163,49 @@ export function GrievancesPage() {
           </div>
         )}
       </div>
+
+      {team.length > 0 && (
+        <div className="adm-card" style={{ marginBottom: '1.5rem' }}>
+          <h3 style={{ margin: '0 0 0.25rem' }}>Grievances From My Team</h3>
+          <p className="muted small" style={{ marginTop: 0 }}>
+            Raised by people on a team you lead. Harassment and Discrimination cases are always
+            handled by HR only and never appear here.
+          </p>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Raised</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {team.map((c) => (
+                <tr key={c.id}>
+                  <td>{c.raisedBy ? `${c.raisedBy.firstName} ${c.raisedBy.lastName}` : '—'}</td>
+                  <td>{CATEGORIES.find((cat) => cat.value === c.category)?.label ?? c.category}</td>
+                  <td><span className={`badge ${STATUS_BADGE[c.status]}`}>{c.status}</span></td>
+                  <td className="muted">{new Date(c.createdAt).toLocaleDateString()}</td>
+                  <td>
+                    <select
+                      className="auth-input"
+                      value={c.status}
+                      onChange={(e) => onUpdateTeamStatus(c.id, e.target.value as GrievanceStatus)}
+                    >
+                      <option value="OPEN">Open</option>
+                      <option value="INVESTIGATING">Investigating</option>
+                      <option value="RESOLVED">Resolved</option>
+                      <option value="DISMISSED">Dismissed</option>
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {isSenior && (
         <div className="adm-card">

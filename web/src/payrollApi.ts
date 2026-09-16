@@ -515,6 +515,11 @@ export async function fetchAllGrievances(status?: string): Promise<GrievanceCase
   return parseJson(await payrollFetchAuth(`/api/v1/grievances${qs}`));
 }
 
+/** Non-sensitive cases raised by anyone on a team the caller leads. Empty for non-leads. */
+export async function fetchTeamGrievances(): Promise<GrievanceCase[]> {
+  return parseJson(await payrollFetchAuth('/api/v1/grievances/my-team'));
+}
+
 export async function updateGrievance(
   id: string,
   body: { status?: GrievanceStatus; resolutionNotes?: string },
