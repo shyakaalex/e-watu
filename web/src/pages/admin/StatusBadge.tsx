@@ -13,7 +13,9 @@ export function StatusBadge({ status }: { status: string }) {
               ? 'status-badge--trial'
               : key === 'expired'
                 ? 'status-badge--expired'
-                : 'status-badge--draft';
+                : key === 'archived'
+                  ? 'status-badge--archived'
+                  : 'status-badge--draft';
 
   return (
     <span className={`status-badge ${cls}`}>

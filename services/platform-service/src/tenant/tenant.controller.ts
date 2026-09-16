@@ -4,6 +4,8 @@ import {
 
   Controller,
 
+  Delete,
+
   Get,
 
   Param,
@@ -109,6 +111,50 @@ export class TenantController {
   reject(@Param('id') id: string, @Body() body: RejectTenantDto) {
 
     return this.tenant.reject(id, body.reason);
+
+  }
+
+
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+
+  @Roles(EwatuRole.PLATFORM_SUPER_ADMIN)
+
+  @Patch(':id/suspend')
+
+  suspend(@Param('id') id: string) {
+
+    return this.tenant.suspend(id);
+
+  }
+
+
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+
+  @Roles(EwatuRole.PLATFORM_SUPER_ADMIN)
+
+  @Patch(':id/reactivate')
+
+  reactivate(@Param('id') id: string) {
+
+    return this.tenant.reactivate(id);
+
+  }
+
+
+
+  // Soft delete — archives the tenant rather than removing the row. See TenantService.archive.
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+
+  @Roles(EwatuRole.PLATFORM_SUPER_ADMIN)
+
+  @Delete(':id')
+
+  archive(@Param('id') id: string) {
+
+    return this.tenant.archive(id);
 
   }
 

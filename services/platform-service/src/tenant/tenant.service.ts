@@ -128,6 +128,41 @@ export class TenantService {
     return updated;
   }
 
+  /** Blocks new logins for an otherwise-active company. Already-issued JWTs stay valid until
+   *  they naturally expire/refresh — tenant_status is baked into the token, not re-checked live. */
+  async suspend(id: string) {
+    const t = await this.prisma.tenant.findUnique({ where: { id } });
+    if (!t) throw new NotFoundException('Tenant not found');
+    if (t.status !== 'ACTIVE' && t.status !== 'TRIAL') {
+      throw new BadRequestException('Only an ACTIVE or TRIAL tenant can be suspended');
+    }
+    return this.prisma.tenant.update({ where: { id }, data: { status: 'SUSPENDED' } });
+  }
+
+  /** Reverses a suspension. Does not apply to PENDING_ACTIVATION (use approve) or ARCHIVED
+   *  (archiving is treated as a harder, one-way action in this pass). */
+  async reactivate(id: string) {
+    const t = await this.prisma.tenant.findUnique({ where: { id } });
+    if (!t) throw new NotFoundException('Tenant not found');
+    if (t.status !== 'SUSPENDED') {
+      throw new BadRequestException('Only a SUSPENDED tenant can be reactivated');
+    }
+    return this.prisma.tenant.update({ where: { id }, data: { status: 'ACTIVE' } });
+  }
+
+  /** Soft "delete": no other service cascades on tenantId (it's a loose reference everywhere,
+   *  not a foreign key), so a real hard delete would silently orphan that company's users,
+   *  employees, payroll and leave history in every other service. Archiving blocks all further
+   *  access via TenantStatusGuard while leaving every service's data intact and recoverable. */
+  async archive(id: string) {
+    const t = await this.prisma.tenant.findUnique({ where: { id } });
+    if (!t) throw new NotFoundException('Tenant not found');
+    if (t.status === 'ARCHIVED') {
+      throw new BadRequestException('Tenant is already archived');
+    }
+    return this.prisma.tenant.update({ where: { id }, data: { status: 'ARCHIVED' } });
+  }
+
   async markOwnerEmailVerified(tenantId: string) {
     try {
       return await this.prisma.tenant.update({

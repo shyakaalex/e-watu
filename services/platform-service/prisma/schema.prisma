@@ -15,6 +15,7 @@ enum TenantStatus {
   SUSPENDED
   EXPIRED
   REJECTED
+  ARCHIVED
 }
 
 model Tenant {

@@ -2,10 +2,13 @@ import { type FormEvent, useCallback, useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import {
   approveTenant,
+  archiveTenant,
   createTenant,
   fetchPendingTenants,
   fetchTenants,
+  reactivateTenant,
   rejectTenant,
+  suspendTenant,
   type TenantRow,
 } from '../../api';
 import { StatusBadge } from './StatusBadge';
@@ -76,6 +79,44 @@ export function TenantsPage() {
       await rejectTenant(id, rejectReason || undefined);
       setRejectingId(null);
       setRejectReason('');
+      await load();
+    } catch (e) {
+      setErr(parseError(e));
+    }
+  };
+
+  const onSuspend = async (id: string) => {
+    setErr(null);
+    try {
+      await suspendTenant(id);
+      await load();
+    } catch (e) {
+      setErr(parseError(e));
+    }
+  };
+
+  const onReactivate = async (id: string) => {
+    setErr(null);
+    try {
+      await reactivateTenant(id);
+      await load();
+    } catch (e) {
+      setErr(parseError(e));
+    }
+  };
+
+  const onArchive = async (id: string, name: string) => {
+    if (
+      !confirm(
+        `Archive "${name}"? This blocks all further access for this company. Their data in every ` +
+          `service stays intact and this can be reversed later by an engineer, but not from this screen.`,
+      )
+    ) {
+      return;
+    }
+    setErr(null);
+    try {
+      await archiveTenant(id);
       await load();
     } catch (e) {
       setErr(parseError(e));
@@ -214,6 +255,7 @@ export function TenantsPage() {
                   <th>Status</th>
                   <th>Plan</th>
                   <th>Country</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -228,6 +270,33 @@ export function TenantsPage() {
                     </td>
                     <td>{t.plan ?? '—'}</td>
                     <td>{t.country ?? '—'}</td>
+                    <td>
+                      <div className="admin__actions">
+                        {(t.status === 'ACTIVE' || t.status === 'TRIAL') && (
+                          <button type="button" className="btn small" onClick={() => onSuspend(t.id)}>
+                            Suspend
+                          </button>
+                        )}
+                        {t.status === 'SUSPENDED' && (
+                          <button
+                            type="button"
+                            className="btn btn--primary small"
+                            onClick={() => onReactivate(t.id)}
+                          >
+                            Activate
+                          </button>
+                        )}
+                        {t.status !== 'ARCHIVED' && (
+                          <button
+                            type="button"
+                            className="btn btn--danger small"
+                            onClick={() => onArchive(t.id, t.name)}
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

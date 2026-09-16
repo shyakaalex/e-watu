@@ -223,6 +223,31 @@ export async function fetchTenants() {
   return parseJson<TenantRow[]>(r);
 }
 
+export async function suspendTenant(id: string) {
+  const r = await authFetch(`${platformUrl()}/api/v1/tenants/${id}/suspend`, {
+    method: 'PATCH',
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson<TenantRow>(r);
+}
+
+export async function reactivateTenant(id: string) {
+  const r = await authFetch(`${platformUrl()}/api/v1/tenants/${id}/reactivate`, {
+    method: 'PATCH',
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson<TenantRow>(r);
+}
+
+/** Soft delete — archives the tenant rather than removing it. See TenantService.archive. */
+export async function archiveTenant(id: string) {
+  const r = await authFetch(`${platformUrl()}/api/v1/tenants/${id}`, {
+    method: 'DELETE',
+  });
+  if (!r.ok) throw new Error(`${r.status}: ${await r.text()}`);
+  return parseJson<TenantRow>(r);
+}
+
 export async function updateTenantSettings(body: {
   name?: string;
   logoUrl?: string;

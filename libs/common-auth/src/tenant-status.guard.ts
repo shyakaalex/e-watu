@@ -17,6 +17,7 @@ const MESSAGES: Record<string, string> = {
   EXPIRED: "This company's subscription has expired. Please renew to continue.",
   PENDING_ACTIVATION: 'This company is awaiting approval from the platform team.',
   REJECTED: "This company's registration was not approved.",
+  ARCHIVED: 'This company account has been archived.',
 };
 
 /**
