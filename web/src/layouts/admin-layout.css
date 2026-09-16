@@ -22,7 +22,7 @@
 .adm-sidebar {
   width: 256px;
   flex-shrink: 0;
-  background: linear-gradient(180deg, #030712 0%, #081120 100%);
+  background: linear-gradient(180deg, var(--sidebar-deep) 0%, var(--sidebar-mid) 100%);
   display: flex;
   flex-direction: column;
   position: sticky;

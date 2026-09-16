@@ -4,16 +4,26 @@
      the company's Accessibility > Settings color pickers. A tenant that hasn't set a given
      color simply falls through to the literal default after the comma, so picking 1-5 of
      the 5 slots (Primary/Secondary/Accent/Background/Text) both work. */
-  --surface: var(--tenant-background, #070c18);
-  --surface-alt: color-mix(in srgb, var(--tenant-background, #070c18) 88%, white 7%);
-  --card: color-mix(in srgb, var(--tenant-background, #070c18) 93%, white 10%);
-  --card-sub: color-mix(in srgb, var(--tenant-background, #070c18) 89%, white 15%);
+  /* A tenant's "Background" pick is only ever mixed toward black, never used raw — the shell is
+     a dark theme, so a bright/saturated choice (e.g. pure blue) must still read as a subtle dark
+     tint, not a full-page wash. Every other surface token derives from this already-darkened
+     --surface, not from --tenant-background directly, so the whole shell stays one coherent
+     dark family regardless of what a tenant picks. */
+  --surface: color-mix(in srgb, var(--tenant-background, #070c18) 30%, black 70%);
+  --surface-alt: color-mix(in srgb, var(--surface) 88%, white 7%);
+  --card: color-mix(in srgb, var(--surface) 93%, white 10%);
+  --card-sub: color-mix(in srgb, var(--surface) 89%, white 15%);
   --line: color-mix(in srgb, var(--tenant-text, #f8fafc) 9%, transparent);
   --line-strong: color-mix(in srgb, var(--tenant-text, #f8fafc) 16%, transparent);
 
   --ink: var(--tenant-text, #f8fafc);
-  --ink-muted: color-mix(in srgb, var(--tenant-text, #f8fafc) 62%, var(--tenant-background, #070c18) 38%);
-  --ink-subtle: color-mix(in srgb, var(--tenant-text, #f8fafc) 42%, var(--tenant-background, #070c18) 58%);
+  --ink-muted: color-mix(in srgb, var(--tenant-text, #f8fafc) 62%, var(--surface) 38%);
+  --ink-subtle: color-mix(in srgb, var(--tenant-text, #f8fafc) 42%, var(--surface) 58%);
+
+  /* Sidebar chrome — same tenant-background tint as --surface, mixed even darker so the
+     sidebar reads as a distinct, deeper layer instead of a flat, unrelated hardcoded color. */
+  --sidebar-deep: color-mix(in srgb, var(--tenant-background, #030712) 22%, black 78%);
+  --sidebar-mid: color-mix(in srgb, var(--tenant-background, #070c18) 30%, black 70%);
 
   /* Primary Brand Colors preserved (#00466c & #f5911e) as defaults */
   --brand: var(--tenant-primary, #00466c);
