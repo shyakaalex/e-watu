@@ -844,6 +844,10 @@ function EmployeeDashboard({ me }: { me?: any }) {
         setPayslips(Array.isArray(slips) ? slips : []);
         setTasks(myTasks);
         setAnnouncements(notices);
+      } catch {
+        // Most commonly a 403 from fetchMyEmployee() — no Employee record linked to this
+        // account yet. Same empty-state messaging as the explicit !emp branch above.
+        if (!cancelled) setNotFound(true);
       } finally {
         if (!cancelled) setLoading(false);
       }

@@ -239,6 +239,7 @@ export function OffersPage() {
               offer={offer}
               onReload={load}
               onUpdateSignature={onUpdateSignature}
+              onError={setErr}
             />
           ))}
         </div>
@@ -251,10 +252,12 @@ function OfferCard({
   offer,
   onReload,
   onUpdateSignature,
+  onError,
 }: {
   offer: Offer;
   onReload: () => Promise<void>;
   onUpdateSignature: (id: string, sig: SignatureStatus) => void;
+  onError: (message: string) => void;
 }) {
   const [showNeg, setShowNeg] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -267,6 +270,8 @@ function OfferCard({
     try {
       await fn();
       await onReload();
+    } catch (e) {
+      onError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }

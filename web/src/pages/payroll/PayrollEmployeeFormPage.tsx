@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { createEmployee, fetchEmployee, updateEmployee } from '../../payrollApi';
+import { parseApiError } from '../../lib/parseApiError';
 
 const EMPLOYEE_TYPES = [
   { value: 'OUTSOURCED', label: 'Outsourced' },
@@ -81,6 +82,7 @@ export function PayrollEmployeeFormPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState<Form>(DEFAULT_FORM);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -94,6 +96,7 @@ export function PayrollEmployeeFormPage() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
     try {
       const payload: Record<string, unknown> = {
@@ -108,6 +111,8 @@ export function PayrollEmployeeFormPage() {
       }
       const result = id ? await updateEmployee(id, payload) : await createEmployee(payload as any);
       navigate(`/payroll/employees/${(result as any).id}`);
+    } catch (err) {
+      setError(parseApiError(err).message);
     } finally {
       setLoading(false);
     }
@@ -116,6 +121,8 @@ export function PayrollEmployeeFormPage() {
   return (
     <div className="rec-page">
       <h1 className="rec-page__title">{id ? 'Edit employee' : 'New employee'}</h1>
+
+      {error && <div className="alert alert--err">{error}</div>}
 
       <form className="rec-form" onSubmit={onSubmit}>
 
@@ -131,8 +138,9 @@ export function PayrollEmployeeFormPage() {
             <input className="auth-input" type="text" required value={form.lastName} onChange={set('lastName')} placeholder="Uwera" />
           </label>
           <label className="rec-form__label">
-            Email
-            <input className="auth-input" type="email" value={form.email} onChange={set('email')} placeholder="jane@example.rw" />
+            Email <span className="rec-form__req">*</span>
+            <input className="auth-input" type="email" required value={form.email} onChange={set('email')} placeholder="jane@example.rw" />
+            <small className="rec-form__hint">Must match the email they log in with — this is how self-service pages link to this record.</small>
           </label>
           <label className="rec-form__label">
             Phone
