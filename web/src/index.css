@@ -141,6 +141,15 @@ code {
   font-weight: 500;
   color: #6b7280;
 }
+.pnav__brand-powered {
+  margin-top: 0.15rem;
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  opacity: 0.8;
+}
 
 /* Nav links */
 .pnav__links {
@@ -2544,7 +2553,8 @@ body {
 .adm-page__lead,
 .auth-lead,
 .rec-form__hint,
-.pnav__brand-sub {
+.pnav__brand-sub,
+.pnav__brand-powered {
   color: var(--ink-muted) !important;
 }
 

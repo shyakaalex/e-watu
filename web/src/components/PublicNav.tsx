@@ -125,6 +125,7 @@ export function PublicNav({ variant = 'dark' }: PublicNavProps) {
         <span className="pnav__brand-copy">
           <span className="pnav__brand-name">E-Watu</span>
           <span className="pnav__brand-sub">HR & Payroll ERP</span>
+          <span className="pnav__brand-powered">Powered by HC Solutions</span>
         </span>
       </Link>
 
