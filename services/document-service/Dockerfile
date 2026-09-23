@@ -16,7 +16,8 @@ RUN npm ci --prefix libs/common-auth --include=dev --no-workspaces && \
 # Build service
 COPY services/document-service ./services/document-service
 WORKDIR /repo/services/document-service
-RUN npm ci --include=dev --no-workspaces && npm run build
+RUN npm ci --include=dev --no-workspaces && npm run build && \
+    test -f dist/main.js
 
 RUN npm prune --omit=dev
 

@@ -18,7 +18,8 @@ COPY services/payroll-service ./services/payroll-service
 WORKDIR /repo/services/payroll-service
 RUN npm ci --include=dev --no-workspaces && \
     npx prisma generate && \
-    npm run build
+    npm run build && \
+    test -f dist/main.js
 
 RUN npm prune --omit=dev
 

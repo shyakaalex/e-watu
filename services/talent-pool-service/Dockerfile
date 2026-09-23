@@ -18,7 +18,8 @@ COPY services/talent-pool-service ./services/talent-pool-service
 WORKDIR /repo/services/talent-pool-service
 RUN npm ci --include=dev --no-workspaces && \
     npx prisma generate && \
-    npm run build
+    npm run build && \
+    test -f dist/main.js
 
 RUN npm prune --omit=dev
 

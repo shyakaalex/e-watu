@@ -19,7 +19,8 @@ COPY services/identity-service ./services/identity-service
 WORKDIR /repo/services/identity-service
 RUN npm ci --include=dev --no-workspaces && \
     npx prisma generate && \
-    npm run build
+    npm run build && \
+    test -f dist/main.js
 
 RUN npm prune --omit=dev
 

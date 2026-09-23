@@ -31,14 +31,14 @@ done
 # Ports documented for humans; alias names must match gateway envsubst defaults.
 declare -A UUID_TO_ALIAS=(
   [g8y94697174pnq5y74kuk8g7]=identity-service      # :3011
-  [qtz7boj03rdadslcvyvhhbt5]=recruitment-service   # :3013 (confirmed via Coolify build logs)
+  [kum2k8dhhx0u89i1d5hyuzti]=platform-service      # :3012
+  [qtz7boj03rdadslcvyvhhbt5]=recruitment-service   # :3013
+  [on8dsbzq0f4v4klokrpkps0i]=notification-service  # :3015
   [ui656enqdq551nex1njjlf0c]=payroll-service       # :3016
-  [foxvyku0dimv89c61t2l61uf]=gateway               # nginx :80 — no upstream alias required
-  # Remaining UUIDs are resolved at runtime via SERVICE_NAME env inside the container:
-  #   on8dsbzq0f4v4klokrpkps0i
-  #   sqmksm1z7duyhfirtqy0d4qn
-  #   kum2k8dhhx0u89i1d5hyuzti
-  #   x5s2bomef3af8u56dzncc3cq
+  [sqmksm1z7duyhfirtqy0d4qn]=document-service      # :3018
+  [foxvyku0dimv89c61t2l61uf]=gateway               # nginx :80
+  # x5s2bomef3af8u56dzncc3cq — second nginx/web app (no SERVICE_NAME); not an API upstream
+  # talent-pool UUID — set when that app is deployed (auto-resolved via SERVICE_NAME)
 )
 
 # All UUID prefixes we care about (known + TBD)

@@ -18,7 +18,8 @@ COPY services/recruitment-service ./services/recruitment-service
 WORKDIR /repo/services/recruitment-service
 RUN npm ci --include=dev --no-workspaces && \
     npx prisma generate && \
-    npm run build
+    npm run build && \
+    test -f dist/main.js
 
 RUN npm prune --omit=dev
 

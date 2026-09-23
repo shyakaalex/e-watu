@@ -18,7 +18,8 @@ COPY services/platform-service ./services/platform-service
 WORKDIR /repo/services/platform-service
 RUN npm ci --include=dev --no-workspaces && \
     npx prisma generate && \
-    npm run build
+    npm run build && \
+    test -f dist/main.js
 
 RUN npm prune --omit=dev
 
