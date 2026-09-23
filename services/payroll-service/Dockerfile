@@ -2,6 +2,9 @@ FROM node:20-alpine AS build
 RUN apk add --no-cache openssl libssl3
 WORKDIR /repo
 
+COPY package.json package-lock.json ./
+RUN npm ci --ignore-scripts
+
 COPY libs/common-auth ./libs/common-auth
 RUN npm ci --prefix libs/common-auth --include=dev && \
     npm run build --prefix libs/common-auth
