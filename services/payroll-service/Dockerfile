@@ -30,7 +30,7 @@ COPY --from=build /repo/services/payroll-service/node_modules/@prisma ./node_mod
 COPY --from=build /repo/services/payroll-service/node_modules/prisma ./node_modules/prisma
 COPY --from=build /repo/services/payroll-service/package.json ./package.json
 
-COPY infra/docker/service-entrypoint.sh /entrypoint.sh
+COPY docker/service-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 3016

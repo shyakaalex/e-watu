@@ -30,7 +30,7 @@ COPY --from=build /repo/services/document-service/node_modules ./node_modules
 COPY --from=build /repo/services/document-service/dist ./dist
 COPY --from=build /repo/services/document-service/package.json ./package.json
 
-COPY infra/docker/service-entrypoint.sh /entrypoint.sh
+COPY docker/service-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 3018
