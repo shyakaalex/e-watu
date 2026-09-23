@@ -1,17 +1,19 @@
 # Build context: repo root (/)
-# NOTE: NODE_ENV is runtime-only. Do not pass as build ARG.
-# Build stage always installs devDependencies for TypeScript compilation.
+# NOTE: Coolify may inject NODE_ENV=production as a build ARG.
+# Build stage always forces development so TypeScript/devDeps install correctly.
 FROM node:20-alpine AS build
 RUN apk add --no-cache openssl libssl3
 WORKDIR /repo
+ENV NODE_ENV=development
 
-# Root package.json required for file:../.. (ewatu-erp) dependency — no root npm ci
+# Root package.json required for service file:../.. (ewatu-erp) dependency
 COPY package.json ./
 
-# Build shared library
+# Build shared library (call tsc directly — avoid npx path bugs)
 COPY libs/common-auth ./libs/common-auth
-RUN npm ci --prefix libs/common-auth --include=dev && \
-    npm run build --prefix libs/common-auth
+RUN cd /repo/libs/common-auth && \
+    npm ci --include=dev && \
+    node ./node_modules/typescript/bin/tsc -p tsconfig.json
 
 # Build service
 COPY services/notification-service ./services/notification-service
@@ -20,7 +22,6 @@ RUN npm ci --include=dev && \
     npx prisma generate && \
     npm run build
 
-# Remove devDependencies after build
 RUN npm prune --omit=dev
 
 # ── Production stage ─────────────────────────────────
