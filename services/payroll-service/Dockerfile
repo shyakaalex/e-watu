@@ -1,30 +1,27 @@
 # Build context: repo root (/)
-# NOTE: Coolify may inject NODE_ENV=production as a build ARG.
-# Build stage always forces development so TypeScript/devDeps install correctly.
+# Coolify may inject NODE_ENV=production — build stage forces development.
 FROM node:20-alpine AS build
 RUN apk add --no-cache openssl libssl3
 WORKDIR /repo
 ENV NODE_ENV=development
 
-# Root package.json required for service file:../.. (ewatu-erp) dependency
-COPY package.json ./
+# Stub root package WITHOUT workspaces (file:../.. deps need this name).
+COPY docker/package.stub.json ./package.json
 
-# Build shared library (call tsc directly — avoid npx path bugs)
+# Build shared library
 COPY libs/common-auth ./libs/common-auth
-RUN cd /repo/libs/common-auth && \
-    npm ci --include=dev && \
-    node ./node_modules/typescript/bin/tsc -p tsconfig.json
+RUN npm ci --prefix libs/common-auth --include=dev --no-workspaces && \
+    node libs/common-auth/node_modules/typescript/bin/tsc -p libs/common-auth/tsconfig.json
 
 # Build service
 COPY services/payroll-service ./services/payroll-service
 WORKDIR /repo/services/payroll-service
-RUN npm ci --include=dev && \
+RUN npm ci --include=dev --no-workspaces && \
     npx prisma generate && \
     npm run build
 
 RUN npm prune --omit=dev
 
-# ── Production stage ─────────────────────────────────
 FROM node:20-alpine
 RUN apk add --no-cache openssl libssl3
 WORKDIR /app
