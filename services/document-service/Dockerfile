@@ -5,8 +5,8 @@ FROM node:20-alpine AS build
 RUN apk add --no-cache openssl libssl3
 WORKDIR /repo
 
-COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts
+# Root package.json required for file:../.. (ewatu-erp) dependency — no root npm ci
+COPY package.json ./
 
 # Build shared library
 COPY libs/common-auth ./libs/common-auth

@@ -1,26 +1,32 @@
+# Build context: repo root (/)
+# NOTE: NODE_ENV is runtime-only. Do not pass as build ARG.
+# Build stage always installs devDependencies for TypeScript compilation.
 FROM node:20-alpine AS build
 RUN apk add --no-cache openssl libssl3
 WORKDIR /repo
 
-COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts
+# Root package.json required for file:../.. (ewatu-erp) dependency — no root npm ci
+COPY package.json ./
 
+# Build shared library
 COPY libs/common-auth ./libs/common-auth
 RUN npm ci --prefix libs/common-auth --include=dev && \
     npm run build --prefix libs/common-auth
 
+# Build service
 COPY services/payroll-service ./services/payroll-service
 WORKDIR /repo/services/payroll-service
 RUN npm ci --include=dev && \
     npx prisma generate && \
     npm run build
 
+# Remove devDependencies after build
 RUN npm prune --omit=dev
 
+# ── Production stage ─────────────────────────────────
 FROM node:20-alpine
 RUN apk add --no-cache openssl libssl3
 WORKDIR /app
-RUN apk add --no-cache openssl libssl3
 ENV NODE_ENV=production
 ENV SERVICE_NAME=payroll-service
 

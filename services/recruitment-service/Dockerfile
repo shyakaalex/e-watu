@@ -5,8 +5,8 @@ FROM node:20-alpine AS build
 RUN apk add --no-cache openssl libssl3
 WORKDIR /repo
 
-COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts
+# Root package.json required for file:../.. (ewatu-erp) dependency — no root npm ci
+COPY package.json ./
 
 # Build shared library
 COPY libs/common-auth ./libs/common-auth
@@ -27,7 +27,6 @@ RUN npm prune --omit=dev
 FROM node:20-alpine
 RUN apk add --no-cache openssl libssl3
 WORKDIR /app
-RUN apk add --no-cache openssl libssl3
 ENV NODE_ENV=production
 ENV SERVICE_NAME=recruitment-service
 
@@ -35,12 +34,9 @@ COPY --from=build /repo/libs/common-auth /libs/common-auth
 COPY --from=build /repo/services/recruitment-service/node_modules ./node_modules
 COPY --from=build /repo/services/recruitment-service/dist ./dist
 COPY --from=build /repo/services/recruitment-service/prisma ./prisma
-COPY --from=build /repo/services/recruitment-service/node_modules/.prisma \
-     ./node_modules/.prisma
-COPY --from=build /repo/services/recruitment-service/node_modules/@prisma \
-     ./node_modules/@prisma
-COPY --from=build /repo/services/recruitment-service/node_modules/prisma \
-     ./node_modules/prisma
+COPY --from=build /repo/services/recruitment-service/node_modules/.prisma ./node_modules/.prisma
+COPY --from=build /repo/services/recruitment-service/node_modules/@prisma ./node_modules/@prisma
+COPY --from=build /repo/services/recruitment-service/node_modules/prisma ./node_modules/prisma
 COPY --from=build /repo/services/recruitment-service/package.json ./package.json
 
 COPY docker/service-entrypoint.sh /entrypoint.sh
