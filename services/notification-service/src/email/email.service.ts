@@ -1,32 +1,53 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createTransport } from 'nodemailer';
+import { Resend } from 'resend';
 
 export type EmailTemplate =
   | 'verify-email'
   | 'tenant-approved'
   | 'tenant-rejected'
+  | 'welcome'
   | 'generic';
+
+/** Resend's sandbox sender — works with just an API key, but Resend restricts sandbox mode to
+ *  only deliver to the email address on the Resend account itself. Set RESEND_FROM_ADDRESS once
+ *  a real sending domain is verified in Resend. */
+const RESEND_SANDBOX_FROM = 'onboarding@resend.dev';
 
 @Injectable()
 export class EmailService implements OnModuleInit {
   private readonly log = new Logger(EmailService.name);
+  private resend?: Resend;
 
   constructor(private readonly config: ConfigService) {}
 
   onModuleInit() {
+    const resendKey = this.config.get<string>('RESEND_API_KEY')?.trim();
     const host = this.config.get<string>('SMTP_HOST')?.trim();
-    if (!host) {
-      this.log.warn(
-        '[EmailService] SMTP_HOST not set — emails will be logged to console only. ' +
-          'Set SMTP_HOST in .env for real email sending.',
-      );
-    } else {
+    if (resendKey) {
+      this.resend = new Resend(resendKey);
+      this.log.log('[EmailService] Resend configured');
+    } else if (host) {
       this.log.log(`[EmailService] SMTP configured → ${host}`);
+    } else {
+      this.log.warn(
+        '[EmailService] Neither RESEND_API_KEY nor SMTP_HOST is set — emails will be logged ' +
+          'to console only.',
+      );
     }
   }
 
+  private usingResend(): boolean {
+    return !!this.config.get<string>('RESEND_API_KEY')?.trim();
+  }
+
   private fromAddress(): string {
+    if (this.usingResend()) {
+      const address = this.config.get<string>('RESEND_FROM_ADDRESS', RESEND_SANDBOX_FROM);
+      const name = this.config.get<string>('MAIL_FROM_NAME');
+      return name?.trim() ? `"${name.trim()}" <${address}>` : address;
+    }
     const address =
       this.config.get<string>('MAIL_FROM_ADDRESS') ??
       this.config.get<string>('EMAIL_FROM', 'noreply@ewatu.local');
@@ -57,6 +78,12 @@ export class EmailService implements OnModuleInit {
           text: `Your registration for ${payload.companyName} was not approved.${payload.reason ? ` Reason: ${payload.reason}` : ''}`,
           html: `<p>Your registration for <strong>${payload.companyName}</strong> was not approved.</p>${payload.reason ? `<p>Reason: ${payload.reason}</p>` : ''}`,
         };
+      case 'welcome':
+        return {
+          subject: `Your E-Watu application for ${payload.companyName} is under review`,
+          text: `Thanks for applying! Your application for ${payload.companyName} is now under review by our team. You'll receive another email as soon as it's approved and your workspace is ready.`,
+          html: `<p>Thanks for applying!</p><p>Your application for <strong>${payload.companyName}</strong> is now under review by our team. You'll receive another email as soon as it's approved and your workspace is ready.</p>`,
+        };
       default:
         return {
           subject: String(payload.subject ?? 'E-Watu notification'),
@@ -69,6 +96,17 @@ export class EmailService implements OnModuleInit {
   async send(to: string, template: EmailTemplate, payload: Record<string, unknown>) {
     const { subject, text, html } = this.render(template, payload);
     const from = this.fromAddress();
+
+    if (this.resend) {
+      const { error } = await this.resend.emails.send({ from, to, subject, text, html });
+      if (error) {
+        this.log.error(`[email failed via Resend] To: ${to} | ${subject} | ${error.message}`);
+        throw new Error(`Resend send failed: ${error.message}`);
+      }
+      this.log.log(`[email sent via Resend] To: ${to} | ${subject}`);
+      return { sent: true, mode: 'resend' as const };
+    }
+
     const host = this.config.get<string>('SMTP_HOST');
 
     if (!host?.trim()) {

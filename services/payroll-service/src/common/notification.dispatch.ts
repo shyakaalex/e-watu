@@ -1,12 +1,22 @@
 const SUBJECTS: Record<string, string> = {
-  'payroll-approval-needed': 'Payroll approval required',
-  'payroll-locked': 'Payroll run locked',
-  'payslip-emailed': 'Your payslip is ready',
   'leave-submitted': 'A leave request requires your approval',
   'leave-approved': 'Leave request approved',
   'leave-rejected': 'Leave request rejected',
   'leave-info-requested': 'More information requested on your leave request',
   'permit-expiring': 'Work permit / visa expiring soon',
+  'contract-expiry-90': 'Contract expiring in 90 days',
+  'contract-expiry-60': 'Contract expiring in 60 days',
+  'contract-expiry-30': 'Contract expiring in 30 days',
+  'secondment-contract-expiring': 'Secondment contract expiring soon',
+  'payroll-submitted': 'Payroll run submitted for approval',
+  'payroll-rejected': 'Payroll run rejected',
+  'payroll-reminder': 'Payroll run reminder',
+  'payslip-ready': 'Your payslip is ready',
+  'payroll-finalized': 'Payroll run finalized',
+  // Legacy type names — kept in case anything still dispatches under the old names.
+  'payroll-approval-needed': 'Payroll approval required',
+  'payroll-locked': 'Payroll run locked',
+  'payslip-emailed': 'Your payslip is ready',
 };
 
 /** Builds the short, human-readable line shown in the in-app notification feed — the raw
@@ -32,6 +42,46 @@ function buildInAppMessage(type: string, payload: Record<string, unknown>): stri
     default:
       return SUBJECTS[type] ?? 'You have a new notification.';
   }
+}
+
+// Fields already reflected elsewhere in the email (recipient address, internal ids) or not
+// meaningful to a human reader — left out of the readable field list below.
+const HIDDEN_FIELDS = new Set(['tenantId', 'employeeEmail', 'employeeId', 'clientId', 'alertTier']);
+
+function humanizeKey(key: string): string {
+  const spaced = key.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+function humanizeValue(value: unknown): string {
+  if (value instanceof Date) return value.toLocaleDateString();
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) {
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) return d.toLocaleString();
+  }
+  return String(value);
+}
+
+/** Renders a notification payload as a clean, human-readable field list instead of a raw JSON
+ *  dump — every dispatched type shares this, so no per-type email template is needed. */
+function buildEmailBody(subject: string, payload: Record<string, unknown>): { text: string; html: string } {
+  const rows = Object.entries(payload)
+    .filter(([key, value]) => !HIDDEN_FIELDS.has(key) && value !== undefined && value !== null && value !== '')
+    .map(([key, value]) => [humanizeKey(key), humanizeValue(value)] as const);
+
+  const text = [subject, '', ...rows.map(([k, v]) => `${k}: ${v}`)].join('\n');
+  const html =
+    `<h2 style="margin:0 0 12px;font-family:sans-serif;font-size:18px;">${subject}</h2>` +
+    `<table style="font-family:sans-serif;font-size:14px;border-collapse:collapse;">` +
+    rows
+      .map(([k, v]) => {
+        const isUrl = /^https?:\/\//.test(v);
+        const cell = isUrl ? `<a href="${v}">${v}</a>` : v;
+        return `<tr><td style="padding:4px 16px 4px 0;color:#64748b;white-space:nowrap;">${k}</td><td style="padding:4px 0;font-weight:600;">${cell}</td></tr>`;
+      })
+      .join('') +
+    `</table>`;
+  return { text, html };
 }
 
 async function resolveUserIdByEmail(email: string | undefined): Promise<string | undefined> {
@@ -69,7 +119,7 @@ export async function dispatchNotification(
         ? payload.email
         : undefined;
   const subject = SUBJECTS[type] ?? 'E-Watu notification';
-  const detail = JSON.stringify({ type, ...payload }, null, 2);
+  const { text, html } = buildEmailBody(subject, payload);
   const userId = await resolveUserIdByEmail(to);
 
   try {
@@ -89,8 +139,8 @@ export async function dispatchNotification(
         template: 'generic',
         payload: {
           subject,
-          text: detail,
-          html: `<p>${subject}</p><pre>${detail}</pre>`,
+          text,
+          html,
           notificationType: type,
           ...payload,
         },
